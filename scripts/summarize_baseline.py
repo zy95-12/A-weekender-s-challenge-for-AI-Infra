@@ -152,7 +152,8 @@ def main():
             "profiler": environment.get("profiler", {}).get("version", "legacy capture; see environment and launch logs"),
             "nsight_reports_present": all((path.parent / f"{role}.nsys-rep").exists() for role in ("enterprise", "cloud"))})
     (root / "profile_coverage.json").write_text(json.dumps(profile_coverage, indent=2))
-    completed = ((root / "completion.json").exists() and len(rows) == expected_cells and
+    completion = json.loads((root / "completion.json").read_text()) if (root / "completion.json").exists() else {}
+    completed = (completion.get("result") == "COMPLETED" and len(rows) == expected_cells and
         all(row["repeats"] == configuration["repeats"] for row in rows) and
         (configuration["skip_profile"] or (len(profile_coverage) == len(configuration["pairs"].split(",")) and
          all(row["requests"] == 20 and row["full_lengths_valid"] and row["nsight_reports_present"] for row in profile_coverage))))
