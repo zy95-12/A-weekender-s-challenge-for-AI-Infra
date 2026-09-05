@@ -349,7 +349,8 @@ def worker(rank, args, pipe):
                 if mailbox and arrays is not None:
                     arrays = mailbox.read(0, arrays)
                 result = runner.execute(command, arrays)
-                arrays = None
+                if mailbox:
+                    arrays = None
                 if mailbox and result and "arrays" in result:
                     result = {"meta": result["meta"], "shared_shape": mailbox.write(1, result["arrays"])}
                 pipe.send({"result": result})
@@ -378,7 +379,6 @@ class Executor:
         self.mailbox = LocalMailbox() if args.get("ipc_mode", "pipe") == "shm" and args["role"] == "cloud" else None
         if self.mailbox:
             args = {**args, "local_ipc_names": self.mailbox.names}
-        ctx = mp.get_context("spawn")
         self.pipes, self.processes = [], []
         self.worker_audits = []
         self.healthy = True

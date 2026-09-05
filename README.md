@@ -68,6 +68,25 @@ TTFT/TPOT/QPS 仍由官方客户端统计；遥测覆盖整个客户端进程（
 
 ## API
 
+### 实验性数据路径开关（issue #6）
+
+以下开关默认关闭；只改变无损传输实现，不改变模型、层切分或 WAN 参数：
+
+```bash
+./poc up --wan                               # 原路径：pipe IPC + 原打包
+./poc up --wan --wire-fast                   # 仅减少打包副本
+./poc up --wan --ipc-mode shm                # 仅云侧本机共享缓冲区
+./poc up --wan --ipc-mode shm --wire-fast    # 两者组合
+./poc up --wan --ipc-mode shm --wire-fast --tcp-buffer-mib 16
+```
+
+`shm` 仅连接云侧服务进程和本侧 GPU worker，端云之间仍走 HTTP/TCP 与 tc 整形。
+`--tcp-buffer-mib` 默认 0（系统默认），可选 1–64 MiB；只配置 POC 数据连接两端的 socket，
+在 connect/listen 前设置以协商窗口缩放，需要 Linux CAP_NET_ADMIN，不修改全局 sysctl。
+当前同步 executor 的锁保护单槽缓冲区；响应在锁释放前复制为独立数组，避免后续请求覆盖。
+`/health` 的 `optimizations`、两侧配置和测量记录保留开关值；正式正确性报告必须匹配开关配置。
+这是正在验证的实验特性，不预先承诺推理性能提升。进展见 [实施记录](docs/optimization-progress.md)。
+
 ```bash
 curl http://127.0.0.1:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \

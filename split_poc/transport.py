@@ -64,6 +64,6 @@ def serve(app,host,port,mib=0):
         sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         set_buffers(sock,mib)
         sock.bind((host,port))
-        sock.listen(128)
         config=uvicorn.Config(app,host=host,port=port,access_log=False)
+        sock.listen(config.backlog)
         uvicorn.Server(config).run(sockets=[sock])
