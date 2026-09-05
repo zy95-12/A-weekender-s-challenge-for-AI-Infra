@@ -1,0 +1,42 @@
+{
+  "num_requests": 16,
+  "simulation_start_ms": 0.0,
+  "simulation_end_ms": 7326.641118429959,
+  "simulation_duration_ms": 7326.641118429959,
+  "observed_request_throughput_qps": 2.18381107268274,
+  "observed_output_throughput_tokens_s": 69.88195432584769,
+  "ttft_ms": {
+    "p50": 6158.068155609148,
+    "p95": 6442.0902896299385,
+    "p99": 6454.090289629938
+  },
+  "tpot_ms": {
+    "p50": 21.612865828572467,
+    "p95": 24.21313485714313,
+    "p99": 723.8732539209977
+  },
+  "e2e_ms": {
+    "p50": 7162.060799344243,
+    "p95": 7250.568275458528,
+    "p99": 7251.2491886471
+  },
+  "average_batch_size": 7.5,
+  "resource_utilization": {
+    "cloud_gpu": 0.957392002575715,
+    "edge_gpu": 0.5353008401752954,
+    "wan_down": 0.14824906289838544,
+    "wan_up": 0.15029638577902527
+  },
+  "slo": {
+    "ttft_limit_ms": 3000.0,
+    "tpot_limit_ms": 100.0,
+    "ttft_pass": false,
+    "tpot_pass": false,
+    "pass": false
+  },
+  "static_policy": {
+    "batch_size": 8,
+    "max_batched_tokens": 8192,
+    "prefill_chunk_size": 512
+  }
+}

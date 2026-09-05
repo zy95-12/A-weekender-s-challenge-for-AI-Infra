@@ -1,0 +1,89 @@
+{
+  "model": {
+    "name": "qwen3-32b-analytical",
+    "num_layers": 64,
+    "hidden_size": 5120,
+    "dtype_bytes": 2,
+    "params_per_layer_factor": 12.0
+  },
+  "topology": {
+    "stages": [
+      {
+        "name": "edge_front",
+        "layer_start": 0,
+        "layer_end": 6,
+        "resource": "edge_gpu",
+        "tp_degree": 1
+      },
+      {
+        "name": "cloud_middle",
+        "layer_start": 6,
+        "layer_end": 62,
+        "resource": "cloud_gpu",
+        "tp_degree": 4
+      },
+      {
+        "name": "edge_tail",
+        "layer_start": 62,
+        "layer_end": 64,
+        "resource": "edge_gpu",
+        "tp_degree": 1
+      }
+    ]
+  },
+  "hardware": {
+    "edge_gpu": {
+      "count": 1,
+      "peak_flops_tflops": 148,
+      "hbm_bandwidth_gb_s": 4000,
+      "memory_gb": 96,
+      "compute_efficiency": 0.65,
+      "memory_efficiency": 0.70,
+      "kernel_overhead_us": 10
+    },
+    "cloud_gpu": {
+      "count": 4,
+      "peak_flops_tflops": 148,
+      "hbm_bandwidth_gb_s": 4000,
+      "memory_gb": 96,
+      "compute_efficiency": 0.65,
+      "memory_efficiency": 0.70,
+      "kernel_overhead_us": 10,
+      "interconnect_bandwidth_gb_s": 400,
+      "interconnect_latency_us": 5
+    }
+  },
+  "network": {
+    "uplink_gbps": 10,
+    "downlink_gbps": 10,
+    "rtt_ms": 10,
+    "efficiency": 0.8
+  },
+  "static_policy": {
+    "batch_size": 8,
+    "max_batched_tokens": 8192,
+    "prefill_chunk_size": 512,
+    "decode_priority": true,
+    "edge_tail_priority": true,
+    "pipeline_depth": 4,
+    "max_outstanding_prefill_chunks": 16,
+    "dispatch_mode": "eager"
+  },
+  "workload": {
+    "mode": "synthetic",
+    "num_requests": 16,
+    "arrival_process": "constant",
+    "arrival_interval_ms": 20,
+    "input_tokens": 4096,
+    "output_tokens": 32,
+    "random_seed": 42
+  },
+  "slo": {
+    "ttft_ms": 3000,
+    "tpot_ms": 100
+  },
+  "simulation": {
+    "max_time_s": 3600,
+    "trace_enabled": true
+  }
+}
