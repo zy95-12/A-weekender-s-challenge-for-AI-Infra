@@ -8,6 +8,7 @@ import argparse
 import asyncio
 import json
 import multiprocessing as mp
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import statistics
 import subprocess
@@ -84,6 +85,7 @@ def client(args):
     import httpx
     sizes = [8192, 32768, 4*1024**2, 16*1024**2, 64*1024**2]
     rows = []
+    concurrent_rows = []
     output = Path(args.output)
     with httpx.Client(base_url="http://10.205.0.2:8099", timeout=60, trust_env=False) as http:
         for size in sizes:
@@ -108,6 +110,30 @@ def client(args):
                         "unpack_ms": (end-received)*1000, "total_ms": (end-start)*1000,
                         "server": json.loads(response.headers["x-phases"])})
                 print(f"PASS bytes={size} ipc={ipc}", flush=True)
+        # Separate experiments: multiple messages in flight, same real TCP path.
+        for size in (8192, 64*1024**2):
+            arrays=[np.full((size//8192,2048),v,np.float16) for v in (.25,-.5)]
+            body=pack({"ipc":True},arrays)
+            def send_one(index):
+                start=time.perf_counter()
+                response=http.post("/echo",content=body)
+                response.raise_for_status()
+                end=time.perf_counter()
+                _,result=unpack(response.content)
+                for expected,actual in zip(arrays,result):
+                    np.testing.assert_array_equal(expected,actual)
+                return {"http_wall_ms":(end-start)*1000,"server":json.loads(response.headers["x-phases"])}
+            for inflight in (2,4):
+                with ThreadPoolExecutor(max_workers=inflight) as pool:
+                    list(pool.map(send_one,range(inflight)))  # unmeasured warmup
+                    for repeat in range(3):
+                        start=time.perf_counter()
+                        measured=list(pool.map(send_one,range(inflight)))
+                        elapsed=time.perf_counter()-start
+                        concurrent_rows.append({"bytes_each_direction":size,"inflight":inflight,
+                            "repeat":repeat,"requests":measured,"group_wall_ms":elapsed*1000,
+                            "aggregate_payload_gbps":2*size*inflight*8/elapsed/1e9})
+                print(f"PASS inflight={inflight} bytes={size}",flush=True)
         tcp=subprocess.run(["ss","-tinm"],capture_output=True,text=True).stdout
     summary=[]
     for size in sizes:
@@ -118,7 +144,7 @@ def client(args):
                 "server":{k:statistics.mean(r["server"][k] for r in selected) for k in selected[0]["server"]}})
     output.write_text(json.dumps({"result":"PASS","command":sys.argv,"rows":rows,"summary":summary,
         "scope":"CPU tensor echo; no GPU compute. Server phases nest inside client HTTP wall. One unmeasured warmup per size/mode.",
-        "tcp":tcp},indent=2))
+        "concurrent_rows":concurrent_rows,"tcp":tcp},indent=2))
 
 
 def main():
