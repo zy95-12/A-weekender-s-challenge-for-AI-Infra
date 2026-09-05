@@ -108,6 +108,7 @@ def client(args):
                         "unpack_ms": (end-received)*1000, "total_ms": (end-start)*1000,
                         "server": json.loads(response.headers["x-phases"])})
                 print(f"PASS bytes={size} ipc={ipc}", flush=True)
+        tcp=subprocess.run(["ss","-tinm"],capture_output=True,text=True).stdout
     summary=[]
     for size in sizes:
         for ipc in (False, True):
@@ -117,7 +118,7 @@ def client(args):
                 "server":{k:statistics.mean(r["server"][k] for r in selected) for k in selected[0]["server"]}})
     output.write_text(json.dumps({"result":"PASS","command":sys.argv,"rows":rows,"summary":summary,
         "scope":"CPU tensor echo; no GPU compute. Server phases nest inside client HTTP wall. One unmeasured warmup per size/mode.",
-        "tcp":subprocess.run(["ss","-tinm"],capture_output=True,text=True).stdout},indent=2))
+        "tcp":tcp},indent=2))
 
 
 def main():
