@@ -1,0 +1,2 @@
+{"observed_time_ns": 1788621554242518519, "line": "Error: unable to establish a connection to the specified host: localhost", "clock_semantics": "host timestamp when line read; DCGM counters sampled at 1Hz"}
+{"observed_time_ns": 1788621554242580010, "line": "Error: Unable to connect to host engine. Host engine connection invalid/disconnected.", "clock_semantics": "host timestamp when line read; DCGM counters sampled at 1Hz"}

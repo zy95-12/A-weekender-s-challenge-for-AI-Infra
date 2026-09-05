@@ -1,0 +1,28 @@
+diff --git a/split_poc/runtime.py b/split_poc/runtime.py
+index a5ee0af..3de8e9f 100644
+--- a/split_poc/runtime.py
++++ b/split_poc/runtime.py
+@@ -126,0 +127,11 @@ class PartialModel(torch.nn.Module):
++            folder=os.environ.get("SPLIT_NUMERICS_CAPTURE")
++            if folder and torch.distributed.get_rank()==0:
++                from pathlib import Path
++                ps=positions.cpu().numpy()
++                chosen=[j for j,p in enumerate(ps) if p in {0,15,127,511,1023,1024,2047,4095,8191,8192,8193,8194,8195,8196}]
++                if chosen:
++                    dest=Path(folder);dest.mkdir(parents=True,exist_ok=True)
++                    values=hidden[chosen].cpu().numpy()
++                    residuals=residual[chosen].cpu().numpy()
++                    for j,row in enumerate(chosen):
++                        np.savez(dest/f"layer{i}_position{int(ps[row])}.npz",hidden=values[j],residual=residuals[j])
+@@ -154,0 +166,11 @@ class Runner:
++        if os.environ.get("SPLIT_DIAGNOSTIC_FP32_LINEAR"):
++            from vllm.model_executor.layers.linear import UnquantizedLinearMethod
++            original_apply=UnquantizedLinearMethod.apply
++            def diagnostic_apply(method,layer,x,bias=None):
++                if x.shape[0]>1:
++                    if not hasattr(layer,"_diagnostic_weight_fp32"):
++                        layer._diagnostic_weight_fp32=layer.weight.float()
++                    return torch.nn.functional.linear(x.float(),layer._diagnostic_weight_fp32,
++                            None if bias is None else bias.float()).to(x.dtype)
++                return original_apply(method,layer,x,bias)
++            UnquantizedLinearMethod.apply=diagnostic_apply

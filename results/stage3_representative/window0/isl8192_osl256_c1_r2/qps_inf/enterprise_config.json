@@ -1,0 +1,37 @@
+{
+  "role": "enterprise",
+  "model": "/root/issue6-stage3-worktree/models/qwen",
+  "split": "1:3",
+  "tp": 2,
+  "kv_blocks": 8192,
+  "dist_port": 29501,
+  "port": 8000,
+  "host": "0.0.0.0",
+  "cloud": "http://10.205.0.2:8001",
+  "max_active": 8,
+  "results": "/root/issue6-stage3-worktree/results/20260905-232328",
+  "diagnostics": true,
+  "ipc_mode": "shm",
+  "wire_fast": true,
+  "prefill_chunk_size": 0,
+  "scheduler_policy": "legacy",
+  "decode_quota": 1,
+  "tcp_buffer_mib": 16,
+  "pipeline_window": 0,
+  "phase_profile": false,
+  "model_id": "Qwen/Qwen2.5-3B-Instruct",
+  "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+  "vllm": "0.10.2",
+  "dtype": "float16",
+  "attention_backend": "FLASH_ATTN",
+  "runtime": "custom vLLM V0 partial runner",
+  "split_layers": [
+    4,
+    27,
+    5
+  ],
+  "clock_sample": {
+    "wall_time_ns": 1788621842871020958,
+    "monotonic_ns": 3311817235241
+  }
+}

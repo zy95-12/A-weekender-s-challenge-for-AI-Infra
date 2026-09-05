@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "fault": "terminate owned cloud rank0 during an active request",
+  "killed_owned_worker_pid": 27336,
+  "stream_error": {
+    "message": "Server error '503 Service Unavailable' for url 'http://10.205.0.2:8001/forward'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503",
+    "type": "server_error"
+  },
+  "failure_detection_seconds": 0.35404629399999976,
+  "health_status": 503,
+  "new_request_status": 503
+}
