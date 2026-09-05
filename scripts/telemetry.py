@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import threading
 import time
 import urllib.request
 
@@ -16,9 +17,19 @@ def main():
     args = parser.parse_args()
     root = Path(args.output)
     root.mkdir(parents=True, exist_ok=True)
-    dcgm_log = (root / "dcgm_metrics.txt").open("w")
-    dcgm = subprocess.Popen(["dcgmi", "dmon", "-e", "1001,1002,1005,1009,1010,155,100,101,203,204,252",
-                             "-d", "1000", "-c", str(args.seconds)], stdout=dcgm_log, stderr=subprocess.STDOUT)
+    dcgm_log = (root / "dcgm_metrics.txt").open("w", buffering=1)
+    dcgm_timed = (root / "dcgm_timestamped.jsonl").open("w", buffering=1)
+    dcgm = subprocess.Popen(["stdbuf", "-oL", "dcgmi", "dmon", "-e", "1001,1002,1005,1009,1010,155,100,101,203,204,252",
+                             "-d", "1000", "-c", str(args.seconds)], stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, text=True, bufsize=1)
+    def record_dcgm():
+        for line in dcgm.stdout:
+            stamp = time.time_ns()
+            dcgm_log.write(line)
+            dcgm_timed.write(json.dumps({"observed_time_ns": stamp, "line": line.rstrip(),
+                "clock_semantics": "host timestamp when line read; DCGM counters sampled at 1Hz"}) + "\n")
+    dcgm_reader = threading.Thread(target=record_dcgm, daemon=True)
+    dcgm_reader.start()
     with (root / "gpu_metrics.csv").open("w", buffering=1) as gpu, (root / "runtime_metrics.jsonl").open("w", buffering=1) as runtime:
         gpu.write("time_ns," + FIELDS + "\n")
         for _ in range(args.seconds):
@@ -38,7 +49,9 @@ def main():
                                           "metrics": response.stdout, "error": response.stderr}) + "\n")
             time.sleep(max(0, 1 - (time.monotonic() - start)))
     dcgm.wait(timeout=10)
+    dcgm_reader.join(timeout=5)
     dcgm_log.close()
+    dcgm_timed.close()
 
 
 if __name__ == "__main__":

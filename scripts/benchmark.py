@@ -22,12 +22,15 @@ def main():
     parser.add_argument("--output", default="results/benchmark")
     parser.add_argument("--url", default="http://127.0.0.1:8000")
     parser.add_argument("--correctness-report")
+    parser.add_argument("--baseline", action="store_true", help="Measure a baseline without SLO acceptance gates")
+    parser.add_argument("--max-concurrency", type=int)
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     launch_file = ROOT / "run/launch.json"
     deployment = json.loads(launch_file.read_text()) if launch_file.exists() else None
-    if deployment and deployment.get("profile"):
+    if deployment and (deployment.get("profile") or deployment.get("phase_profile")):
         raise SystemExit("Restart the demo without --profile before measuring SLO")
-    if args.requests >= 1000:
+    if args.correctness_report or (args.requests >= 1000 and not args.baseline):
         if not args.correctness_report or json.loads(Path(args.correctness_report).read_text()).get("result") != "PASS":
             raise SystemExit("Formal benchmark requires --correctness-report pointing to a PASS summary.json")
         validated = json.loads(Path(args.correctness_report).read_text())["server"]
@@ -82,7 +85,11 @@ def main():
             "--request-id-prefix", prefix,
             "--save-result", "--save-detailed", "--result-dir", str(folder),
             "--result-filename", "benchmark.json", "--percentile-metrics", "ttft,tpot,itl,e2el",
-            "--metric-percentiles", "50,95,99", "--goodput", "ttft:3000", "tpot:100", "--seed", "0"]
+            "--metric-percentiles", "50,95,99", "--seed", str(args.seed)]
+        if not args.baseline:
+            command += ["--goodput", "ttft:3000", "tpot:100"]
+        if args.max_concurrency:
+            command += ["--max-concurrency", str(args.max_concurrency)]
         (folder / "config.json").write_text(json.dumps({"command": command, "deployment": deployment, **vars(args)}, indent=2))
         telemetry = None
         if live:
@@ -106,22 +113,33 @@ def main():
         lengths_ok = all(length == args.output_tokens for length, error in
                          zip(result["output_lens"], result["errors"]) if not error)
         lengths_ok = lengths_ok and all(length == args.input for length in result["input_lens"])
-        point = {"offered_qps": float(rate), "achieved_qps": result["request_throughput"],
+        point = {"offered_qps": None if rate == "inf" else float(rate),
+                 "arrival_mode": "closed_loop" if rate == "inf" else "poisson",
+                 "max_concurrency": args.max_concurrency, "seed": args.seed,
+                 "achieved_qps": result["request_throughput"],
                  "success_rate": success, "p99_ttft_ms": result["p99_ttft_ms"],
                  "p99_tpot_ms": result["p99_tpot_ms"], "fixed_output_length_valid": lengths_ok}
+        for metric in ("mean_ttft_ms", "median_ttft_ms", "p50_ttft_ms", "p95_ttft_ms",
+                       "mean_tpot_ms", "median_tpot_ms", "p50_tpot_ms", "p95_tpot_ms",
+                       "mean_e2el_ms", "p50_e2el_ms", "p95_e2el_ms", "p99_e2el_ms",
+                       "output_throughput", "duration", "completed"):
+            if metric in result:
+                point[metric] = result[metric]
         point["slo_pass"] = (success >= .99 and lengths_ok and point["p99_ttft_ms"] <= 3000
                              and point["p99_tpot_ms"] <= 100)
         points.append(point)
+        if args.baseline and (success != 1 or not lengths_ok):
+            raise RuntimeError("Baseline has failed requests or invalid token lengths; inspect raw client result")
         with (folder / "requests.jsonl").open("w") as f:
             for i, (ttft, itls, length, error) in enumerate(zip(result["ttfts"], result["itls"], result["output_lens"], result["errors"])):
                 f.write(json.dumps({"client_request_id": prefix + str(i), "ttft_ms": ttft * 1000,
                     "tpot_ms": sum(itls) * 1000 / (length - 1) if length > 1 else None,
                     "e2e_ms": (ttft + sum(itls)) * 1000, "output_tokens": length, "error": error}) + "\n")
-    passing = [p for p in points if p["slo_pass"]]
+    passing = [p for p in points if p["slo_pass"] and p["offered_qps"] is not None]
     summary = {"points": points, "max_slo_offered_qps": (max((p["offered_qps"] for p in passing), default=None)
-                                                        if args.requests >= 1000 else None),
+                                                        if args.requests >= 1000 and not args.baseline else None),
                "sample_count_per_point": args.requests,
-               "classification": "formal" if args.requests >= 1000 else "smoke_only",
+               "classification": "baseline" if args.baseline else "formal" if args.requests >= 1000 else "smoke_only",
                "note": "Highest tested passing offered rate; achieved throughput is reported separately."}
     (dest / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))

@@ -27,12 +27,18 @@ def main():
     parser.add_argument("--output", default="results/correctness")
     parser.add_argument("--url", default="http://127.0.0.1:8000")
     parser.add_argument("--steps", type=int, default=33)
+    parser.add_argument("--cross-tp-observation", action="store_true",
+                        help="Record cross-TP differences, not same-TP precision acceptance")
     args = parser.parse_args()
     root, output = Path(args.reference), Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     reports = []
+    free_reports = []
     with httpx.Client(base_url=args.url, timeout=300, trust_env=False) as client:
         health = client.get("/health").json()
+        reference_config = json.loads((root / "config.json").read_text())
+        if args.cross_tp_observation and health["tp"] == health["cloud_tp"] == reference_config["tp"]:
+            raise RuntimeError("Cross-TP mode requires genuinely different TP configurations")
         for path in sorted(root.glob("len_*/repeat_0/reference.npz")):
             ref = np.load(path)
             prompt, tokens = ref["prompt_ids"].tolist(), ref["tokens"][:args.steps].tolist()
@@ -63,17 +69,20 @@ def main():
             response = client.post("/debug/greedy", json={"prompt_ids": prompt, "steps": 32})
             response.raise_for_status()
             free = response.json()["tokens"]
-            if free != ref["tokens"][:32].tolist():
-                raise RuntimeError(f"Free-running mismatch at length={length}")
+            expected_free = ref["tokens"][:32].tolist()
+            free_reports.append({"prompt_tokens": length, "expected_tokens": expected_free,
+                                 "actual_tokens": free, "exact_match": free == expected_free})
             print(f"Checked split={health['split']} length={length} steps={len(tokens)}", flush=True)
     if not reports:
         raise RuntimeError("No reference cases")
     top5 = float(np.mean([r["top5_agreement"] for r in reports]))
-    passed = all(r["result"] == "PASS" for r in reports) and top5 >= .99
+    passed = all(r["result"] == "PASS" for r in reports) and top5 >= .99 and all(r["exact_match"] for r in free_reports)
     with (output / "comparison.jsonl").open("w") as f:
         for row in reports:
             f.write(json.dumps(row) + "\n")
-    summary = {"result": "PASS" if passed else "FAIL", "comparisons": len(reports),
+    summary = {"result": "CROSS_TP_OBSERVATION" if args.cross_tp_observation else "PASS" if passed else "FAIL",
+               "same_tp_thresholds_met": passed, "reference_tp": reference_config["tp"],
+               "free_running": free_reports, "comparisons": len(reports),
                "max_mae": max(r["mae"] for r in reports),
                "max_abs_error": max(r["max_abs_error"] for r in reports),
                "min_cosine": min(r["cosine_similarity"] for r in reports),
@@ -81,7 +90,7 @@ def main():
                "configuration": vars(args), "server": health}
     (output / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
-    if not passed:
+    if not passed and not args.cross_tp_observation:
         raise SystemExit(1)
 
 

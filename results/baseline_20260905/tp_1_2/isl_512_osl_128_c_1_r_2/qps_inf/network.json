@@ -1,0 +1,12 @@
+{
+  "split-enterprise": {
+    "exit_code": 0,
+    "stdout": "[{\"kind\":\"tbf\",\"handle\":\"1:\",\"root\":true,\"refcnt\":129,\"options\":{\"rate\":1250000000,\"burst\":2097120,\"lat\":100000},\"bytes\":30070754494,\"packets\":20098941,\"drops\":0,\"overlimits\":919584,\"requeues\":0,\"backlog\":0,\"qlen\":0},{\"kind\":\"netem\",\"handle\":\"10:\",\"parent\":\"1:1\",\"options\":{\"limit\":100000,\"delay\":{\"delay\":0.005,\"jitter\":0,\"correlation\":0},\"ecn\":false,\"gap\":0},\"bytes\":30070754494,\"packets\":20098941,\"drops\":0,\"overlimits\":0,\"requeues\":0,\"backlog\":0,\"qlen\":0}]\n",
+    "stderr": ""
+  },
+  "split-cloud": {
+    "exit_code": 0,
+    "stdout": "[{\"kind\":\"tbf\",\"handle\":\"1:\",\"root\":true,\"refcnt\":129,\"options\":{\"rate\":1250000000,\"burst\":2097120,\"lat\":100000},\"bytes\":11573191582,\"packets\":8083150,\"drops\":0,\"overlimits\":49116,\"requeues\":0,\"backlog\":0,\"qlen\":0},{\"kind\":\"netem\",\"handle\":\"10:\",\"parent\":\"1:1\",\"options\":{\"limit\":100000,\"delay\":{\"delay\":0.005,\"jitter\":0,\"correlation\":0},\"ecn\":false,\"gap\":0},\"bytes\":11573191582,\"packets\":8083150,\"drops\":0,\"overlimits\":0,\"requeues\":0,\"backlog\":0,\"qlen\":0}]\n",
+    "stderr": ""
+  }
+}

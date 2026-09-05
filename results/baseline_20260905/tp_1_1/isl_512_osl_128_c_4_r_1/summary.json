@@ -1,0 +1,35 @@
+{
+  "points": [
+    {
+      "offered_qps": null,
+      "arrival_mode": "closed_loop",
+      "max_concurrency": 4,
+      "seed": 1,
+      "achieved_qps": 0.9430635778088929,
+      "success_rate": 1.0,
+      "p99_ttft_ms": 386.03999845108774,
+      "p99_tpot_ms": 32.59281934803201,
+      "fixed_output_length_valid": true,
+      "mean_ttft_ms": 240.19477974991332,
+      "median_ttft_ms": 241.9568920004167,
+      "p50_ttft_ms": 241.9568920004167,
+      "p95_ttft_ms": 378.717216250152,
+      "mean_tpot_ms": 31.502598044292743,
+      "median_tpot_ms": 31.513226417321377,
+      "p50_tpot_ms": 31.513226417321377,
+      "p95_tpot_ms": 32.585037622041234,
+      "mean_e2el_ms": 4241.0247313750915,
+      "p50_e2el_ms": 4239.328302499416,
+      "p95_e2el_ms": 4250.366605999261,
+      "p99_e2el_ms": 4250.859683600538,
+      "output_throughput": 120.7121379595383,
+      "duration": 16.965982332998465,
+      "completed": 16,
+      "slo_pass": true
+    }
+  ],
+  "max_slo_offered_qps": null,
+  "sample_count_per_point": 16,
+  "classification": "baseline",
+  "note": "Highest tested passing offered rate; achieved throughput is reported separately."
+}

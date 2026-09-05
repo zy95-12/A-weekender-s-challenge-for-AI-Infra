@@ -1,0 +1,1238 @@
+{
+  "result": "PASS",
+  "points": 96,
+  "checked_requests": 1152,
+  "reports": [
+    {
+      "point": "tp_1_1/isl_2048_osl_1024_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_1024_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_1024_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_1024_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_1024_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_1024_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_256_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_256_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_256_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_256_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_256_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_1/isl_2048_osl_256_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_1/isl_512_osl_128_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_1_1/isl_512_osl_128_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_1_1/isl_512_osl_128_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_1_1/isl_512_osl_128_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_1_1/isl_512_osl_128_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_1_1/isl_512_osl_128_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_1_1/isl_8192_osl_256_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_1/isl_8192_osl_256_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_1/isl_8192_osl_256_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_1/isl_8192_osl_256_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_1/isl_8192_osl_256_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_1/isl_8192_osl_256_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_1024_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_1024_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_1024_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_1024_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_1024_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_1024_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_256_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_256_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_256_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_256_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_256_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_2/isl_2048_osl_256_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_2/isl_512_osl_128_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_1_2/isl_512_osl_128_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_1_2/isl_512_osl_128_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_1_2/isl_512_osl_128_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_1_2/isl_512_osl_128_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_1_2/isl_512_osl_128_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_1_2/isl_8192_osl_256_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_2/isl_8192_osl_256_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_2/isl_8192_osl_256_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_1_2/isl_8192_osl_256_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_2/isl_8192_osl_256_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_1_2/isl_8192_osl_256_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_1024_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_1024_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_1024_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_1024_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_1024_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_1024_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_256_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_256_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_256_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_256_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_256_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_1/isl_2048_osl_256_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_1/isl_512_osl_128_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_2_1/isl_512_osl_128_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_2_1/isl_512_osl_128_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_2_1/isl_512_osl_128_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_2_1/isl_512_osl_128_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_2_1/isl_512_osl_128_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_2_1/isl_8192_osl_256_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_1/isl_8192_osl_256_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_1/isl_8192_osl_256_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_1/isl_8192_osl_256_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_1/isl_8192_osl_256_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_1/isl_8192_osl_256_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_1024_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_1024_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_1024_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 8192
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_1024_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_1024_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_1024_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 1024,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 4092
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_256_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_256_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_256_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_256_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_256_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_2/isl_2048_osl_256_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 2048,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_2/isl_512_osl_128_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_2_2/isl_512_osl_128_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_2_2/isl_512_osl_128_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 1024
+      }
+    },
+    {
+      "point": "tp_2_2/isl_512_osl_128_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_2_2/isl_512_osl_128_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_2_2/isl_512_osl_128_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 512,
+      "osl": 128,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 508
+      }
+    },
+    {
+      "point": "tp_2_2/isl_8192_osl_256_c_1_r_0",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_2/isl_8192_osl_256_c_1_r_1",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_2/isl_8192_osl_256_c_1_r_2",
+      "result": "PASS",
+      "requests": 8,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 2048
+      }
+    },
+    {
+      "point": "tp_2_2/isl_8192_osl_256_c_4_r_0",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_2/isl_8192_osl_256_c_4_r_1",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    },
+    {
+      "point": "tp_2_2/isl_8192_osl_256_c_4_r_2",
+      "result": "PASS",
+      "requests": 16,
+      "isl": 8192,
+      "osl": 256,
+      "wan_10gbps_one_way_5ms_verified": true,
+      "profiler_disabled_verified": true,
+      "unique_batch_size_histogram": {
+        "1": 16,
+        "4": 1020
+      }
+    }
+  ],
+  "profiles": [
+    {
+      "topology": "tp_1_1",
+      "result": "PASS",
+      "requests": 20,
+      "token_steps": 8320,
+      "unique_batches": 3340
+    },
+    {
+      "topology": "tp_1_2",
+      "result": "PASS",
+      "requests": 20,
+      "token_steps": 8320,
+      "unique_batches": 3340
+    },
+    {
+      "topology": "tp_2_1",
+      "result": "PASS",
+      "requests": 20,
+      "token_steps": 8320,
+      "unique_batches": 3340
+    },
+    {
+      "topology": "tp_2_2",
+      "result": "PASS",
+      "requests": 20,
+      "token_steps": 8320,
+      "unique_batches": 3340
+    }
+  ],
+  "meaning": "Per-request incremental execution and RPC byte-size consistency, not a logits proof"
+}

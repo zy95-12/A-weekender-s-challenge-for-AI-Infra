@@ -1,0 +1,266 @@
+{
+  "classification": "profile_only",
+  "cases": [
+    {
+      "client_request_id": "profile-isl-512-osl-128-c-1-i-0",
+      "internal_request_id": "chatcmpl-268bc1a668514718addc6aee590d0f20",
+      "isl": 512,
+      "osl": 128,
+      "concurrency": 1,
+      "seconds": 5.294651696000074,
+      "usage": {
+        "prompt_tokens": 512,
+        "completion_tokens": 128,
+        "total_tokens": 640
+      }
+    },
+    {
+      "client_request_id": "profile-isl-512-osl-128-c-4-i-0",
+      "internal_request_id": "chatcmpl-eef2914bac744c1ea29ede0988703e4c",
+      "isl": 512,
+      "osl": 128,
+      "concurrency": 4,
+      "seconds": 5.698052914998698,
+      "usage": {
+        "prompt_tokens": 512,
+        "completion_tokens": 128,
+        "total_tokens": 640
+      }
+    },
+    {
+      "client_request_id": "profile-isl-512-osl-128-c-4-i-1",
+      "internal_request_id": "chatcmpl-91919f5803e44b6faa967b57bddb81bd",
+      "isl": 512,
+      "osl": 128,
+      "concurrency": 4,
+      "seconds": 5.697454047000065,
+      "usage": {
+        "prompt_tokens": 512,
+        "completion_tokens": 128,
+        "total_tokens": 640
+      }
+    },
+    {
+      "client_request_id": "profile-isl-512-osl-128-c-4-i-2",
+      "internal_request_id": "chatcmpl-4eba997a613d41f1b98e92a342465594",
+      "isl": 512,
+      "osl": 128,
+      "concurrency": 4,
+      "seconds": 5.697165151999798,
+      "usage": {
+        "prompt_tokens": 512,
+        "completion_tokens": 128,
+        "total_tokens": 640
+      }
+    },
+    {
+      "client_request_id": "profile-isl-512-osl-128-c-4-i-3",
+      "internal_request_id": "chatcmpl-2c91d8351bd845e18b1e6646cd0b5f4b",
+      "isl": 512,
+      "osl": 128,
+      "concurrency": 4,
+      "seconds": 5.69730916700064,
+      "usage": {
+        "prompt_tokens": 512,
+        "completion_tokens": 128,
+        "total_tokens": 640
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-256-c-1-i-0",
+      "internal_request_id": "chatcmpl-e6255778e8534404ac5ca8451b4d8752",
+      "isl": 2048,
+      "osl": 256,
+      "concurrency": 1,
+      "seconds": 10.409970859000168,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 256,
+        "total_tokens": 2304
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-256-c-4-i-0",
+      "internal_request_id": "chatcmpl-7b15763fe2a348b4bded9b891807f3b3",
+      "isl": 2048,
+      "osl": 256,
+      "concurrency": 4,
+      "seconds": 11.955056529001013,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 256,
+        "total_tokens": 2304
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-256-c-4-i-1",
+      "internal_request_id": "chatcmpl-b57ae4d5f220486d9e686230c8c5382e",
+      "isl": 2048,
+      "osl": 256,
+      "concurrency": 4,
+      "seconds": 11.954445079001744,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 256,
+        "total_tokens": 2304
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-256-c-4-i-2",
+      "internal_request_id": "chatcmpl-fd7f18ee548942ab846676d2fc7a354e",
+      "isl": 2048,
+      "osl": 256,
+      "concurrency": 4,
+      "seconds": 11.95419207300074,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 256,
+        "total_tokens": 2304
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-256-c-4-i-3",
+      "internal_request_id": "chatcmpl-b86f7835c80b433ab4e1c625067d0f3c",
+      "isl": 2048,
+      "osl": 256,
+      "concurrency": 4,
+      "seconds": 11.954348616996867,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 256,
+        "total_tokens": 2304
+      }
+    },
+    {
+      "client_request_id": "profile-isl-8192-osl-256-c-1-i-0",
+      "internal_request_id": "chatcmpl-f613ba29e5e3458d8e63b0275b98ac68",
+      "isl": 8192,
+      "osl": 256,
+      "concurrency": 1,
+      "seconds": 12.005076464996819,
+      "usage": {
+        "prompt_tokens": 8192,
+        "completion_tokens": 256,
+        "total_tokens": 8448
+      }
+    },
+    {
+      "client_request_id": "profile-isl-8192-osl-256-c-4-i-0",
+      "internal_request_id": "chatcmpl-04a26fdd847647a5a094bbafb63bc469",
+      "isl": 8192,
+      "osl": 256,
+      "concurrency": 4,
+      "seconds": 17.845684979998623,
+      "usage": {
+        "prompt_tokens": 8192,
+        "completion_tokens": 256,
+        "total_tokens": 8448
+      }
+    },
+    {
+      "client_request_id": "profile-isl-8192-osl-256-c-4-i-1",
+      "internal_request_id": "chatcmpl-5f8f2308efff494a9a6a2fa3d4ecc35c",
+      "isl": 8192,
+      "osl": 256,
+      "concurrency": 4,
+      "seconds": 17.845570197001507,
+      "usage": {
+        "prompt_tokens": 8192,
+        "completion_tokens": 256,
+        "total_tokens": 8448
+      }
+    },
+    {
+      "client_request_id": "profile-isl-8192-osl-256-c-4-i-2",
+      "internal_request_id": "chatcmpl-612ab6a155ee43be83ea6696bd5b8b7f",
+      "isl": 8192,
+      "osl": 256,
+      "concurrency": 4,
+      "seconds": 17.8453247940015,
+      "usage": {
+        "prompt_tokens": 8192,
+        "completion_tokens": 256,
+        "total_tokens": 8448
+      }
+    },
+    {
+      "client_request_id": "profile-isl-8192-osl-256-c-4-i-3",
+      "internal_request_id": "chatcmpl-1811f6ebf58e4b0ea2292b35146cd35f",
+      "isl": 8192,
+      "osl": 256,
+      "concurrency": 4,
+      "seconds": 17.845097073000943,
+      "usage": {
+        "prompt_tokens": 8192,
+        "completion_tokens": 256,
+        "total_tokens": 8448
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-1024-c-1-i-0",
+      "internal_request_id": "chatcmpl-25de90a8b4234cdd9f459bf44de5f72b",
+      "isl": 2048,
+      "osl": 1024,
+      "concurrency": 1,
+      "seconds": 40.43448427600015,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 1024,
+        "total_tokens": 3072
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-1024-c-4-i-0",
+      "internal_request_id": "chatcmpl-2b642560cfbc46a3b415e89ad3a03675",
+      "isl": 2048,
+      "osl": 1024,
+      "concurrency": 4,
+      "seconds": 43.009850603000814,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 1024,
+        "total_tokens": 3072
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-1024-c-4-i-1",
+      "internal_request_id": "chatcmpl-dfa53ed7b1db427c979733175e83eed5",
+      "isl": 2048,
+      "osl": 1024,
+      "concurrency": 4,
+      "seconds": 43.00877608600058,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 1024,
+        "total_tokens": 3072
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-1024-c-4-i-2",
+      "internal_request_id": "chatcmpl-1d3635c1d1b8417da02febe5bb56858c",
+      "isl": 2048,
+      "osl": 1024,
+      "concurrency": 4,
+      "seconds": 43.00928605499939,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 1024,
+        "total_tokens": 3072
+      }
+    },
+    {
+      "client_request_id": "profile-isl-2048-osl-1024-c-4-i-3",
+      "internal_request_id": "chatcmpl-1b90b5029a8e4095a0953f707b492bc0",
+      "isl": 2048,
+      "osl": 1024,
+      "concurrency": 4,
+      "seconds": 43.00908246199833,
+      "usage": {
+        "prompt_tokens": 2048,
+        "completion_tokens": 1024,
+        "total_tokens": 3072
+      }
+    }
+  ],
+  "not_for_baseline_throughput": true
+}

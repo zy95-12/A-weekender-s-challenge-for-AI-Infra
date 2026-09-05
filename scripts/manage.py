@@ -6,12 +6,18 @@ from pathlib import Path
 import signal
 import subprocess
 import sys
+import sysconfig
 import time
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN = ROOT / "run"
 PYTHON = ROOT / ".venv/bin/python"
+
+
+def profiler_binary():
+    isolated = Path.home() / ".local/opt/nsight-systems-2025.3.1/opt/nvidia/nsight-systems-cli/2025.3.1/target-linux-x64/nsys"
+    return os.environ.get("SPLIT_NSYS_BIN", str(isolated) if isolated.is_file() else "nsys")
 
 
 def spawn(name, command, env=None):
@@ -34,7 +40,7 @@ def stop():
         proc = Path(f"/proc/{info['pid']}/stat")
         if proc.exists() and proc.read_text().split()[21] == info["start_ticks"]:
             os.killpg(info["pid"], signal.SIGTERM)
-            for _ in range(450 if "nsys" in info["command"] else 100):
+            for _ in range(450 if any(Path(arg).name == "nsys" for arg in info["command"]) else 100):
                 if not proc.exists():
                     break
                 time.sleep(0.1)
@@ -95,14 +101,24 @@ def up(args):
            "TRANSFORMERS_OFFLINE": "1", "NCCL_SOCKET_IFNAME": "lo", "GLOO_SOCKET_IFNAME": "lo",
            "OMP_NUM_THREADS": "4", "VLLM_ATTENTION_BACKEND": "FLASH_ATTN",
            "TOKENIZERS_PARALLELISM": "false"}
+    nccl_library = Path(sysconfig.get_paths()["purelib"]) / "nvidia/nccl/lib/libnccl.so.2"
+    if not nccl_library.is_file():
+        raise RuntimeError("Pinned NCCL library is missing from the virtual environment")
+    # Prevent Nsight LD_LIBRARY_PATH from selecting a different NCCL build.
+    env["VLLM_NCCL_SO_PATH"] = str(nccl_library)
     def command_for(role):
         model = ROOT / "models" / ("qwen" if role == "enterprise" else "cloud")
         tp = enterprise_tp if role == "enterprise" else cloud_tp
         common = [str(PYTHON), "-m", "split_poc.server", "--model", str(model),
                   "--split", args.split, "--tp", str(tp), "--results", str(results)]
+        if args.profile or args.phase_profile:
+            common.append("--phase-profile")
         if not args.profile:
             return common
-        return ["nsys", "profile", "--trace=cuda,nvtx,osrt", "--sample=none", "--cpuctxsw=none",
+        profiler = profiler_binary()
+        help_text = subprocess.run([profiler, "profile", "--help"], capture_output=True, text=True, check=True).stdout
+        event_options = ["--cuda-event-trace=false"] if "--cuda-event-trace" in help_text else []
+        return [profiler, "profile", "--trace=cuda,nvtx,osrt", "--sample=none", "--cpuctxsw=none", *event_options,
                 "--capture-range=cudaProfilerApi", "--capture-range-end=stop", "--force-overwrite=true",
                 "--output", str(results / role), *common]
     try:
@@ -135,6 +151,7 @@ if __name__ == "__main__":
     parser.add_argument("--wan", action="store_true")
     parser.add_argument("--delay", type=int, default=5)
     parser.add_argument("--profile", action="store_true")
+    parser.add_argument("--phase-profile", action="store_true")
     args = parser.parse_args()
     if args.action == "up":
         up(args)

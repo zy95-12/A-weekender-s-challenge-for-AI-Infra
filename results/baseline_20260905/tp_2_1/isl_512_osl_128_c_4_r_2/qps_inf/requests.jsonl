@@ -1,0 +1,16 @@
+{"client_request_id": "qps-inf-1788592556186202832-0", "ttft_ms": 112.34497400073451, "tpot_ms": 32.966532251965134, "e2e_ms": 4299.094570000307, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-1", "ttft_ms": 201.27577500170446, "tpot_ms": 32.26017492915427, "e2e_ms": 4298.317991004296, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-2", "ttft_ms": 288.78250799971283, "tpot_ms": 31.569618377936536, "e2e_ms": 4298.124041997653, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-3", "ttft_ms": 377.07956499798456, "tpot_ms": 30.88136429136012, "e2e_ms": 4299.01283000072, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-4", "ttft_ms": 278.82375699846307, "tpot_ms": 31.607839401565467, "e2e_ms": 4293.0193609972775, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-5", "ttft_ms": 101.80616300203837, "tpot_ms": 32.99904492127184, "e2e_ms": 4292.684868003562, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-6", "ttft_ms": 190.5353580004885, "tpot_ms": 32.2959619291174, "e2e_ms": 4292.1225229983975, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-7", "ttft_ms": 365.2243900032772, "tpot_ms": 30.920292212598955, "e2e_ms": 4292.101501003344, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-8", "ttft_ms": 99.59990399875096, "tpot_ms": 33.091646409427376, "e2e_ms": 4302.238997996028, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-9", "ttft_ms": 186.52570199992624, "tpot_ms": 32.39914744882822, "e2e_ms": 4301.2174280011095, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-10", "ttft_ms": 273.5065189990564, "tpot_ms": 31.720124039365626, "e2e_ms": 4301.962271998491, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-11", "ttft_ms": 361.99347699948703, "tpot_ms": 31.028341519682783, "e2e_ms": 4302.592849999201, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-12", "ttft_ms": 100.4186279969872, "tpot_ms": 33.09473143307277, "e2e_ms": 4303.44951999723, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-13", "ttft_ms": 186.06408199775615, "tpot_ms": 32.41153961417287, "e2e_ms": 4302.32961299771, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-14", "ttft_ms": 274.57401100036805, "tpot_ms": 31.717900669281956, "e2e_ms": 4302.747395999177, "output_tokens": 128, "error": ""}
+{"client_request_id": "qps-inf-1788592556186202832-15", "ttft_ms": 361.2051359996258, "tpot_ms": 31.030485354325876, "e2e_ms": 4302.076775999012, "output_tokens": 128, "error": ""}

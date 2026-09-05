@@ -160,10 +160,26 @@ class Runner:
         if rank == 0 and args["role"] == "enterprise":
             import httpx
             self.http = httpx.Client(base_url=args["cloud"], timeout=httpx.Timeout(30, connect=3), trust_env=False)
+        self.rpc_phase = None
         self.trace = []
+
+    def rpc_trace(self, event, info):
+        # Client socket I/O ranges, not estimates of pure WAN propagation.
+        # The headers wait includes remote compute and round-trip waiting.
+        names = {"send_request_body": "wan_upload", "receive_response_headers": "cloud_and_wan_wait",
+                 "receive_response_body": "wan_download"}
+        parts = event.split(".")
+        if len(parts) == 3 and parts[1] in names:
+            if parts[2] == "started":
+                torch.cuda.nvtx.range_push(f"{names[parts[1]]}_{self.rpc_phase}")
+            elif parts[2] in {"complete", "failed"}:
+                torch.cuda.nvtx.range_pop()
 
     @contextlib.contextmanager
     def timed(self, name, timings):
+        if not self.args.get("phase_profile", False):
+            yield
+            return
         start, end = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
         torch.cuda.nvtx.range_push(name)
         start.record()
@@ -258,7 +274,9 @@ class Runner:
                         timings["enterprise_stage_pack_ms"] = (time.perf_counter() - start) * 1000
                         start = time.perf_counter()
                         sent_ns = time.perf_counter_ns()
+                        self.rpc_phase = phase
                         response = self.http.post("/forward", content=payload,
+                            extensions={"trace": self.rpc_trace} if self.args.get("phase_profile") else {},
                             headers={"content-type": "application/octet-stream"})
                         response.raise_for_status()
                         received_ns = time.perf_counter_ns()
@@ -303,7 +321,21 @@ class Runner:
 def worker(rank, args, pipe):
     try:
         runner = Runner(rank, args)
-        pipe.send({"ready": True, "rank": rank})
+        from vllm.distributed import get_tp_group
+        communicator = getattr(get_tp_group().device_communicator, "pynccl_comm", None)
+        nccl = getattr(communicator, "nccl", None)
+        pipe.send({"ready": True, "rank": rank, "audit": {
+            "rank": rank, "pid": os.getpid(), "role": args["role"], "tp": args["tp"],
+            "owned_layers": [int(i) for i in runner.model.model.layers],
+            "has_embedding": hasattr(runner.model.model, "embed_tokens"),
+            "has_final_norm": hasattr(runner.model.model, "norm"),
+            "has_logits_processor": hasattr(runner.model, "logits_processor"),
+            "local_parameter_elements": sum(p.numel() for p in runner.model.parameters()),
+            "device": torch.cuda.current_device(), "gpu_name": torch.cuda.get_device_name(),
+            "vllm_nccl_version": nccl.ncclGetVersion() if nccl is not None else None,
+            "torch_nccl_version": torch.cuda.nccl.version(),
+            "vllm_nccl_so_path": os.environ.get("VLLM_NCCL_SO_PATH"),
+            "phase_profile": args.get("phase_profile", False)}})
         while True:
             command, arrays = pipe.recv()
             if command["op"] == "stop":
@@ -332,6 +364,7 @@ class Executor:
     def __init__(self, args):
         ctx = mp.get_context("spawn")
         self.pipes, self.processes = [], []
+        self.worker_audits = []
         self.healthy = True
         self.lock = threading.Lock()
         for rank in range(args["tp"]):
@@ -347,6 +380,7 @@ class Executor:
             reply = pipe.recv()
             if "error" in reply:
                 raise RuntimeError(reply["error"])
+            self.worker_audits.append(reply["audit"])
 
     def call(self, command, arrays=None):
         with self.lock:

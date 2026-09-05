@@ -136,6 +136,8 @@ class Scheduler:
                 self.release(finished)
                 self.active = [j for j in self.active if j not in finished]
             except Exception as exc:
+                import traceback
+                traceback.print_exc()
                 self.executor.healthy = False
                 for job in self.active:
                     job.events.put({"error": str(exc)})
@@ -190,6 +192,7 @@ def create_app(args):
                 "cloud_tp": cloud_tp, "model_id": MODEL_ID, "revision": REVISION, "protocol": 1,
                 "layer_split": SPLITS[args.split],
                 "gpu_pids": [p.pid for p in executor.processes],
+                "worker_audits": executor.worker_audits,
                 "active": len(scheduler.active) if scheduler else len(last_seen),
                 "waiting": scheduler.pending.qsize() if scheduler else 0,
                 "completed": scheduler.completed if scheduler else None,
@@ -492,6 +495,8 @@ def main():
     parser.add_argument("--max-active", type=int, default=8)
     parser.add_argument("--results", default="results/live")
     parser.add_argument("--diagnostics", action="store_true")
+    parser.add_argument("--phase-profile", action="store_true",
+                        help="Detailed synchronous GPU stage timings; disable for baseline throughput")
     args = parser.parse_args()
     if args.tp not in {1, 2}:
         parser.error("TP must be 1 or 2")

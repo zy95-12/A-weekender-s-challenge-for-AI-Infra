@@ -128,6 +128,49 @@ Trace 中 GPU/传输耗时以 batch 为单位，同一 batch 内各请求共享�
 上传/下载分段时间使用同一台服务器的 monotonic 时钟，包含 HTTP、序列化及 CPU 开销；迁移到两台主机时需要先校准时钟，不能直接沿用单机的一程时间计算。
 大文件和模型默认不进入 Git；固定模型 revision 位于 `split_poc/__init__.py`。
 
+## ISL/OSL 与 TP 性能基线
+
+[2026-09-05 实测报告](docs/baseline-2026-09-05.md)：32 个配置单元、96 轮、1,152 个请求；
+另有四种 TP 拓扑的同版本 Nsight/DCGM profiling。这里报告真实基线，不做 SLO 达标声明。
+
+新一轮基线以真实测量为目标，不以 SLO 达标作为成功条件：
+
+- 固定 Qwen2.5-3B-Instruct FP16、4/27/5 层，10 Gbps / 单向 5 ms WAN。
+- 端/云 TP 组合：1+1、1+2、2+1、2+2；每侧 TP 数等于该侧实际卡数。
+- ISL/OSL：512/128、2048/256、8192/256、2048/1024。
+- 闭环客户端并发 1、4，每点三次重复；QPS 是该并发下的实测完成率，不是最大容量。
+- 普通性能运行不做同步 GPU 阶段计时；`--phase-profile` 或 `--profile` 才启用详细阶段计时。
+- 每种 TP 拓扑另行运行 Nsight + DCGM，覆盖相同 workload 和并发，禁止用采样运行的吞吐替代性能基线。
+
+```bash
+./poc down
+CUDA_VISIBLE_DEVICES=0 NCCL_SOCKET_IFNAME=lo GLOO_SOCKET_IFNAME=lo \
+  .venv/bin/python -m split_poc.reference --tp 1 --steps 33 --output results/baseline_native_tp1
+CUDA_VISIBLE_DEVICES=0,1 NCCL_SOCKET_IFNAME=lo GLOO_SOCKET_IFNAME=lo \
+  .venv/bin/python -m split_poc.reference --tp 2 --steps 33 --output results/validation_final/reference
+.venv/bin/python scripts/baseline_matrix.py --output results/baseline_matrix --resume
+.venv/bin/python scripts/summarize_baseline.py results/baseline_matrix
+.venv/bin/python scripts/verify_baseline_traces.py results/baseline_matrix
+```
+
+汇总生成 `REPORT.md`、`baseline_summary.csv`、`profile_batches.csv`、`profile_summary.csv`
+和 `dcgm_profile_samples.csv`；逐请求长度与传输量核对结果保存在 `trace_verification.json`。
+部分结果会明确标记未完成。混合 TP 没有单一匹配的原生 TP 参考，数值差异单独记录为
+`CROSS_TP_OBSERVATION`，不冒充同 TP 的精度验收通过。
+
+这是固定长度的合成 workload：普通测试使用请求编号加重复单 token 文本，详细采样使用
+同一单 token 的精确 ID 序列；实际执行全部模型层和完整自回归输出，不是语义质量测试。
+`ignore_eos` 保证 OSL，不启用 prefix cache、投机解码或提前结束。
+本轮并行变量限于单卡/TP=2 及两侧非对称 TP，不包含 DP 或新增流水并行调度。
+
+长时间多卡采样建议使用 Nsight Systems 2025.3.1：本机 2024.6.2 在 NCCL
+`cudaEventRecord` 的 CUPTI 路径可重复卡住，关闭新版工具的
+`--cuda-event-trace=false` 后重试。启动脚本会在支持时自动加上这个开关，并优先使用
+本机隔离安装的 2025.3.1；其他机器可通过 `SPLIT_NSYS_BIN=/absolute/path/to/nsys`
+指定工具。该设置只影响 profiler，不改变普通推理的软件版本或性能测量。
+NVIDIA 关于事件追踪额外依赖的说明见
+[CUDA Event completion trace](https://forums.developer.nvidia.com/t/device-side-cuda-event-completion-with-multiple-cuda-streams/326600)。
+
 ## 验收状态
 
 当前服务器已通过真实权重的三种切分精度与功能验收，支持一键启动演示。
