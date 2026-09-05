@@ -102,6 +102,39 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(len(commands), 1)
         self.assertFalse(rows[0]["emits_token"])
 
+    def test_midchunk_failure_fails_active_requests_and_rejects_new_work(self):
+        with tempfile.TemporaryDirectory() as folder, patch("split_poc.server.httpx.Client"), \
+                patch("traceback.print_exc"):
+            executor = FakeExecutor()
+            def fail_second(command):
+                if len(executor.commands) == 2:
+                    raise RuntimeError("simulated cloud failure")
+            executor.before_return = fail_second
+            args = SimpleNamespace(cloud="http://unused",results=folder,max_active=4,
+                                   prefill_chunk_size=2,scheduler_policy="decode-first",decode_quota=1)
+            # Pause thread startup so both requests are enqueued before scheduling.
+            with patch("threading.Thread.start"):
+                scheduler = Scheduler(executor,args,set())
+            jobs = [Job([1]*5,2,True),Job([2]*5,2,True)]
+            for job in jobs:
+                scheduler.submit(job)
+            scheduler.thread.start()
+            try:
+                for job in jobs:
+                    self.assertIn("simulated cloud failure",job.events.get(timeout=5)["error"])
+                    self.assertEqual(job.tokens,[])
+                self.assertFalse(executor.healthy)
+                from fastapi import HTTPException
+                with self.assertRaises(HTTPException) as error:
+                    scheduler.submit(Job([3],2,True))
+                self.assertEqual(error.exception.status_code,503)
+            finally:
+                scheduler.closed = True
+                scheduler.thread.join(5)
+                scheduler.trace.close()
+                scheduler.http.close()
+            self.assertFalse(scheduler.thread.is_alive())
+
 
 if __name__ == "__main__":
     unittest.main()
