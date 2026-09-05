@@ -1,0 +1,11 @@
+{
+  "README.md": "e51b08ea639b75770d99eb83f9a4cb811c2af32593117d9e40bf57309cb449bb",
+  "curves.csv": "bb6a0cf811fa8648aa71e55c4a50f1af1f2c1ba00dbfc4fd4f516c0e449e6dd7",
+  "curves.json": "0603b67940487610c182057e4efbbc8abfb85ee0c2d6387b49f30405a3dc43db",
+  "manifest.json": "41f738ed13221c10a093f16c375e26c8e5053c4df6aa6f2df42979ded59162bc",
+  "raw_measurements.zip": "71e9ca69516ca5c1d2d4376ee05351101f5ee7495b22f5cd0d8af49439fd6f59",
+  "refinement_selection.json": "d047a5b7ccf6f16e2d83cd42cb911e4ce901eadcc4290aef5f5cf34afce34e40",
+  "ttft_tpot_qps.pdf": "9780a2c6e0f29169d2509642a01c48c3749ec9fbe110acc6a59a03bfba30a02b",
+  "ttft_tpot_qps.png": "c71d47c6c730199abb8229e88aab317006f1fb1e7bed00186f30863fac96318c",
+  "ttft_tpot_qps.svg": "0cfb9c8a98ae6584366431b776bb5d9cddd3cf9b2e354b9848eda70df8495963"
+}

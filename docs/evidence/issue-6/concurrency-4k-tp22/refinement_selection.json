@@ -1,0 +1,15 @@
+{
+  "reason": "Launcher initially recorded requested max_active=16 but did not forward it (actual=8). Correct forwarding and remeasure C8/12/16 for both variants, with >=60 seconds and >=6 completions per worker to reduce batch-window phase effects. Lower C1/2/4 never hit the old cap and are retained with actual cap metadata corrected.",
+  "selected": {
+    "baseline": [
+      8,
+      12,
+      16
+    ],
+    "stage123": [
+      8,
+      12,
+      16
+    ]
+  }
+}

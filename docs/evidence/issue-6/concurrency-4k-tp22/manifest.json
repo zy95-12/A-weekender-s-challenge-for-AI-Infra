@@ -1,0 +1,142 @@
+{
+  "artifacts": [
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/stage123/c1.json",
+      "bytes": 18941,
+      "sha256": "273b80ccdf207486269a007598cace51daceee2f21f0a2690edcbf53c948c94a"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/stage123/c8.json",
+      "bytes": 82854,
+      "sha256": "adbaf868ba8333c69e6177f826427b204d549cb713db89d33ab9eb4eab716caf"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/stage123/c4.json",
+      "bytes": 30104,
+      "sha256": "6a239e3e0ec1fcb0d14960f7a1361cca3b02cc5018a9580c495e5e0509f3a20a"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/stage123/c16.json",
+      "bytes": 121397,
+      "sha256": "bce01e61ace8ac5250b1f9953f314256a6118da16e0c955c2bf70edd0c7ee49a"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/stage123/c12.json",
+      "bytes": 104557,
+      "sha256": "03041398a7e23738dc4ab1ae5dad4ac1827455390925b9f595f411d8e9da6d6d"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/stage123/cloud_config.json",
+      "bytes": 941,
+      "sha256": "e47c0e56f888350efb03285c9aad70b97f2faf5554ef2614a8f3f0832e7a7518"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/stage123/c2.json",
+      "bytes": 20532,
+      "sha256": "6bbc98731f0560619d365e493c6a123a67c1afa0de9a4c205e8183d2c339f186"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/baseline/c1.json",
+      "bytes": 18936,
+      "sha256": "27da0376031d00571f1f66f97e6b90fec665bd8b896394b9245e49981b790945"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/baseline/c8.json",
+      "bytes": 58949,
+      "sha256": "a07180e0fc5f1ca25b6802d25af6290dbcfbc54b661503f33ef5e134058e99cc"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/baseline/c4.json",
+      "bytes": 23730,
+      "sha256": "f65d5f993ef5be0cc06d008b9b960cde943d7e7aa99825456de0b6dc1bc027bb"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/baseline/c16.json",
+      "bytes": 104094,
+      "sha256": "abad91265d55f272aa6abafd0d3ecbcdffc12f70d29a8fa430a44461098fa593"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/baseline/c12.json",
+      "bytes": 78330,
+      "sha256": "494552dde889992b4e2a5dfcb9f6f3f612ecc7786e69cc50feedadb7a3f35892"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/baseline/cloud_config.json",
+      "bytes": 933,
+      "sha256": "68896e3bf9c479337caa303ae723458e11515f6a1f8821a50219f43a162daf41"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/baseline/c2.json",
+      "bytes": 20522,
+      "sha256": "0b567ba433c5dab8a37b0c24fadd9e4d10269f4119b6d6f9546d39f602eecbc5"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/stage123/c8.json",
+      "bytes": 82854,
+      "sha256": "adbaf868ba8333c69e6177f826427b204d549cb713db89d33ab9eb4eab716caf"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/stage123/c16.json",
+      "bytes": 121397,
+      "sha256": "bce01e61ace8ac5250b1f9953f314256a6118da16e0c955c2bf70edd0c7ee49a"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/stage123/c12.json",
+      "bytes": 104557,
+      "sha256": "03041398a7e23738dc4ab1ae5dad4ac1827455390925b9f595f411d8e9da6d6d"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/stage123/cloud_config.json",
+      "bytes": 942,
+      "sha256": "3ee2c0761acbf348346ec86bb390da6512b59d79c93786089d40679f861fbc70"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/baseline/c8.json",
+      "bytes": 58949,
+      "sha256": "a07180e0fc5f1ca25b6802d25af6290dbcfbc54b661503f33ef5e134058e99cc"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/baseline/c16.json",
+      "bytes": 104094,
+      "sha256": "abad91265d55f272aa6abafd0d3ecbcdffc12f70d29a8fa430a44461098fa593"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/baseline/c12.json",
+      "bytes": 78330,
+      "sha256": "494552dde889992b4e2a5dfcb9f6f3f612ecc7786e69cc50feedadb7a3f35892"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/baseline/cloud_config.json",
+      "bytes": 934,
+      "sha256": "614e0ca5dd95bd28c65251d3163580908e38f8d8cb45280ba328503838953c81"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/stage123/trace.jsonl",
+      "bytes": 30541035,
+      "sha256": "b7cad6af78a0b224cbf7979f3e637f3b952f7c74554f2484b852b74b8c349709"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/baseline/trace.jsonl",
+      "bytes": 15591293,
+      "sha256": "dab58bfd6556d8be4c89df4ef211c1b039242a68da2b67db2ff4dd4b3e900eb6"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/stage123/trace.jsonl",
+      "bytes": 41645418,
+      "sha256": "c8411c6a601859b13f2d1305791f633c4c6dc49a14a8c653c7c054b4b335e610"
+    },
+    {
+      "path": "/root/issue6-stage4-worktree/results/concurrency_4k_tp22/refinement/baseline/trace.jsonl",
+      "bytes": 20844620,
+      "sha256": "395bb1440d01b0ebc95150fd8e9cba51c54cc50c7f04763466685abc60bee8f2"
+    }
+  ],
+  "final_sources": {
+    "scripts/concurrency_sweep.py": "7ee283e24aca28e4174d4c19d576185333f82ae04698063e8506d71295ce193d",
+    "scripts/refine_concurrency_windows.py": "af333f883d7a9cce0ca0ad6e52d6a900de46b409ede1c28cdb3b1c3447556b42",
+    "scripts/plot_concurrency_sweep.py": "9ae05e407c5f89fae8f1255b698852fca91213f37c549ed15b22a845cdde3226",
+    "scripts/manage.py": "8f3a0ad944f4b968d9b0b391b410bd65912e7f50c1beb8dd33ad89e7274233cd",
+    "split_poc/runtime.py": "e14551c1a668a526349bc1d1edf23c2e2e960297a7e623392078222de00042c0",
+    "split_poc/pipeline.py": "06d9b3a145f19d56c20676b38a5983a6bfb427a8b090bef7128a88a93c69ebec"
+  }
+}
