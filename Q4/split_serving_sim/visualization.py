@@ -18,7 +18,12 @@ STAGE_COLORS = {
 def _resource_order(traces: list[dict[str, Any]]) -> list[str]:
     preferred = ["edge_gpu", "wan_up", "cloud_gpu", "wan_down"]
     discovered = {str(row["resource"]) for row in traces}
-    resources = [name for name in preferred if name in discovered]
+    resources = [
+        resource
+        for name in preferred
+        for resource in sorted(discovered)
+        if resource == name or resource.startswith(f"{name}/")
+    ]
     resources.extend(sorted(discovered - set(resources)))
     return resources
 
@@ -128,10 +133,10 @@ const stageColors={edge_front:'#2563eb',wan_up:'#06b6d4',cloud_middle:'#7c3aed',
 const streamColors={compute:'#93c5fd',communication:'#fb7185'};
 const preferred=['edge_gpu','wan_up','cloud_gpu','wan_down'];
 const found=[...new Set(traces.map(x=>x.resource))];
-const resources=[...preferred.filter(x=>found.includes(x)),...found.filter(x=>!preferred.includes(x)).sort()];
+const resources=[...preferred.flatMap(base=>found.filter(x=>x===base||x.startsWith(base+'/')).sort()),...found.filter(x=>!preferred.some(base=>x===base||x.startsWith(base+'/'))).sort()];
 const globalStart=Math.min(...traces.map(x=>x.start_time_ms));
 const globalEnd=Math.max(...traces.map(x=>x.end_time_ms));
-let viewStart=globalStart,viewEnd=globalEnd,selectedBatchId=null; const expanded=new Set();
+let viewStart=globalStart,viewEnd=globalEnd,selectedBatchId=null,selectedOperator=null; const expanded=new Set();
 const svg=document.getElementById('chart'),details=document.getElementById('details');
 const NS='http://www.w3.org/2000/svg',labelWidth=210,plotWidth=1350,mainH=54,childH=36,chartTop=58;
 const traceById=new Map(traces.map(batch=>[batch.batch_id,batch])),itemToBatch=new Map();
@@ -158,12 +163,14 @@ function render(){
   else svg.append(node('text',{x:34,y:y+23,class:'child-label'},'↳ '+(row.stream==='compute'?'计算 / Compute':'通信 / Communication'))); y+=h;
  }
  for(let i=0;i<=10;i++){const ratio=i/10,x=labelWidth+ratio*plotWidth,t=viewStart+ratio*(viewEnd-viewStart);svg.append(node('line',{x1:x,y1:42,x2:x,y2:height-35,class:'grid'}));svg.append(node('text',{x,y:30,'text-anchor':'middle','font-size':11},t.toFixed(1)+' ms'));}
- const batchGeometry={};
+ const batchGeometry={},operatorGeometry=new Map();
  for(const batch of traces){if(!visible(batch.start_time_ms,batch.end_time_ms))continue;const pos=positions[batch.resource];const x=Math.max(labelWidth,xAt(batch.start_time_ms)),right=Math.min(labelWidth+plotWidth,xAt(batch.end_time_ms)),w=Math.max(right-x,1);const yb=pos.y+10,h=pos.h-20;
-  batchGeometry[batch.batch_id]={x1:x,x2:right,y:yb+h/2};const selected=batch.batch_id===selectedBatchId,rectAttrs={x,y:yb,width:w,height:h,rx:2,fill:stageColors[batch.stage]||'#64748b',class:'bar '+(batch.phases.includes('decode')?'decode':'')};if(selected){rectAttrs.stroke='#facc15';rectAttrs['stroke-width']=4;}const rect=node('rect',rectAttrs);rect.append(tooltip(`B${batch.batch_id} | ${batch.stage} | ${batch.phases.join('/')} | requests=${JSON.stringify(batch.request_ids)} | ${batch.duration_ms.toFixed(3)} ms | ${batch.input_shape||''}`));rect.addEventListener('click',e=>{e.stopPropagation();selectedBatchId=batch.batch_id;render();selectBatch(batch);});svg.append(rect);if(w>30)svg.append(node('text',{x:x+4,y:yb+h/2+4,fill:'white','font-size':10,'pointer-events':'none'},'B'+batch.batch_id));
-  if(expanded.has(batch.resource))for(const op of batch.sub_operations||[]){if(!visible(op.start_time_ms,op.end_time_ms))continue;const stream=streamKind(op),child=positions[batch.resource+'::'+stream];if(!child)continue;const ox=Math.max(labelWidth,xAt(op.start_time_ms)),oright=Math.min(labelWidth+plotWidth,xAt(op.end_time_ms)),ow=Math.max(oright-ox,1),oy=child.y+7,oh=child.h-14;const sub=node('rect',{x:ox,y:oy,width:ow,height:oh,rx:2,fill:streamColors[stream],class:'bar'});sub.append(tooltip(`${op.name} | ${op.duration_ms.toFixed(3)} ms | ${op.input_shape}`));sub.addEventListener('click',e=>{e.stopPropagation();selectedBatchId=batch.batch_id;render();select({batch_id:batch.batch_id,resource:batch.resource,stage:batch.stage,stream,...op});});svg.append(sub);if(ow>34)svg.append(node('text',{x:ox+3,y:oy+oh/2+4,'font-size':9,'pointer-events':'none'},op.name));}
+  batchGeometry[batch.batch_id]={x1:x,x2:right,y:yb+h/2};const selected=batch.batch_id===selectedBatchId,rectAttrs={x,y:yb,width:w,height:h,rx:2,fill:stageColors[batch.stage]||'#64748b',class:'bar '+(batch.phases.includes('decode')?'decode':'')};if(selected){rectAttrs.stroke='#facc15';rectAttrs['stroke-width']=4;}const rect=node('rect',rectAttrs);rect.append(tooltip(`B${batch.batch_id} | ${batch.stage} | ${batch.phases.join('/')} | requests=${JSON.stringify(batch.request_ids)} | ${batch.duration_ms.toFixed(3)} ms | ${batch.input_shape||''}`));rect.addEventListener('click',e=>{e.stopPropagation();selectedBatchId=batch.batch_id;selectedOperator=null;render();selectBatch(batch);});svg.append(rect);if(w>30)svg.append(node('text',{x:x+4,y:yb+h/2+4,fill:'white','font-size':10,'pointer-events':'none'},'B'+batch.batch_id));
+  if(expanded.has(batch.resource))for(const op of batch.sub_operations||[]){if(!visible(op.start_time_ms,op.end_time_ms))continue;const stream=streamKind(op),child=positions[batch.resource+'::'+stream];if(!child)continue;const ox=Math.max(labelWidth,xAt(op.start_time_ms)),oright=Math.min(labelWidth+plotWidth,xAt(op.end_time_ms)),ow=Math.max(oright-ox,1),oy=child.y+7,oh=child.h-14,key=`${batch.batch_id}::${op.name}`;operatorGeometry.set(key,{x1:ox,x2:oright,y:oy+oh/2});const attrs={x:ox,y:oy,width:ow,height:oh,rx:2,fill:streamColors[stream],class:'bar'};if(selectedOperator===key){attrs.stroke='#facc15';attrs['stroke-width']=4;}const sub=node('rect',attrs);sub.append(tooltip(`${op.name} | ${op.duration_ms.toFixed(3)} ms | ${op.input_shape}`));sub.addEventListener('click',e=>{e.stopPropagation();selectedBatchId=batch.batch_id;selectedOperator=key;render();select({batch_id:batch.batch_id,resource:batch.resource,stage:batch.stage,stream,...op});});svg.append(sub);if(ow>34)svg.append(node('text',{x:ox+3,y:oy+oh/2+4,'font-size':9,'pointer-events':'none'},op.name));}
  }
- if(selectedBatchId!==null&&traceById.has(selectedBatchId)){const selected=traceById.get(selectedBatchId),clamp=x=>Math.max(labelWidth,Math.min(labelWidth+plotWidth,x)),point=(batch,useEnd)=>({x:clamp(xAt(useEnd?batch.end_time_ms:batch.start_time_ms)),y:positions[batch.resource].y+mainH/2}),draw=(from,to,kind)=>{const bend=(from.x+to.x)/2,path=node('path',{d:`M ${from.x} ${from.y} C ${bend} ${from.y}, ${bend} ${to.y}, ${to.x} ${to.y}`,class:kind==='in'?'dependency-in':'dependency-out','marker-end':`url(#${kind==='in'?'arrowIn':'arrowOut'})`});svg.append(path);};for(const sourceId of batchDependencies.get(selectedBatchId)||[]){const source=traceById.get(sourceId);if(source)draw(point(source,true),point(selected,false),'in');}for(const targetId of batchDependents.get(selectedBatchId)||[]){const target=traceById.get(targetId);if(target)draw(point(selected,true),point(target,false),'out');}}
+ const clamp=x=>Math.max(labelWidth,Math.min(labelWidth+plotWidth,x)),draw=(from,to,kind)=>{const bend=(from.x+to.x)/2,path=node('path',{d:`M ${from.x} ${from.y} C ${bend} ${from.y}, ${bend} ${to.y}, ${to.x} ${to.y}`,class:kind==='in'?'dependency-in':'dependency-out','marker-end':`url(#${kind==='in'?'arrowIn':'arrowOut'})`});svg.append(path);};
+ if(selectedBatchId!==null&&traceById.has(selectedBatchId)){const selected=traceById.get(selectedBatchId),point=(batch,useEnd)=>({x:clamp(xAt(useEnd?batch.end_time_ms:batch.start_time_ms)),y:positions[batch.resource].y+mainH/2});for(const sourceId of batchDependencies.get(selectedBatchId)||[]){const source=traceById.get(sourceId);if(source)draw(point(source,true),point(selected,false),'in');}for(const targetId of batchDependents.get(selectedBatchId)||[]){const target=traceById.get(targetId);if(target)draw(point(selected,true),point(target,false),'out');}}
+ if(selectedOperator&&operatorGeometry.has(selectedOperator)){const batch=traceById.get(selectedBatchId),selectedName=selectedOperator.split('::').slice(1).join('::'),current=operatorGeometry.get(selectedOperator),asSource={x:current.x2,y:current.y},asTarget={x:current.x1,y:current.y};for(const dependency of (batch.sub_operations.find(op=>op.name===selectedName)?.dependencies||[])){const source=operatorGeometry.get(`${selectedBatchId}::${dependency}`);if(source)draw({x:source.x2,y:source.y},asTarget,'in');}for(const op of batch.sub_operations||[]){if(!(op.dependencies||[]).includes(selectedName))continue;const target=operatorGeometry.get(`${selectedBatchId}::${op.name}`);if(target)draw(asSource,{x:target.x1,y:target.y},'out');}}
  document.getElementById('windowText').textContent=`窗口 ${viewStart.toFixed(2)} – ${viewEnd.toFixed(2)} ms（跨度 ${(viewEnd-viewStart).toFixed(2)} ms）`;
 }
 function setWindow(start,end){const full=globalEnd-globalStart,minSpan=Math.max(full/10000,.001),span=Math.min(Math.max(end-start,minSpan),full);let s=start;if(s<globalStart)s=globalStart;if(s+span>globalEnd)s=globalEnd-span;viewStart=s;viewEnd=s+span;render();}

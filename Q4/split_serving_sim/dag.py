@@ -28,6 +28,7 @@ class ExecutionDAG:
         dependencies: tuple[int, ...] = (),
         chunk_index: int | None = None,
         iteration: int | None = None,
+        produces_logits: bool = False,
     ) -> int:
         item_id = self._next_id
         self._next_id += 1
@@ -41,6 +42,7 @@ class ExecutionDAG:
             context_tokens=context_tokens,
             chunk_index=chunk_index,
             iteration=iteration,
+            produces_logits=produces_logits,
             dependencies=dependencies,
         )
         self.items[item_id] = item
@@ -114,6 +116,7 @@ class ExecutionDAG:
                 token_count=token_count,
                 context_tokens=context,
                 chunk_index=chunk_index,
+                produces_logits=token_start + token_count == input_tokens,
                 dependencies=tail_dependencies,
             )
             created.extend((front, up, cloud, down, tail))
@@ -176,6 +179,7 @@ class ExecutionDAG:
             token_count=1,
             context_tokens=context_tokens,
             iteration=iteration,
+            produces_logits=True,
             dependencies=(down,),
         )
         return self._newly_ready([front, up, cloud, down, tail], ready_time)

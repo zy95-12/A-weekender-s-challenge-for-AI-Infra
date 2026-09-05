@@ -39,18 +39,41 @@ class PerformanceTest(unittest.TestCase):
     def test_gpu_trace_has_operator_and_tp_communication_subflows(self) -> None:
         model = RooflineModel(parse_config(copied_toy_config()))
         estimate = model.estimate("cloud_middle", [item(0), item(1)])
-        names = {operation.name for operation in estimate.sub_operations}
+        names = [operation.name for operation in estimate.sub_operations]
+        self.assertIn("layer_01.q_proj", names)
+        self.assertIn("layer_02.attention", names)
+        self.assertIn("layer_01.attention_all_reduce", names)
+        self.assertIn("layer_02.mlp_all_reduce", names)
         self.assertEqual(
-            names,
-            {
-                "attention_projection",
-                "attention",
-                "mlp",
-                "tp_collective",
-                "kernel_overhead",
-            },
+            sum(name.endswith("all_reduce") for name in names),
+            2 * 2,
         )
-        self.assertIn("B=2", estimate.input_shape)
+        self.assertEqual(estimate.input_shape, "bfloat16 [32, 64]")
+        self.assertNotIn("context", estimate.input_shape)
+
+    def test_qwen3_gqa_uses_local_query_and_kv_heads(self) -> None:
+        model = RooflineModel(parse_config(copied_toy_config()))
+        estimate = model.estimate("cloud_middle", [item(0)])
+        attention = next(
+            operation
+            for operation in estimate.sub_operations
+            if operation.name == "layer_01.attention"
+        )
+        self.assertIn("Q[16, 4, 8]", attention.input_shape)
+        self.assertIn("KV[B, 1, L_i, 8]", attention.input_shape)
+        self.assertEqual(
+            attention.dependencies,
+            ("layer_01.rope", "layer_01.kv_cache_update"),
+        )
+
+    def test_lm_head_only_runs_for_logit_producing_items(self) -> None:
+        model = RooflineModel(parse_config(copied_toy_config()))
+        ordinary = item(0)
+        logit_item = WorkItem(**{**ordinary.__dict__, "produces_logits": True})
+        no_logits = model.estimate("edge_tail", [ordinary])
+        with_logits = model.estimate("edge_tail", [logit_item])
+        self.assertNotIn("lm_head", {op.name for op in no_logits.sub_operations})
+        self.assertIn("lm_head", {op.name for op in with_logits.sub_operations})
 
 
 if __name__ == "__main__":

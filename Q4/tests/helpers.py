@@ -10,6 +10,12 @@ def toy_config() -> dict[str, Any]:
             "name": "toy",
             "num_layers": 4,
             "hidden_size": 64,
+            "intermediate_size": 256,
+            "num_attention_heads": 8,
+            "num_key_value_heads": 2,
+            "head_dim": 8,
+            "vocab_size": 128,
+            "dtype": "bfloat16",
             "dtype_bytes": 2,
         },
         "topology": {

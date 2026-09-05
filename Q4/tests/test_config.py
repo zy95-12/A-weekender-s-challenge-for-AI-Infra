@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
-from split_serving_sim.config import ConfigError, parse_config
+from split_serving_sim.config import ConfigError, load_config, parse_config
 
 from tests.helpers import copied_toy_config
 
@@ -32,6 +33,21 @@ class ConfigTest(unittest.TestCase):
         )
         config = parse_config(data)
         self.assertEqual(config.static_policy.max_batch_size, 4)
+
+    def test_loads_checked_in_hugging_face_profile(self) -> None:
+        config = load_config(Path(__file__).parents[1] / "configs" / "example.json")
+        self.assertEqual(config.model.architecture, "qwen3")
+        self.assertEqual(config.model.num_layers, 64)
+        self.assertEqual(config.model.hidden_size, 5120)
+        self.assertEqual(config.model.intermediate_size, 25600)
+        self.assertEqual(config.model.num_attention_heads, 64)
+        self.assertEqual(config.model.num_key_value_heads, 8)
+        self.assertEqual(config.model.dtype, "bfloat16")
+        total_parameters = (
+            config.model.parameters_per_layer * config.model.num_layers
+            + 2 * config.model.vocab_size * config.model.hidden_size
+        )
+        self.assertEqual(total_parameters, 32_762_118_144)
 
 
 if __name__ == "__main__":

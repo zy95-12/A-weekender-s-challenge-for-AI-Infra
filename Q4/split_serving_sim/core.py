@@ -32,6 +32,7 @@ class WorkItem:
     context_tokens: int
     chunk_index: int | None = None
     iteration: int | None = None
+    produces_logits: bool = False
     dependencies: tuple[int, ...] = ()
     ready_time: float = 0.0
 
@@ -46,6 +47,7 @@ class WorkItem:
             context_tokens=self.context_tokens,
             chunk_index=self.chunk_index,
             iteration=self.iteration,
+            produces_logits=self.produces_logits,
             dependencies=self.dependencies,
             ready_time=ready_time,
         )
@@ -64,6 +66,7 @@ class SubOperation:
     category: str
     duration_s: float
     input_shape: str
+    dependencies: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

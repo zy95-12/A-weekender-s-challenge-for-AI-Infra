@@ -13,10 +13,35 @@ class ConfigError(ValueError):
 @dataclass(frozen=True)
 class ModelConfig:
     name: str
+    architecture: str
     num_layers: int
     hidden_size: int
+    intermediate_size: int
+    num_attention_heads: int
+    num_key_value_heads: int
+    head_dim: int
+    vocab_size: int = 0
+    dtype: str = "bfloat16"
     dtype_bytes: int = 2
-    params_per_layer_factor: float = 12.0
+
+    @property
+    def query_width(self) -> int:
+        return self.num_attention_heads * self.head_dim
+
+    @property
+    def kv_width(self) -> int:
+        return self.num_key_value_heads * self.head_dim
+
+    @property
+    def parameters_per_layer(self) -> int:
+        attention = (
+            self.hidden_size * self.query_width
+            + 2 * self.hidden_size * self.kv_width
+            + self.query_width * self.hidden_size
+        )
+        mlp = 3 * self.hidden_size * self.intermediate_size
+        norms = 2 * self.hidden_size + 2 * self.head_dim
+        return attention + mlp + norms
 
 
 @dataclass(frozen=True)
@@ -26,6 +51,7 @@ class StageConfig:
     layer_end: int
     resource: str
     tp_degree: int = 1
+    replicas: int = 1
 
     @property
     def num_layers(self) -> int:
@@ -124,18 +150,50 @@ def _required(data: dict[str, Any], key: str, location: str) -> Any:
 
 
 def load_config(path: str | Path) -> SimulationConfig:
-    with Path(path).open("r", encoding="utf-8") as handle:
-        return parse_config(json.load(handle))
+    config_path = Path(path)
+    with config_path.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    model_data = _required(data, "model", "root")
+    hf_config_path = model_data.get("hf_config_path")
+    if hf_config_path:
+        profile_path = config_path.parent / str(hf_config_path)
+        with profile_path.open("r", encoding="utf-8") as handle:
+            hf_data = json.load(handle)
+        # Experiment-level fields intentionally override the checked-in HF profile.
+        data["model"] = {**hf_data, **model_data}
+    return parse_config(data)
 
 
 def parse_config(data: dict[str, Any]) -> SimulationConfig:
     model_data = _required(data, "model", "root")
+    hidden_size = int(_required(model_data, "hidden_size", "model"))
+    num_attention_heads = int(model_data.get("num_attention_heads", 1))
+    dtype = str(model_data.get("dtype", model_data.get("torch_dtype", "bfloat16")))
+    inferred_dtype_bytes = {
+        "float32": 4,
+        "float16": 2,
+        "bfloat16": 2,
+        "int8": 1,
+        "float8_e4m3fn": 1,
+    }.get(dtype)
+    if inferred_dtype_bytes is None and "dtype_bytes" not in model_data:
+        raise ConfigError(f"unsupported model dtype: {dtype}")
     model = ModelConfig(
         name=_required(model_data, "name", "model"),
-        num_layers=int(_required(model_data, "num_layers", "model")),
-        hidden_size=int(_required(model_data, "hidden_size", "model")),
-        dtype_bytes=int(model_data.get("dtype_bytes", 2)),
-        params_per_layer_factor=float(model_data.get("params_per_layer_factor", 12.0)),
+        architecture=str(model_data.get("model_type", model_data.get("architecture", "qwen3"))),
+        num_layers=int(
+            model_data["num_layers"]
+            if "num_layers" in model_data
+            else _required(model_data, "num_hidden_layers", "model")
+        ),
+        hidden_size=hidden_size,
+        intermediate_size=int(model_data.get("intermediate_size", 4 * hidden_size)),
+        num_attention_heads=num_attention_heads,
+        num_key_value_heads=int(model_data.get("num_key_value_heads", num_attention_heads)),
+        head_dim=int(model_data.get("head_dim", hidden_size // num_attention_heads)),
+        vocab_size=int(model_data.get("vocab_size", 0)),
+        dtype=dtype,
+        dtype_bytes=int(model_data.get("dtype_bytes", inferred_dtype_bytes or 2)),
     )
 
     topology_data = _required(data, "topology", "root")
@@ -146,6 +204,7 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
             layer_end=int(_required(item, "layer_end", "topology.stages[]")),
             resource=str(_required(item, "resource", "topology.stages[]")),
             tp_degree=int(item.get("tp_degree", 1)),
+            replicas=int(item.get("replicas", 1)),
         )
         for item in _required(topology_data, "stages", "topology")
     )
@@ -279,6 +338,17 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("model dimensions must be positive")
     if config.model.dtype_bytes <= 0:
         raise ConfigError("model.dtype_bytes must be positive")
+    if config.model.architecture != "qwen3":
+        raise ConfigError("only model architecture 'qwen3' is supported")
+    if min(
+        config.model.intermediate_size,
+        config.model.num_attention_heads,
+        config.model.num_key_value_heads,
+        config.model.head_dim,
+    ) <= 0:
+        raise ConfigError("Qwen3 model dimensions must be positive")
+    if config.model.num_attention_heads % config.model.num_key_value_heads != 0:
+        raise ConfigError("num_attention_heads must be divisible by num_key_value_heads")
 
     expected_names = ["edge_front", "cloud_middle", "edge_tail"]
     if [stage.name for stage in config.stages] != expected_names:
@@ -290,8 +360,25 @@ def validate_config(config: SimulationConfig) -> None:
         cursor = stage.layer_end
         if stage.resource not in config.hardware:
             raise ConfigError(f"unknown hardware resource: {stage.resource}")
-        if stage.tp_degree <= 0 or stage.tp_degree > config.hardware[stage.resource].count:
-            raise ConfigError(f"invalid tp_degree for stage {stage.name}")
+        if stage.tp_degree <= 0 or stage.replicas <= 0:
+            raise ConfigError(f"parallel degrees must be positive for {stage.name}")
+        if stage.tp_degree * stage.replicas > config.hardware[stage.resource].count:
+            raise ConfigError(f"TP times replicas exceeds device count for {stage.name}")
+        if config.model.num_attention_heads % stage.tp_degree != 0:
+            raise ConfigError(f"attention heads are not divisible by TP for {stage.name}")
+        if config.model.intermediate_size % stage.tp_degree != 0:
+            raise ConfigError(f"intermediate size is not divisible by TP for {stage.name}")
+        if (
+            config.model.num_key_value_heads >= stage.tp_degree
+            and config.model.num_key_value_heads % stage.tp_degree != 0
+        ):
+            raise ConfigError(f"KV heads are not divisible by TP for {stage.name}")
+        if (
+            stage.layer_end == config.model.num_layers
+            and config.model.vocab_size
+            and config.model.vocab_size % stage.tp_degree != 0
+        ):
+            raise ConfigError(f"vocabulary is not divisible by TP for {stage.name}")
     if cursor != config.model.num_layers:
         raise ConfigError("topology layer ranges must cover all model layers")
 
@@ -367,12 +454,24 @@ def validate_config(config: SimulationConfig) -> None:
         hardware_profile = config.hardware[stage.resource]
         weight_bytes = (
             stage.num_layers
-            * config.model.params_per_layer_factor
-            * config.model.hidden_size
-            * config.model.hidden_size
+            * config.model.parameters_per_layer
             * config.model.dtype_bytes
             / stage.tp_degree
         )
+        if stage.layer_start == 0:
+            weight_bytes += (
+                config.model.vocab_size
+                * config.model.hidden_size
+                * config.model.dtype_bytes
+                / stage.tp_degree
+            )
+        if stage.layer_end == config.model.num_layers:
+            weight_bytes += (
+                config.model.vocab_size
+                * config.model.hidden_size
+                * config.model.dtype_bytes
+                / stage.tp_degree
+            )
         if weight_bytes > hardware_profile.memory_gb * 1e9:
             raise ConfigError(
                 f"stage {stage.name} weights do not fit in per-GPU memory"

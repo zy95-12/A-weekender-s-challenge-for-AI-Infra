@@ -63,7 +63,11 @@ class Simulator:
         self.scheduler = NaiveScheduler(config.static_policy)
         self.roofline = RooflineModel(config)
         self.network = NetworkModel(config)
-        resource_names = {stage.resource for stage in config.stages}
+        resource_names = {
+            self._replica_resource_id(stage.resource, replica, stage.replicas)
+            for stage in config.stages
+            for replica in range(stage.replicas)
+        }
         resource_names.update({"wan_up", "wan_down"})
         self.resources = {name: Resource(name) for name in sorted(resource_names)}
         self.queues: dict[str, list[WorkItem]] = {name: [] for name in self.resources}
@@ -222,14 +226,21 @@ class Simulator:
 
     def _enqueue(self, items: list[WorkItem]) -> None:
         for item in items:
-            self.queues[self._resource_for_stage(item.stage)].append(item)
+            self.queues[self._resource_for_item(item)].append(item)
 
-    def _resource_for_stage(self, stage: Stage) -> str:
-        if stage == Stage.WAN_UP:
+    @staticmethod
+    def _replica_resource_id(resource: str, replica: int, replicas: int) -> str:
+        return resource if replicas == 1 else f"{resource}/replica_{replica}"
+
+    def _resource_for_item(self, item: WorkItem) -> str:
+        if item.stage == Stage.WAN_UP:
             return "wan_up"
-        if stage == Stage.WAN_DOWN:
+        if item.stage == Stage.WAN_DOWN:
             return "wan_down"
-        return self.config.stage(stage.value).resource
+        stage = self.config.stage(item.stage.value)
+        # Naive but KV-safe routing: a request remains sticky to one replica.
+        replica = item.request_id % stage.replicas
+        return self._replica_resource_id(stage.resource, replica, stage.replicas)
 
     def _schedule_idle_resources(self) -> None:
         for resource_id in sorted(self.resources):
@@ -303,6 +314,7 @@ class Simulator:
                     "end_time_ms": operation_end * 1000.0,
                     "duration_ms": operation.duration_s * 1000.0,
                     "input_shape": operation.input_shape,
+                    "dependencies": list(operation.dependencies),
                 }
             )
             cursor = operation_end

@@ -1,10 +1,7 @@
 {
   "model": {
-    "name": "qwen3-32b-analytical",
-    "num_layers": 64,
-    "hidden_size": 5120,
-    "dtype_bytes": 2,
-    "params_per_layer_factor": 12.0
+    "name": "Qwen/Qwen3-32B",
+    "hf_config_path": "../models/qwen3_32b_config.json"
   },
   "topology": {
     "stages": [
@@ -13,21 +10,24 @@
         "layer_start": 0,
         "layer_end": 6,
         "resource": "edge_gpu",
-        "tp_degree": 1
+        "tp_degree": 1,
+        "replicas": 1
       },
       {
         "name": "cloud_middle",
         "layer_start": 6,
         "layer_end": 62,
         "resource": "cloud_gpu",
-        "tp_degree": 4
+        "tp_degree": 4,
+        "replicas": 1
       },
       {
         "name": "edge_tail",
         "layer_start": 62,
         "layer_end": 64,
         "resource": "edge_gpu",
-        "tp_degree": 1
+        "tp_degree": 1,
+        "replicas": 1
       }
     ]
   },
@@ -72,11 +72,11 @@
   },
   "workload": {
     "mode": "synthetic",
-    "num_requests": 16,
+    "num_requests": 4,
     "arrival_process": "constant",
-    "arrival_interval_ms": 500,
-    "input_tokens": 4096,
-    "output_tokens": 32,
+    "arrival_interval_ms": 100,
+    "input_tokens": 512,
+    "output_tokens": 4,
     "random_seed": 42
   },
   "slo": {

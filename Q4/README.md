@@ -4,8 +4,8 @@
 的第一阶段实现：使用 analytical Roofline、依赖 DAG、naive continuous batching
 和离散事件资源模型，模拟一个 Split-LLM Serving 实例的端到端行为。
 
-本版本的目标是验证调度、资源竞争和请求间流水逻辑，不进行最大 QPS 搜索，也不承诺未经
-profiling 校准的绝对性能精度。
+本版本的目标是验证调度、资源竞争和请求间流水逻辑，不进行最大 QPS 搜索。模型结构和
+shape 来自 Hugging Face Qwen3 配置，耗时仍是未经 profiling 校准的 analytical Roofline。
 
 ## 系统路径
 
@@ -29,12 +29,12 @@ python -m split_serving_sim \
 
 示例配置位于 [`configs/example.json`](configs/example.json)，其中包含：
 
-- Qwen3-32B analytical model profile；
+- 仓内保存的 Hugging Face Qwen3-32B 原始结构配置；
 - Edge 6 层、Cloud 56 层、Edge Tail 2 层；
 - Edge TP=1、Cloud TP=4；
 - 10 Gbps 上下行和 10 ms RTT；
 - BS=8、prefill chunk=512、每批 prefill budget=512、decode priority；
-- 16 个请求，每 500 ms 到达一个，每个输入 4096 tokens、输出 32 tokens。
+- 4 个请求，每 100 ms 到达一个，每个输入 512 tokens、输出 4 tokens。
 
 命令输出：
 
@@ -55,13 +55,13 @@ python -m split_serving_sim \
 本次 demo 的关键结果为：
 
 ```text
-Requests                 16
-Average batch size       3.18
-Observed throughput      1.87 requests/s
-P99 TTFT                 467.99 ms
-P99 TPOT                 127.51 ms
-Cloud GPU utilization    82.8%
-Edge GPU utilization     45.9%
+Requests                 4
+Average batch size       1.60
+Observed throughput      7.23 requests/s
+P99 TTFT                 160.29 ms
+P99 TPOT                 105.27 ms
+Cloud GPU utilization    80.5%
+Edge GPU utilization     37.5%
 SLO                      Fail
 ```
 
@@ -71,7 +71,7 @@ Observed throughput 只是指定输入流量下的观测结果，不代表最大
 
 ```text
 config.py          JSON schema、解析和拓扑/显存校验
-performance.py     Dense workload、Roofline、TP 和 WAN 模型
+performance.py     Qwen3 逐层算子 workload、Roofline、TP 和 WAN 模型
 dag.py             Prefill chunk DAG 与 lazy decode DAG
 scheduler.py       Naive decode-priority eager scheduler
 simulator.py       Event queue、资源占用和 batch execution
@@ -105,6 +105,65 @@ JSON Config
 - WAN uplink/downlink 是两个独立的单服务器资源；
 - `pipeline_depth` 限制单请求在途 prefill chunk；
 - `max_outstanding_prefill_chunks` 提供全局 backpressure。
+
+## Qwen3 cost model
+
+`configs/example.json` 通过 `hf_config_path` 引用
+[`models/qwen3_32b_config.json`](models/qwen3_32b_config.json)。该文件摘自
+[`Qwen/Qwen3-32B config.json`](https://huggingface.co/Qwen/Qwen3-32B/blob/main/config.json)，
+保存模型的结构字段，包括
+hidden/intermediate size、Q/KV heads、head dim、vocabulary、layer 数和 dtype；不下载模型权重。
+
+每个 DecoderLayer 自下而上展开为：
+
+```text
+input RMSNorm
+  -> Q/K/V projections
+  -> Q norm / K norm -> RoPE
+  -> KV-cache update
+  -> attention
+  -> O projection -> TP all-reduce
+  -> residual + post-attention RMSNorm
+  -> gate/up projections -> SiLU -> gated multiply
+  -> down projection -> TP all-reduce
+  -> residual
+```
+
+模型入口另有 embedding，出口按需要执行 final RMSNorm 和 LM head。每个算子单独计算
+FLOPs、权重/activation/KV 访存量，并使用：
+
+```text
+latency = max(FLOPs / effective_peak_flops,
+              bytes / effective_hbm_bandwidth) + kernel_launch_overhead
+```
+
+Prefill attention 使用 causal triangle 的 token pair 数，decode 使用当前 KV context。Qwen3
+的 GQA 会分别按照 query heads 和 KV heads 计算 attention 与 KV-cache 流量。
+
+### 并行语义
+
+- `tp_degree` 表示单个推理 replica 内的 Tensor Parallel；
+- Q/K/V、gate/up 按 column parallel 推导 local shape；
+- O projection、down projection 按 row parallel 推导，并在每一层原位插入 all-reduce；
+- 当 TP 不大于 KV head 数时对 KV heads 分片；TP 大于 KV head 数时复制 KV heads；
+- `replicas` 表示该 stage 的独立推理实例数，设备需求为 `tp_degree * replicas`；
+- 当前 dynamic routing 使用 `request_id % replicas`，保证请求及其 KV cache 对 replica sticky；
+- 每个 replica 有独立队列和资源占用状态，可以并行处理不同请求。
+
+例如：
+
+```json
+{
+  "name": "cloud_middle",
+  "layer_start": 6,
+  "layer_end": 62,
+  "resource": "cloud_gpu",
+  "tp_degree": 4,
+  "replicas": 2
+}
+```
+
+需要至少 8 张 `cloud_gpu`。本阶段尚未实现 replica 间动态负载均衡及实例内 PP。
 
 ## Workload 模式
 
@@ -142,12 +201,13 @@ python -m http.server 8000 --directory outputs/demo
 - 同一行的色块不会重叠，表示资源互斥；
 - 不同行同时执行表示请求或 chunk 正在跨 stage 流水；
 - 粗边框表示 batch 包含 decode work；
-- 计算子流色块直接标注 attention projection、attention、MLP、kernel overhead 等算子名；
-- 通信子流色块直接标注 TP collective、WAN serialization、WAN propagation 等操作名；
-- 子流色块会显示 input shape，悬停或点击可查看完整详情；
+- 计算子流按 layer 展开，色块直接标注 `layer_06.q_proj`、`layer_06.attention` 等算子名；
+- 通信子流在每层正确位置显示 `attention_all_reduce`、`mlp_all_reduce`，并显示 WAN 操作；
+- 色块本身只标算子名；悬停或点击后显示 dtype 和 input shape；
 - 点击主流 batch 可查看 request IDs、phase、输入形状、算子耗时和通信耗时。
 - 键盘 `←`/`→` 平移视窗，`↑` 放大，`↓` 缩小；
 - 点击主流 batch 后，绿色箭头显示它依赖的前驱 batch，红色箭头显示依赖它的后继 batch；
+- 点击算子色块后，会额外显示该算子的 tensor 前驱和后继算子箭头；
 - 窗口外的直接依赖会用指向时间窗口边界的箭头表示，详情区同时列出完整 batch ID。
 
 ## 测试
@@ -156,10 +216,10 @@ python -m http.server 8000 --directory outputs/demo
 python -m unittest discover -s tests -v
 ```
 
-当前包含 16 个行为测试，覆盖配置校验、batch-aware Roofline、WAN batching、chunk
-因果关系、lazy decode、共享 Edge GPU、依赖时序、BS batching、operator/TP 子流和甘特图输出。
+当前包含 20 个行为测试，覆盖 Hugging Face profile、Qwen3/GQA shape、逐层 TP collective、
+replica sticky routing、batch-aware Roofline、WAN batching、DAG、调度和甘特图输出。
 
 ## 当前边界
 
-暂未实现 QPS 搜索、GPU profiling 校准、EP/MoE/MLA、PD Separation、speculative
-decode、KV paging、prefix cache、CUDA stream overlap 和随机 WAN jitter。
+暂未实现 QPS 搜索、GPU profiling 校准、PP/SP/CP、动态 replica 负载均衡、EP/MoE/MLA、
+PD Separation、speculative decode、KV paging、prefix cache、CUDA stream overlap 和随机 WAN jitter。

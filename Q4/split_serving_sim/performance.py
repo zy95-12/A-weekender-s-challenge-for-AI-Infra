@@ -1,169 +1,474 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from .config import SimulationConfig, StageConfig
-from .core import (
-    OperatorWorkload,
-    PerformanceEstimate,
-    Phase,
-    Stage,
-    SubOperation,
-    WorkItem,
-)
+from .core import OperatorWorkload, PerformanceEstimate, Phase, Stage, SubOperation, WorkItem
 
 
-class DenseWorkloadModel:
-    """Simple analytical workload model; intended for behavioral simulation."""
+@dataclass(frozen=True)
+class ModeledOperator:
+    name: str
+    category: str
+    workload: OperatorWorkload
+    input_shape: str
+    dependencies: tuple[str, ...] = ()
+
+
+class Qwen3WorkloadModel:
+    """Build a Qwen3 operator sequence from Hugging Face model dimensions."""
 
     def __init__(self, config: SimulationConfig):
         self.model = config.model
 
+    def _shape(self, *dimensions: int | str) -> str:
+        return f"{self.model.dtype} [{', '.join(str(value) for value in dimensions)}]"
+
+    def _linear(
+        self,
+        name: str,
+        layer: int | None,
+        tokens: int,
+        input_width: int,
+        output_width: int,
+        *,
+        local_output_width: int | None = None,
+        local_input_width: int | None = None,
+        dependencies: tuple[str, ...] = (),
+    ) -> ModeledOperator:
+        local_in = local_input_width or input_width
+        local_out = local_output_width or output_width
+        elements = self.model.dtype_bytes
+        workload = OperatorWorkload(
+            flops=2.0 * tokens * local_in * local_out,
+            memory_bytes=(
+                local_in * local_out + tokens * (local_in + local_out)
+            )
+            * elements,
+        )
+        prefix = f"layer_{layer:02d}." if layer is not None else ""
+        return ModeledOperator(
+            name=f"{prefix}{name}",
+            category="compute",
+            workload=workload,
+            input_shape=self._shape(tokens, local_in),
+            dependencies=dependencies,
+        )
+
+    def _elementwise(
+        self,
+        name: str,
+        layer: int | None,
+        tokens: int,
+        width: int,
+        flop_factor: float,
+        memory_factor: float = 2.0,
+        dependencies: tuple[str, ...] = (),
+    ) -> ModeledOperator:
+        prefix = f"layer_{layer:02d}." if layer is not None else ""
+        return ModeledOperator(
+            name=f"{prefix}{name}",
+            category="compute",
+            workload=OperatorWorkload(
+                flops=flop_factor * tokens * width,
+                memory_bytes=memory_factor * tokens * width * self.model.dtype_bytes,
+            ),
+            input_shape=self._shape(tokens, width),
+            dependencies=dependencies,
+        )
+
+    def _collective(
+        self,
+        name: str,
+        layer: int,
+        tokens: int,
+        dependencies: tuple[str, ...],
+    ) -> ModeledOperator:
+        payload = tokens * self.model.hidden_size * self.model.dtype_bytes
+        return ModeledOperator(
+            name=f"layer_{layer:02d}.{name}",
+            category="communication",
+            workload=OperatorWorkload(0.0, 0.0, float(payload)),
+            input_shape=self._shape(tokens, self.model.hidden_size),
+            dependencies=dependencies,
+        )
+
     def build_operators(
         self, stage: StageConfig, items: Sequence[WorkItem]
-    ) -> list[tuple[str, OperatorWorkload]]:
+    ) -> list[ModeledOperator]:
         if not items:
             raise ValueError("cannot build an empty workload")
-        hidden = self.model.hidden_size
-        dtype_bytes = self.model.dtype_bytes
-        layers = stage.num_layers
-        total_tokens = sum(item.token_count for item in items)
+        model = self.model
+        tokens = sum(item.token_count for item in items)
+        tp = stage.tp_degree
+        local_q_heads = model.num_attention_heads // tp
+        local_q_width = local_q_heads * model.head_dim
+        if model.num_key_value_heads >= tp:
+            local_kv_heads = model.num_key_value_heads // tp
+        else:
+            # When TP is wider than the number of KV heads, replicate KV heads.
+            local_kv_heads = model.num_key_value_heads
+        local_kv_width = local_kv_heads * model.head_dim
+        local_intermediate = model.intermediate_size // tp
+        operators: list[ModeledOperator] = []
 
-        attention_parameters = 4.0 * hidden * hidden
-        mlp_parameters = max(
-            self.model.params_per_layer_factor - 4.0, 0.0
-        ) * hidden * hidden
-        projection_flops = 2.0 * attention_parameters * total_tokens * layers
-        mlp_flops = 2.0 * mlp_parameters * total_tokens * layers
-        attention_flops = 0.0
-        kv_bytes = 0.0
-        for item in items:
-            visible_context = max(item.context_tokens, item.token_count)
-            attention_flops += (
-                4.0 * hidden * item.token_count * visible_context * layers
+        if stage.layer_start == 0:
+            operators.append(
+                ModeledOperator(
+                    name="embed_tokens",
+                    category="compute",
+                    workload=OperatorWorkload(
+                        flops=0.0,
+                        memory_bytes=2.0 * tokens * model.hidden_size * model.dtype_bytes,
+                    ),
+                    input_shape="int64 [B, T]",
+                )
             )
-            kv_bytes += (
-                2.0 * hidden * visible_context * dtype_bytes * layers
-            )
-            if item.phase == Phase.PREFILL:
-                kv_bytes += 2.0 * hidden * item.token_count * dtype_bytes * layers
 
-        projection_memory = (
-            attention_parameters * dtype_bytes * layers
-            + 2.0 * total_tokens * hidden * dtype_bytes * layers
-        )
-        attention_memory = kv_bytes + total_tokens * hidden * dtype_bytes * layers
-        mlp_memory = (
-            mlp_parameters * dtype_bytes * layers
-            + 2.0 * total_tokens * hidden * dtype_bytes * layers
-        )
-        return [
+        previous_output = "embed_tokens" if stage.layer_start == 0 else ""
+
+        context_pairs = sum(
             (
-                "attention_projection",
-                OperatorWorkload(projection_flops, projection_memory),
-            ),
-            ("attention", OperatorWorkload(attention_flops, attention_memory)),
-            ("mlp", OperatorWorkload(mlp_flops, mlp_memory)),
-        ]
+                item.token_count * item.token_start
+                + item.token_count * (item.token_count + 1) / 2
+            )
+            if item.phase == Phase.PREFILL
+            else item.token_count * max(item.context_tokens, item.token_count)
+            for item in items
+        )
+        cache_tokens = sum(max(item.context_tokens, item.token_count) for item in items)
+        for layer in range(stage.layer_start, stage.layer_end):
+            prefix = f"layer_{layer:02d}"
+            layer_input_dependencies = (previous_output,) if previous_output else ()
+            operators.append(
+                self._elementwise(
+                    "input_layernorm",
+                    layer,
+                    tokens,
+                    model.hidden_size,
+                    5.0,
+                    dependencies=layer_input_dependencies,
+                )
+            )
+            norm_name = f"{prefix}.input_layernorm"
+            operators.extend(
+                [
+                    self._linear(
+                        "q_proj",
+                        layer,
+                        tokens,
+                        model.hidden_size,
+                        model.query_width,
+                        local_output_width=local_q_width,
+                        dependencies=(norm_name,),
+                    ),
+                    self._linear(
+                        "k_proj",
+                        layer,
+                        tokens,
+                        model.hidden_size,
+                        model.kv_width,
+                        local_output_width=local_kv_width,
+                        dependencies=(norm_name,),
+                    ),
+                    self._linear(
+                        "v_proj",
+                        layer,
+                        tokens,
+                        model.hidden_size,
+                        model.kv_width,
+                        local_output_width=local_kv_width,
+                        dependencies=(norm_name,),
+                    ),
+                ]
+            )
+            operators.extend(
+                [
+                    ModeledOperator(
+                        name=f"{prefix}.q_norm",
+                        category="compute",
+                        workload=OperatorWorkload(
+                            flops=5.0 * tokens * local_q_width,
+                            memory_bytes=2.0
+                            * tokens
+                            * local_q_width
+                            * model.dtype_bytes,
+                        ),
+                        input_shape=self._shape(
+                            tokens, local_q_heads, model.head_dim
+                        ),
+                        dependencies=(f"{prefix}.q_proj",),
+                    ),
+                    ModeledOperator(
+                        name=f"{prefix}.k_norm",
+                        category="compute",
+                        workload=OperatorWorkload(
+                            flops=5.0 * tokens * local_kv_width,
+                            memory_bytes=2.0
+                            * tokens
+                            * local_kv_width
+                            * model.dtype_bytes,
+                        ),
+                        input_shape=self._shape(
+                            tokens, local_kv_heads, model.head_dim
+                        ),
+                        dependencies=(f"{prefix}.k_proj",),
+                    ),
+                    ModeledOperator(
+                        name=f"{prefix}.rope",
+                        category="compute",
+                        workload=OperatorWorkload(
+                            flops=6.0
+                            * tokens
+                            * (local_q_width + local_kv_width),
+                            memory_bytes=3.0
+                            * tokens
+                            * (local_q_width + local_kv_width)
+                            * model.dtype_bytes,
+                        ),
+                        input_shape=(
+                            f"{model.dtype} Q[{tokens}, {local_q_heads}, {model.head_dim}], "
+                            f"K[{tokens}, {local_kv_heads}, {model.head_dim}]"
+                        ),
+                        dependencies=(f"{prefix}.q_norm", f"{prefix}.k_norm"),
+                    ),
+                ]
+            )
+            operators.append(
+                ModeledOperator(
+                    name=f"layer_{layer:02d}.kv_cache_update",
+                    category="compute",
+                    workload=OperatorWorkload(
+                        flops=0.0,
+                        memory_bytes=2.0
+                        * tokens
+                        * local_kv_width
+                        * model.dtype_bytes,
+                    ),
+                    input_shape=self._shape(2, tokens, local_kv_heads, model.head_dim),
+                    dependencies=(f"{prefix}.rope", f"{prefix}.v_proj"),
+                )
+            )
+            operators.append(
+                ModeledOperator(
+                    name=f"layer_{layer:02d}.attention",
+                    category="compute",
+                    workload=OperatorWorkload(
+                        flops=4.0 * local_q_width * context_pairs,
+                        memory_bytes=(
+                            tokens * local_q_width
+                            + 2.0 * cache_tokens * local_kv_width
+                            + tokens * local_q_width
+                        )
+                        * model.dtype_bytes,
+                    ),
+                    input_shape=(
+                        f"{model.dtype} Q[{tokens}, {local_q_heads}, {model.head_dim}], "
+                        f"KV[B, {local_kv_heads}, L_i, {model.head_dim}]"
+                    ),
+                    dependencies=(f"{prefix}.rope", f"{prefix}.kv_cache_update"),
+                )
+            )
+            operators.append(
+                self._linear(
+                    "o_proj",
+                    layer,
+                    tokens,
+                    model.query_width,
+                    model.hidden_size,
+                    local_input_width=local_q_width,
+                    dependencies=(f"{prefix}.attention",),
+                )
+            )
+            attention_output = f"{prefix}.o_proj"
+            if tp > 1:
+                operators.append(
+                    self._collective(
+                        "attention_all_reduce", layer, tokens, (attention_output,)
+                    )
+                )
+                attention_output = f"{prefix}.attention_all_reduce"
+            operators.append(
+                self._elementwise(
+                    "attention_residual",
+                    layer,
+                    tokens,
+                    model.hidden_size,
+                    1.0,
+                    3.0,
+                    dependencies=tuple(
+                        name
+                        for name in (previous_output, attention_output)
+                        if name
+                    ),
+                )
+            )
+            attention_residual = f"{prefix}.attention_residual"
+            operators.append(
+                self._elementwise(
+                    "post_attention_layernorm",
+                    layer,
+                    tokens,
+                    model.hidden_size,
+                    5.0,
+                    dependencies=(attention_residual,),
+                )
+            )
+            post_norm = f"{prefix}.post_attention_layernorm"
+            operators.extend(
+                [
+                    self._linear(
+                        "gate_proj",
+                        layer,
+                        tokens,
+                        model.hidden_size,
+                        model.intermediate_size,
+                        local_output_width=local_intermediate,
+                        dependencies=(post_norm,),
+                    ),
+                    self._linear(
+                        "up_proj",
+                        layer,
+                        tokens,
+                        model.hidden_size,
+                        model.intermediate_size,
+                        local_output_width=local_intermediate,
+                        dependencies=(post_norm,),
+                    ),
+                    self._elementwise(
+                        "silu",
+                        layer,
+                        tokens,
+                        local_intermediate,
+                        5.0,
+                        dependencies=(f"{prefix}.gate_proj",),
+                    ),
+                    self._elementwise(
+                        "gated_mul",
+                        layer,
+                        tokens,
+                        local_intermediate,
+                        1.0,
+                        3.0,
+                        dependencies=(f"{prefix}.silu", f"{prefix}.up_proj"),
+                    ),
+                    self._linear(
+                        "down_proj",
+                        layer,
+                        tokens,
+                        model.intermediate_size,
+                        model.hidden_size,
+                        local_input_width=local_intermediate,
+                        dependencies=(f"{prefix}.gated_mul",),
+                    ),
+                ]
+            )
+            mlp_output = f"{prefix}.down_proj"
+            if tp > 1:
+                operators.append(
+                    self._collective("mlp_all_reduce", layer, tokens, (mlp_output,))
+                )
+                mlp_output = f"{prefix}.mlp_all_reduce"
+            operators.append(
+                self._elementwise(
+                    "mlp_residual",
+                    layer,
+                    tokens,
+                    model.hidden_size,
+                    1.0,
+                    3.0,
+                    dependencies=(attention_residual, mlp_output),
+                )
+            )
+            previous_output = f"{prefix}.mlp_residual"
+
+        logits_tokens = sum(item.produces_logits for item in items)
+        if stage.layer_end == model.num_layers and logits_tokens:
+            operators.append(
+                self._elementwise(
+                    "final_norm",
+                    None,
+                    logits_tokens,
+                    model.hidden_size,
+                    5.0,
+                    dependencies=(previous_output,),
+                )
+            )
+            if model.vocab_size:
+                operators.append(
+                    self._linear(
+                        "lm_head",
+                        None,
+                        logits_tokens,
+                        model.hidden_size,
+                        model.vocab_size,
+                        local_output_width=model.vocab_size // tp,
+                        dependencies=("final_norm",),
+                    )
+                )
+        return operators
 
     def build(self, stage: StageConfig, items: Sequence[WorkItem]) -> OperatorWorkload:
         operators = self.build_operators(stage, items)
-        communication_bytes = (
-            2.0
-            * sum(item.token_count for item in items)
-            * self.model.hidden_size
-            * self.model.dtype_bytes
-            * stage.num_layers
-        )
         return OperatorWorkload(
-            flops=sum(workload.flops for _, workload in operators),
-            memory_bytes=sum(workload.memory_bytes for _, workload in operators),
-            communication_bytes=communication_bytes,
+            flops=sum(operator.workload.flops for operator in operators),
+            memory_bytes=sum(operator.workload.memory_bytes for operator in operators),
+            communication_bytes=sum(
+                operator.workload.communication_bytes for operator in operators
+            ),
         )
 
     def input_shape(self, items: Sequence[WorkItem]) -> str:
-        tokens = [item.token_count for item in items]
-        contexts = [item.context_tokens for item in items]
-        return (
-            f"B={len(items)}, tokens={tokens}, contexts={contexts}, "
-            f"hidden={self.model.hidden_size}"
-        )
+        return self._shape(sum(item.token_count for item in items), self.model.hidden_size)
 
 
 class RooflineModel:
     def __init__(self, config: SimulationConfig):
         self.config = config
-        self.workloads = DenseWorkloadModel(config)
+        self.workloads = Qwen3WorkloadModel(config)
 
     def estimate(self, stage_name: str, items: Sequence[WorkItem]) -> PerformanceEstimate:
         stage = self.config.stage(stage_name)
         hardware = self.config.hardware[stage.resource]
+        operators = self.workloads.build_operators(stage, items)
         workload = self.workloads.build(stage, items)
-        operator_workloads = self.workloads.build_operators(stage, items)
-        tp = stage.tp_degree
-
-        peak_flops = (
-            hardware.peak_flops_tflops
-            * 1e12
-            * tp
-            * hardware.compute_efficiency
-        )
-        memory_bandwidth = (
-            hardware.hbm_bandwidth_gb_s
-            * 1e9
-            * tp
-            * hardware.memory_efficiency
-        )
-        compute_time = workload.flops / peak_flops
-        memory_time = workload.memory_bytes / memory_bandwidth
-
-        shape = self.workloads.input_shape(items)
+        peak_flops = hardware.peak_flops_tflops * 1e12 * hardware.compute_efficiency
+        memory_bandwidth = hardware.hbm_bandwidth_gb_s * 1e9 * hardware.memory_efficiency
+        ring_factor = 2.0 * (stage.tp_degree - 1) / stage.tp_degree
         sub_operations: list[SubOperation] = []
-        for name, operator in operator_workloads:
-            duration = max(
-                operator.flops / peak_flops,
-                operator.memory_bytes / memory_bandwidth,
-            )
-            sub_operations.append(
-                SubOperation(
-                    name=name,
-                    category="compute",
-                    duration_s=duration,
-                    input_shape=shape,
-                )
-            )
-
+        compute_time = 0.0
+        memory_time = 0.0
         collective_time = 0.0
-        if tp > 1:
-            ring_factor = 2.0 * (tp - 1) / tp
-            bytes_on_link = workload.communication_bytes * ring_factor / tp
-            num_collectives = 2 * stage.num_layers
-            collective_time = (
-                num_collectives * hardware.interconnect_latency_us * 1e-6
-                + bytes_on_link / (hardware.interconnect_bandwidth_gb_s * 1e9)
-            )
+        overhead = 0.0
+
+        for operator in operators:
+            if operator.category == "communication":
+                duration = (
+                    hardware.interconnect_latency_us * 1e-6
+                    + ring_factor
+                    * operator.workload.communication_bytes
+                    / (hardware.interconnect_bandwidth_gb_s * 1e9)
+                )
+                collective_time += duration
+            else:
+                operator_compute = operator.workload.flops / peak_flops
+                operator_memory = operator.workload.memory_bytes / memory_bandwidth
+                launch = hardware.kernel_overhead_us * 1e-6
+                duration = max(operator_compute, operator_memory) + launch
+                compute_time += operator_compute
+                memory_time += operator_memory
+                overhead += launch
             sub_operations.append(
                 SubOperation(
-                    name="tp_collective",
-                    category="node_communication",
-                    duration_s=collective_time,
-                    input_shape=(
-                        f"[{sum(item.token_count for item in items)}, "
-                        f"{self.config.model.hidden_size}], tp={tp}"
-                    ),
+                    name=operator.name,
+                    category=operator.category,
+                    duration_s=duration,
+                    input_shape=operator.input_shape,
+                    dependencies=operator.dependencies,
                 )
             )
 
-        overhead = hardware.kernel_overhead_us * 1e-6 * stage.num_layers
-        if overhead:
-            sub_operations.append(
-                SubOperation(
-                    name="kernel_overhead",
-                    category="overhead",
-                    duration_s=overhead,
-                    input_shape=f"layers={stage.num_layers}",
-                )
-            )
         total = sum(operation.duration_s for operation in sub_operations)
         return PerformanceEstimate(
             flops=workload.flops,
@@ -174,7 +479,7 @@ class RooflineModel:
             collective_time_s=collective_time,
             overhead_time_s=overhead,
             total_time_s=total,
-            input_shape=shape,
+            input_shape=self.workloads.input_shape(items),
             sub_operations=tuple(sub_operations),
         )
 
@@ -204,8 +509,8 @@ class NetworkModel:
         propagation = self.config.network.rtt_ms / 2000.0
         total = serialization + propagation
         shape = (
-            f"hidden_state=[{sum(item.token_count for item in items)}, "
-            f"{self.config.model.hidden_size}], dtype_bytes={self.config.model.dtype_bytes}"
+            f"{self.config.model.dtype} "
+            f"[{sum(item.token_count for item in items)}, {self.config.model.hidden_size}]"
         )
         return PerformanceEstimate(
             flops=0.0,
@@ -218,17 +523,7 @@ class NetworkModel:
             total_time_s=total,
             input_shape=shape,
             sub_operations=(
-                SubOperation(
-                    name="wan_serialization",
-                    category="communication",
-                    duration_s=serialization,
-                    input_shape=f"{shape}, bytes={int(payload)}",
-                ),
-                SubOperation(
-                    name="wan_propagation",
-                    category="communication",
-                    duration_s=propagation,
-                    input_shape=f"one_way_rtt={self.config.network.rtt_ms / 2:.3f} ms",
-                ),
+                SubOperation("wan_serialization", "communication", serialization, shape),
+                SubOperation("wan_propagation", "communication", propagation, shape),
             ),
         )

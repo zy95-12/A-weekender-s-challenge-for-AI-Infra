@@ -45,6 +45,22 @@ class SimulatorTest(unittest.TestCase):
         self.assertIsNone(result.summary["tpot_ms"]["p99"])
         self.assertTrue(result.summary["slo"]["tpot_pass"])
 
+    def test_stage_replicas_route_requests_to_sticky_resources(self) -> None:
+        data = copied_toy_config()
+        data["hardware"]["cloud"]["count"] = 4
+        data["topology"]["stages"][1]["replicas"] = 2
+        result = Simulator(parse_config(data)).run()
+        cloud_rows = [
+            row for row in result.trace if row["stage"] == "cloud_middle"
+        ]
+        self.assertEqual(
+            {row["resource"] for row in cloud_rows},
+            {"cloud/replica_0", "cloud/replica_1"},
+        )
+        for row in cloud_rows:
+            for request_id in row["request_ids"]:
+                self.assertTrue(row["resource"].endswith(str(request_id % 2)))
+
 
 if __name__ == "__main__":
     unittest.main()
