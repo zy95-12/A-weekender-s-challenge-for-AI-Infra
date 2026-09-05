@@ -373,7 +373,7 @@ def worker(rank, args, pipe):
                 if mailbox:
                     arrays = None
                 if mailbox and result and "arrays" in result:
-                    result = {"meta": result["meta"], "shared_shape": mailbox.write(1, result["arrays"])}
+                    result = {**{k:v for k,v in result.items() if k!="arrays"}, "shared_shape": mailbox.write(1, result["arrays"])}
                 pipe.send({"result": result})
             except Exception:
                 pipe.send({"error": traceback.format_exc()})
@@ -397,7 +397,7 @@ def worker(rank, args, pipe):
 
 class Executor:
     def __init__(self, args):
-        self.mailbox = LocalMailbox() if args.get("ipc_mode", "pipe") == "shm" and args["role"] == "cloud" else None
+        self.mailbox = LocalMailbox() if args.get("ipc_mode", "pipe") == "shm" and (args["role"] == "cloud" or args.get("pipeline_window",0)) else None
         if self.mailbox:
             args = {**args, "local_ipc_names": self.mailbox.names}
         self.pipes, self.processes = [], []
@@ -451,7 +451,7 @@ class Executor:
             replies.append(reply["result"])
         result = replies[0]
         if self.mailbox and "shared_shape" in result:
-            result = {"meta": result["meta"], "arrays": self.mailbox.read(1, result["shared_shape"], copy=True)}
+            result = {**{k:v for k,v in result.items() if k!="shared_shape"}, "arrays": self.mailbox.read(1, result["shared_shape"], copy=True)}
         return result
 
     def close(self):

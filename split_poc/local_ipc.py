@@ -1,4 +1,6 @@
-"""Bounded reusable host buffers ONLY between a cloud service and its worker.
+"""Bounded reusable host buffers between a service and its local worker.
+
+Cloud uses these in shm mode; opt-in pipelining also uses them on enterprise.
 
 The caller's executor lock protects the single slot. No cross-side sharing.
 Returned arrays are copied before releasing that lock, so the next request

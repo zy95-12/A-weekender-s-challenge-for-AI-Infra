@@ -45,7 +45,18 @@ class PipelineScheduler(Scheduler):
         metadata = {k:command[k] for k in ("phase","items","batch_id")}
         payload = pack({"op":"forward",**metadata},arrays,fast=self.args.wire_fast)
         sent = time.perf_counter_ns()
+        def trace(event,info):
+            import torch
+            parts=event.split(".")
+            names={"send_request_body":"pipeline_upload", "receive_response_headers":"pipeline_cloud_wait",
+                   "receive_response_body":"pipeline_download"}
+            if len(parts)==3 and parts[1] in names:
+                if parts[2]=="started":
+                    torch.cuda.nvtx.range_push(names[parts[1]]+" batch="+command["batch_id"])
+                elif parts[2] in {"complete","failed"}:
+                    torch.cuda.nvtx.range_pop()
         response = self.data_http.post("/forward",content=payload,
+                                       extensions={"trace":trace} if self.args.phase_profile else {},
                                        headers={"content-type":"application/octet-stream"})
         response.raise_for_status()
         received = time.perf_counter_ns()

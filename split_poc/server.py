@@ -236,6 +236,12 @@ def create_app(args):
         bytes_per_block_per_rank = owned * 2 * 16 * (2 // args.tp) * 128 * 2
         values["kv_reserved_bytes_per_rank"] = args.kv_blocks * bytes_per_block_per_rank
         values["kv_used_bytes_per_rank"] = values["kv_used_blocks"] * bytes_per_block_per_rank
+        if scheduler and args.pipeline_window:
+            values["front_kv_used_blocks"]=scheduler.front_used
+            values["back_kv_used_blocks"]=scheduler.kv_used
+            values["kv_used_bytes_per_rank"]=(front*scheduler.front_used+back*scheduler.kv_used)*2*16*(2//args.tp)*128*2
+            values["pipeline_inflight"]=len(scheduler.inflight)
+            values["pipeline_window"]=args.pipeline_window
         return Response("\n".join(f'split_{key}{{role="{args.role}"}} {v}' for key, v in values.items()) + "\n",
                         media_type="text/plain")
 
