@@ -160,7 +160,8 @@ def create_app(args):
         if tuple(remote_config.get("layer_split", [])) != SPLITS[args.split]:
             raise RuntimeError("Cloud layer partition differs from Enterprise")
         cloud_tp = remote_config["tp"]
-        if remote_config.get("optimizations") != {"ipc_mode": args.ipc_mode, "wire_fast": args.wire_fast}:
+        if remote_config.get("optimizations") != {"ipc_mode": args.ipc_mode, "wire_fast": args.wire_fast,
+                                                 "tcp_buffer_mib": args.tcp_buffer_mib}:
             raise RuntimeError("Cloud optimization flags differ from Enterprise")
     executor = Executor(vars(args))
     app.state.executor = executor
@@ -193,7 +194,8 @@ def create_app(args):
         return {"status": "ready", "role": args.role, "split": args.split, "tp": args.tp,
                 "cloud_tp": cloud_tp, "model_id": MODEL_ID, "revision": REVISION, "protocol": 1,
                 "layer_split": SPLITS[args.split],
-                "optimizations": {"ipc_mode": args.ipc_mode, "wire_fast": args.wire_fast},
+                "optimizations": {"ipc_mode": args.ipc_mode, "wire_fast": args.wire_fast,
+                                  "tcp_buffer_mib": args.tcp_buffer_mib},
                 "gpu_pids": [p.pid for p in executor.processes],
                 "worker_audits": executor.worker_audits,
                 "active": len(scheduler.active) if scheduler else len(last_seen),
@@ -501,12 +503,16 @@ def main():
     parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe",
                         help="Cloud-local CPU IPC only; never bypasses WAN")
     parser.add_argument("--wire-fast", action="store_true", help="Single-join lossless FP16 wire encoding")
+    parser.add_argument("--tcp-buffer-mib", type=int, default=0, help="0 preserves default sockets; nonzero requires Linux CAP_NET_ADMIN")
     parser.add_argument("--phase-profile", action="store_true",
                         help="Detailed synchronous GPU stage timings; disable for baseline throughput")
     args = parser.parse_args()
+    if not 0 <= args.tcp_buffer_mib <= 64:
+        parser.error("TCP buffer must be 0..64 MiB")
     if args.tp not in {1, 2}:
         parser.error("TP must be 1 or 2")
-    uvicorn.run(create_app(args), host=args.host, port=args.port, access_log=False)
+    from split_poc.transport import serve
+    serve(create_app(args), args.host, args.port, args.tcp_buffer_mib if args.role == "cloud" else 0)
 
 
 if __name__ == "__main__":

@@ -160,7 +160,8 @@ class Runner:
             attn.kv_cache = [torch.zeros(shape, device="cuda", dtype=torch.float16)]
         if rank == 0 and args["role"] == "enterprise":
             import httpx
-            self.http = httpx.Client(base_url=args["cloud"], timeout=httpx.Timeout(30, connect=3), trust_env=False)
+            from split_poc.transport import http_client
+            self.http = http_client(args.get("tcp_buffer_mib", 0), base_url=args["cloud"], timeout=httpx.Timeout(30, connect=3), trust_env=False)
         self.rpc_phase = None
         self.trace = []
 

@@ -119,6 +119,7 @@ def up(args):
                   "--split", args.split, "--tp", str(tp), "--results", str(results), "--ipc-mode", args.ipc_mode]
         if args.wire_fast:
             common.append("--wire-fast")
+        common += ["--tcp-buffer-mib", str(args.tcp_buffer_mib)]
         if args.profile or args.phase_profile:
             common.append("--phase-profile")
         if not args.profile:
@@ -162,8 +163,11 @@ if __name__ == "__main__":
     parser.add_argument("--profile", action="store_true")
     parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe")
     parser.add_argument("--wire-fast", action="store_true")
+    parser.add_argument("--tcp-buffer-mib", type=int, default=0)
     parser.add_argument("--phase-profile", action="store_true")
     args = parser.parse_args()
+    if not 0 <= args.tcp_buffer_mib <= 64:
+        parser.error("TCP buffer must be 0..64 MiB")
     if args.action == "up":
         up(args)
     elif args.action == "down":

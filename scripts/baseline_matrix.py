@@ -62,6 +62,9 @@ def main():
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--skip-profile", action="store_true")
+    parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe")
+    parser.add_argument("--wire-fast", action="store_true")
+    parser.add_argument("--tcp-buffer-mib", type=int, default=0)
     args = parser.parse_args()
     output = (ROOT / args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -72,7 +75,8 @@ def main():
     manifest = output / "matrix_config.json"
     if manifest.exists():
         previous = json.loads(manifest.read_text())
-        identity = ("split", "pairs", "concurrency", "repeats", "workloads", "dtype", "network")
+        identity = ("split", "pairs", "concurrency", "repeats", "workloads", "dtype", "network",
+                    "ipc_mode", "wire_fast", "tcp_buffer_mib")
         if not args.resume or any(previous.get(key) != config[key] for key in identity):
             raise RuntimeError("Existing matrix differs or --resume is missing; use a fresh output directory")
     manifest.write_text(json.dumps(config, indent=2))
@@ -100,7 +104,10 @@ def main():
             print(f"RESUME completed topology {pair}", flush=True)
             continue
         common = ["bash", "poc", "up", "--wan", "--split", args.split,
-                  "--enterprise-tp", str(enterprise_tp), "--cloud-tp", str(cloud_tp)]
+                  "--enterprise-tp", str(enterprise_tp), "--cloud-tp", str(cloud_tp),
+                  "--ipc-mode", args.ipc_mode, "--tcp-buffer-mib", str(args.tcp_buffer_mib)]
+        if args.wire_fast:
+            common.append("--wire-fast")
         correctness = folder / "correctness"
         reference = "results/baseline_native_tp1" if enterprise_tp == cloud_tp == 1 else "results/validation_final/reference"
         mixed_tp = enterprise_tp != cloud_tp
