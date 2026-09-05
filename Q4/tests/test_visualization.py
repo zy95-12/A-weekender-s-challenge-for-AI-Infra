@@ -42,6 +42,9 @@ class VisualizationTest(unittest.TestCase):
         self.assertIn("<svg", rendered)
         self.assertIn("滚轮缩放", rendered)
         self.assertIn("attention", rendered)
+        self.assertIn("ArrowLeft", rendered)
+        self.assertIn("batchDependencies", rendered)
+        self.assertIn("计算 / Compute", rendered)
 
     def test_writes_script_free_svg_for_github_preview(self) -> None:
         trace = [

@@ -138,14 +138,17 @@ python -m http.server 8000 --directory outputs/demo
 
 - 支持鼠标滚轮或按钮缩放，并可按住图表水平拖动；
 - 每一条主流表示 `edge_gpu`、`wan_up`、`cloud_gpu` 或 `wan_down` 资源；
-- 点击资源左侧的 `▶` 可展开 operator、节点内通信或 WAN 通信子流；
+- 点击资源左侧的 `▶` 只展开两条子流：`计算 / Compute` 和 `通信 / Communication`；
 - 同一行的色块不会重叠，表示资源互斥；
 - 不同行同时执行表示请求或 chunk 正在跨 stage 流水；
 - 粗边框表示 batch 包含 decode work；
-- 子流展示 attention projection、attention、MLP、TP collective、kernel overhead、
-  WAN serialization 和 propagation；
+- 计算子流色块直接标注 attention projection、attention、MLP、kernel overhead 等算子名；
+- 通信子流色块直接标注 TP collective、WAN serialization、WAN propagation 等操作名；
 - 子流色块会显示 input shape，悬停或点击可查看完整详情；
 - 点击主流 batch 可查看 request IDs、phase、输入形状、算子耗时和通信耗时。
+- 键盘 `←`/`→` 平移视窗，`↑` 放大，`↓` 缩小；
+- 点击主流 batch 后，绿色箭头显示它依赖的前驱 batch，红色箭头显示依赖它的后继 batch；
+- 窗口外的直接依赖会用指向时间窗口边界的箭头表示，详情区同时列出完整 batch ID。
 
 ## 测试
 
