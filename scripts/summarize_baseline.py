@@ -59,6 +59,7 @@ def main():
         ttft = [t * 1000 for _, _, raw in records for t in raw["ttfts"]]
         tpot = [sum(itls) * 1000 / (length - 1) for _, _, raw in records
                 for itls, length in zip(raw["itls"], raw["output_lens"]) if length > 1]
+        itl = [gap * 1000 for _, _, raw in records for gaps in raw["itls"] for gap in gaps]
         rows.append({"enterprise_tp": enterprise_tp, "cloud_tp": cloud_tp,
             "total_gpus": enterprise_tp + cloud_tp, "isl": isl, "osl": osl,
             "client_concurrency": concurrency, "repeats": len(records), "requests": len(ttft),
@@ -69,6 +70,9 @@ def main():
             "tpot_p50_ms": float(np.percentile(tpot, 50)), "tpot_p95_ms": float(np.percentile(tpot, 95)),
             "tpot_p99_ms": float(np.percentile(tpot, 99)),
             "tpot_repeat_mean_std_ms": statistics.stdev(point["mean_tpot_ms"] for _, point, _ in records) if len(records)>1 else 0,
+            "itl_samples": len(itl), "itl_mean_ms": statistics.mean(itl),
+            "itl_p50_ms": float(np.percentile(itl, 50)), "itl_p95_ms": float(np.percentile(itl, 95)),
+            "itl_p99_ms": float(np.percentile(itl, 99)), "itl_max_ms": max(itl),
             "qps_repeat_mean": statistics.mean(qps), "qps_repeat_std": statistics.stdev(qps) if len(qps) > 1 else 0,
             "qps_repeat_min": min(qps), "qps_repeat_max": max(qps),
             "success_rate": sum(raw["completed"] for _, _, raw in records) / len(ttft)})
