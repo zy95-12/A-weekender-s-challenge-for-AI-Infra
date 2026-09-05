@@ -57,6 +57,18 @@ class KVPool:
         for item in items:
             self.requests[item["request_id"]]["length"] += item["query_len"]
 
+    def truncate(self, lengths):
+        for rid,length in lengths.items():
+            state=self.requests.get(rid)
+            if type(length) is not int or state is None or not 0 <= length <= state["length"]:
+                raise ValueError("Invalid KV rollback length")
+        for rid,length in lengths.items():
+            state=self.requests[rid]
+            keep=(length+self.block_size-1)//self.block_size
+            self.free.extend(state["blocks"][keep:])
+            state["blocks"]=state["blocks"][:keep]
+            state["length"]=length
+
     def release(self, ids):
         for rid in ids:
             state = self.requests.pop(rid, None)
@@ -238,11 +250,50 @@ class Runner:
             else:
                 torch.cuda.profiler.stop()
             return {"ok": True}
+        if command["op"] == "truncate":
+            self.pool.truncate(command["lengths"])
+            if self.front_pool is not None:
+                self.front_pool.truncate(command["lengths"])
+            return {"ok":True,"kv_used_blocks":self.args["kv_blocks"]-len(self.pool.free)}
         if command["op"] == "release":
             self.pool.release(command["ids"])
             if self.front_pool is not None:
                 self.front_pool.release(command["ids"])
             return {"ok": True, "kv_used_blocks": self.args["kv_blocks"] - len(self.pool.free)}
+        if command.get("phase")=="verify":
+            # Preserve the validated q=1 GEMM/attention shape at each partition.
+            # Aggregate transport across candidates, not floating-point kernels.
+            if len(command["items"])!=1 or not self.args.get("speculative_tokens"):
+                raise ValueError("Verification requires one request and explicit opt-in")
+            item=command["items"][0]
+            replies=[]
+            for index in range(item["query_len"]):
+                step={**command,"phase":"decode","items":[{**item,
+                      "position":item["position"]+index,"query_len":1}]}
+                if "token_ids" in command:
+                    step["token_ids"]=command["token_ids"][index:index+1]
+                part=None if arrays is None else [a[index:index+1] for a in arrays]
+                reply=self.execute(step,part)
+                if self.rank==0:
+                    replies.append(reply)
+            if self.rank!=0:
+                return None
+            result=dict(replies[-1])
+            times=[r.get("timings",r.get("meta",{}).get("timings",{})) for r in replies]
+            timings={key:sum(t.get(key,0) for t in times) for key in set().union(*times) if key.endswith("_ms")}
+            for key,value in times[-1].items():
+                if not key.endswith("_ms"):
+                    timings[key]=value
+            if "arrays" in result:
+                result["arrays"]=[np.concatenate([r["arrays"][i] for r in replies],axis=0) for i in range(2)]
+            if "meta" in result:
+                result["meta"]={**result["meta"],"timings":timings}
+            else:
+                result["timings"]=timings
+            if "tokens" in result:
+                result["tokens"]=[token for r in replies for token in r["tokens"]]
+                result["logits"]=np.concatenate([r["logits"] for r in replies],axis=0) if command.get("capture") else None
+            return result
         items, phase = command["items"], command["phase"]
         if phase == "decode" and any(item["request_id"] not in self.pool.requests for item in items):
             raise ValueError("Decode without a live prefill cache")
@@ -324,7 +375,8 @@ class Runner:
                     hidden, residual = self.model.layers(positions, hidden, residual, range(self.model.end, 36))
                     if command.get("emit",True):
                         hidden, _ = self.model.model.norm(hidden, residual)
-                        indices = torch.tensor(np.cumsum([x["query_len"] for x in items]) - 1, device="cuda")
+                        indices = (torch.arange(n,device="cuda") if command.get("verify") else
+                                   torch.tensor(np.cumsum([x["query_len"] for x in items]) - 1, device="cuda"))
                         logits = self.model.logits_processor(self.model.model.embed_tokens,
                                                             hidden.index_select(0, indices), None)
                 self.pool.commit(items)
@@ -373,7 +425,7 @@ def worker(rank, args, pipe):
                 if mailbox:
                     arrays = None
                 if mailbox and result and "arrays" in result:
-                    result = {"meta": result["meta"], "shared_shape": mailbox.write(1, result["arrays"])}
+                    result = {**{k:v for k,v in result.items() if k!="arrays"}, "shared_shape": mailbox.write(1, result["arrays"])}
                 pipe.send({"result": result})
             except Exception:
                 pipe.send({"error": traceback.format_exc()})
@@ -397,7 +449,7 @@ def worker(rank, args, pipe):
 
 class Executor:
     def __init__(self, args):
-        self.mailbox = LocalMailbox() if args.get("ipc_mode", "pipe") == "shm" and args["role"] == "cloud" else None
+        self.mailbox = LocalMailbox() if args.get("ipc_mode", "pipe") == "shm" and (args["role"] == "cloud" or args.get("pipeline_window",0)) else None
         if self.mailbox:
             args = {**args, "local_ipc_names": self.mailbox.names}
         self.pipes, self.processes = [], []
@@ -451,7 +503,7 @@ class Executor:
             replies.append(reply["result"])
         result = replies[0]
         if self.mailbox and "shared_shape" in result:
-            result = {"meta": result["meta"], "arrays": self.mailbox.read(1, result["shared_shape"], copy=True)}
+            result = {**{k:v for k,v in result.items() if k!="shared_shape"}, "arrays": self.mailbox.read(1, result["shared_shape"], copy=True)}
         return result
 
     def close(self):

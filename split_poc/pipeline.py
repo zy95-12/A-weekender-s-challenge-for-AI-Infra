@@ -45,7 +45,18 @@ class PipelineScheduler(Scheduler):
         metadata = {k:command[k] for k in ("phase","items","batch_id")}
         payload = pack({"op":"forward",**metadata},arrays,fast=self.args.wire_fast)
         sent = time.perf_counter_ns()
+        def trace(event,info):
+            import torch
+            parts=event.split(".")
+            names={"send_request_body":"pipeline_upload", "receive_response_headers":"pipeline_cloud_wait",
+                   "receive_response_body":"pipeline_download"}
+            if len(parts)==3 and parts[1] in names:
+                if parts[2]=="started":
+                    torch.cuda.nvtx.range_push(names[parts[1]]+" batch="+command["batch_id"])
+                elif parts[2] in {"complete","failed"}:
+                    torch.cuda.nvtx.range_pop()
         response = self.data_http.post("/forward",content=payload,
+                                       extensions={"trace":trace} if self.args.phase_profile else {},
                                        headers={"content-type":"application/octet-stream"})
         response.raise_for_status()
         received = time.perf_counter_ns()
@@ -89,17 +100,42 @@ class PipelineScheduler(Scheduler):
 
     def submit_front(self, batch, phase):
         ids,items = [],[]
+        draft=[]
+        draft_ms=0.0
+        verify=False
+        # First version verifies one request at a time; ordinary decode still batches.
+        if phase=="decode" and getattr(self.args,"speculative_tokens",0):
+            from split_poc.speculation import propose
+            batch=batch[:1]
+            job=batch[0]
+            t=time.perf_counter()
+            if job.capture and job.forced is not None:
+                verify=True
+            else:
+                draft=propose(job.ids+job.tokens,min(self.args.speculative_tokens,job.limit-len(job.tokens)-1))
+                verify=bool(draft)
+            draft_ms=(time.perf_counter()-t)*1000
         for job in batch:
             pos = job.front_position
             tokens = (job.ids[pos:pos+(self.args.prefill_chunk_size or len(job.ids))]
                       if phase == "prefill" else
                       [job.forced[len(job.tokens)-1] if job.forced is not None else job.tokens[-1]])
+            if verify:
+                if job.capture and job.forced is not None:
+                    count=min(self.args.speculative_tokens+1,job.limit-len(job.tokens))
+                    tokens=job.forced[len(job.tokens)-1:len(job.tokens)-1+count]
+                else:
+                    tokens=tokens+draft
             ids.extend(tokens)
             items.append({"request_id":job.id,"position":pos,"query_len":len(tokens)})
+        logical_phase=phase
+        if verify:
+            phase="verify"  # grouped transport, sequential q=1 kernels for numerical fidelity
         command = {"op":"front","items":items,"phase":phase,"token_ids":ids,
                    "batch_id":uuid.uuid4().hex,"capture":any(j.capture for j in batch),
-                   "emit":phase=="decode" or all(i["position"]+i["query_len"]==len(j.ids)
+                   "emit":logical_phase=="decode" or all(i["position"]+i["query_len"]==len(j.ids)
                                                    for i,j in zip(items,batch))}
+        command["verify"]=verify
         start = time.perf_counter_ns()
         waits = [(start/1e9-j.front_ready)*1000 for j in batch]
         front = self.executor.call(command)
@@ -108,7 +144,8 @@ class PipelineScheduler(Scheduler):
         future = self.transfers.submit(self.rpc,command,front["arrays"])
         self.inflight.append({"batch":batch,"command":command,"future":future,
                               "front_start_ns":start,"front_end_ns":end,
-                              "front_timings":front["timings"],"queue_ms":waits})
+                              "front_timings":front["timings"],"queue_ms":waits,
+                              "draft":draft,"draft_ms":draft_ms,"logical_phase":logical_phase})
         for job,item in zip(batch,items):
             job.front_position += item["query_len"]
             job.front_ready = end/1e9
@@ -124,39 +161,71 @@ class PipelineScheduler(Scheduler):
         self.steps += 1
         self.inflight.remove(task)
         for index,(job,item) in enumerate(zip(batch,command["items"])):
-            job.position += item["query_len"]
-            job.outstanding -= 1
-            job.prefilled = job.position >= len(job.ids)
-            emits = command["emit"] and not job.cancelled
-            token = result["tokens"][index]
+            old_position=job.position
+            rollback_ms=0.0
+            accepted=0
+            speculative=command.get("verify",False)
+            if speculative:
+                if job.capture and job.forced is not None:
+                    output=result["tokens"]
+                else:
+                    from split_poc.speculation import confirm
+                    output,accepted=confirm(task["draft"],result["tokens"],job.limit-len(job.tokens),
+                                            self.eos,job.ignore_eos)
+                keep=old_position+len(output)
+                if keep<old_position+item["query_len"]:
+                    t=time.perf_counter()
+                    lengths={job.id:keep}
+                    # Both sides must successfully roll back before publishing output.
+                    response=self.http.post("/truncate",json={"lengths":lengths})
+                    response.raise_for_status()
+                    local=self.executor.call({"op":"truncate","lengths":lengths})
+                    self.kv_used=local["kv_used_blocks"]
+                    rollback_ms=(time.perf_counter()-t)*1000
+                job.position=job.front_position=keep
+            else:
+                output=[result["tokens"][index]] if command["emit"] else []
+                job.position+=item["query_len"]
+            job.outstanding-=1
+            job.prefilled=job.position>=len(job.ids)
+            emits=bool(output) and not job.cancelled
             if emits:
-                job.tokens.append(token)
                 if job.capture:
-                    job.logits.append(result["logits"][index])
-            row = {"request_id":job.id,"client_request_id":job.client_id,
-                   "batch_id":command["batch_id"],"batch_size":len(batch),
-                   "time_ns":time.time_ns(),"phase":command["phase"],
-                   "token_idx":len(job.tokens)-1,"emits_token":emits,
-                   "query_len":item["query_len"],"position_start":item["position"],
-                   "context_len":job.position,"queue_ms":task["queue_ms"][index],
-                   "step_wall_ms":(end-task["front_start_ns"])/1e6,
-                   "timings_scope":"overlapping_pipeline_task_not_additive",
-                   "front_start_ns":task["front_start_ns"],"front_end_ns":task["front_end_ns"],
-                   "back_start_ns":start,"back_end_ns":end,
-                   "window_occupancy":len(self.inflight)+1,"front_kv_used_blocks":self.front_used,
-                   "back_kv_used_blocks":self.kv_used,
-                   **task["front_timings"],**timings,**result["timings"]}
+                    job.logits.extend(result["logits"] if speculative else [result["logits"][index]])
+                job.tokens.extend(output)
+            now=time.perf_counter_ns()
+            row={"request_id":job.id,"client_request_id":job.client_id,
+                 "batch_id":command["batch_id"],"batch_size":len(batch),"time_ns":time.time_ns(),
+                 "phase":task["logical_phase"],"target_phase":command["phase"],
+                 "token_idx":len(job.tokens)-1,"emits_token":emits,
+                 "emitted_count":len(output) if emits else 0,"query_len":item["query_len"],
+                 "position_start":old_position,"context_len":job.position,
+                 "queue_ms":task["queue_ms"][index],"step_wall_ms":(now-task["front_start_ns"])/1e6,
+                 "timings_scope":"overlapping_pipeline_task_not_additive",
+                 "front_start_ns":task["front_start_ns"],"front_end_ns":task["front_end_ns"],
+                 "back_start_ns":start,"back_end_ns":end,
+                 "window_occupancy":len(self.inflight)+1,"front_kv_used_blocks":self.front_used,
+                 "back_kv_used_blocks":self.kv_used,"speculative":speculative,
+                 "draft_kind":"prompt_lookup","draft_tokens":len(task["draft"]),
+                 "accepted_draft_tokens":accepted,"draft_ms":task["draft_ms"],
+                 "rollback_ms":rollback_ms,"rollback_roundtrips":int(rollback_ms>0),
+                 "verification_rpc_ms":timings.get("rpc_wall_ms",0),
+                 **task["front_timings"],**timings,**result["timings"]}
             self.trace.write(json.dumps(row)+"\n")
-            self.last_trace = row
-            self.prompt_tokens += item["query_len"] if command["phase"]=="prefill" else 0
-            self.generation_tokens += int(emits)
-            job.last_step = end/1e9
+            self.last_trace=row
+            self.prompt_tokens+=item["query_len"] if task["logical_phase"]=="prefill" else 0
+            self.generation_tokens+=len(output) if emits else 0
+            job.last_step=now/1e9
             if emits:
-                job.finished = len(job.tokens)>=job.limit or (token in self.eos and not job.ignore_eos)
-                job.events.put({"token":token,"done":job.finished,
-                                "finish_reason":"length" if len(job.tokens)>=job.limit else "stop"})
+                token=output[-1]
+                job.finished=len(job.tokens)>=job.limit or (token in self.eos and not job.ignore_eos)
+                # Keep one SSE content event per token, including batched confirmations;
+                # their real timestamps expose bursts and longest no-output intervals.
+                for i,token in enumerate(output):
+                    job.events.put({"token":token,"done":job.finished and i==len(output)-1,
+                                    "finish_reason":"length" if len(job.tokens)>=job.limit else "stop"})
                 if job.finished:
-                    self.completed += 1
+                    self.completed+=1
 
     def run(self):
         self.data_http = http_client(self.args.tcp_buffer_mib,base_url=self.args.cloud,
@@ -188,7 +257,9 @@ class PipelineScheduler(Scheduler):
                     concurrent.futures.wait([t["future"] for t in self.inflight],timeout=.001,
                                             return_when=concurrent.futures.FIRST_COMPLETED)
                     # Ready responses may still wait for a predecessor; do not spin.
-                    if any(t["future"].done() for t in self.inflight):
+                    if any(t["future"].done() for t in self.inflight) and not any(
+                            t["future"].done() and all(i["position"]==j.position for i,j in
+                            zip(t["command"]["items"],t["batch"])) for t in self.inflight):
                         time.sleep(.001)
                 else:
                     time.sleep(.001)
