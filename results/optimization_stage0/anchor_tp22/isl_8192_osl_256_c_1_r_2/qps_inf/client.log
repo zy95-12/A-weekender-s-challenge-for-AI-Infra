@@ -1,0 +1,44 @@
+INFO 09-05 19:02:24 [__init__.py:216] Automatically detected platform cuda.
+Namespace(subparser='bench', bench_type='serve', dispatch_function=<function BenchmarkServingSubcommand.cmd at 0x7df49401dee0>, seed=2, num_prompts=8, dataset_name='custom', no_stream=False, dataset_path='/root/A-weekender-s-challenge-for-AI-Infra/results/optimization_stage0/anchor_tp22/isl_8192_osl_256_c_1_r_2/workload.jsonl', no_oversample=False, custom_output_len=256, custom_skip_chat_template=True, spec_bench_output_len=256, spec_bench_category=None, sonnet_input_len=550, sonnet_output_len=150, sonnet_prefix_len=200, sharegpt_output_len=None, blazedit_min_distance=0.0, blazedit_max_distance=1.0, random_input_len=1024, random_output_len=128, random_range_ratio=0.0, random_prefix_len=0, random_batch_size=1, random_mm_base_items_per_request=1, random_mm_num_mm_items_range_ratio=0.0, random_mm_limit_mm_per_prompt={'image': 255, 'video': 0}, random_mm_bucket_config={(256, 256, 1): 0.5, (720, 1280, 1): 0.5, (720, 1280, 16): 0.0}, hf_subset=None, hf_split=None, hf_name=None, hf_output_len=None, prefix_repetition_prefix_len=256, prefix_repetition_suffix_len=256, prefix_repetition_num_prefixes=10, prefix_repetition_output_len=128, endpoint_type='openai', label=None, backend='openai', base_url='http://127.0.0.1:8000', host='127.0.0.1', port=8000, endpoint='/v1/completions', max_concurrency=1, model='/root/A-weekender-s-challenge-for-AI-Infra/models/qwen', tokenizer=None, use_beam_search=False, logprobs=None, request_rate=inf, burstiness=1.0, trust_remote_code=False, disable_tqdm=False, profile=False, save_result=True, save_detailed=True, append_result=False, metadata=None, result_dir='/root/A-weekender-s-challenge-for-AI-Infra/results/optimization_stage0/anchor_tp22/isl_8192_osl_256_c_1_r_2/qps_inf', result_filename='benchmark.json', ignore_eos=True, percentile_metrics='ttft,tpot,itl,e2el', metric_percentiles='50,95,99', goodput=None, request_id_prefix='qps-inf-1788606129249054698-', top_p=None, top_k=None, min_p=None, temperature=None, tokenizer_mode='auto', served_model_name='Qwen/Qwen2.5-3B-Instruct', lora_modules=None, ramp_up_strategy=None, ramp_up_start_rps=None, ramp_up_end_rps=None, ready_check_timeout_sec=600)
+Starting initial single prompt test run...
+Waiting for endpoint to become up in 600 seconds
+ |          | 00:00 elapsed, ? remaining |          | 00:00 elapsed, 00:07 remaining |          | 00:10 elapsed, 1576:43:57 remaining
+Initial test run completed. Starting main benchmark run...
+Traffic request rate: inf
+Burstiness factor: 1.0 (Poisson process)
+Maximum request concurrency: 1
+  0%|          | 0/8 [00:00<?, ?it/s] 12%|█▎        | 1/8 [00:10<01:14, 10.58s/it] 25%|██▌       | 2/8 [00:20<01:02, 10.35s/it] 38%|███▊      | 3/8 [00:31<00:51, 10.32s/it] 50%|█████     | 4/8 [00:41<00:41, 10.40s/it] 62%|██████▎   | 5/8 [00:52<00:31, 10.65s/it] 75%|███████▌  | 6/8 [01:03<00:21, 10.59s/it] 88%|████████▊ | 7/8 [01:13<00:10, 10.57s/it]100%|██████████| 8/8 [01:24<00:00, 10.52s/it]100%|██████████| 8/8 [01:24<00:00, 10.51s/it]
+============ Serving Benchmark Result ============
+Successful requests:                     8         
+Maximum request concurrency:             1         
+Benchmark duration (s):                  84.07     
+Total input tokens:                      65536     
+Total generated tokens:                  2048      
+Request throughput (req/s):              0.10      
+Output token throughput (tok/s):         24.36     
+Total Token throughput (tok/s):          803.95    
+---------------Time to First Token----------------
+Mean TTFT (ms):                          1813.27   
+Median TTFT (ms):                        1811.05   
+P50 TTFT (ms):                           1811.05   
+P95 TTFT (ms):                           1837.06   
+P99 TTFT (ms):                           1841.22   
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          34.10     
+Median TPOT (ms):                        34.06     
+P50 TPOT (ms):                           34.06     
+P95 TPOT (ms):                           35.65     
+P99 TPOT (ms):                           36.17     
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           34.10     
+Median ITL (ms):                         32.35     
+P50 ITL (ms):                            32.35     
+P95 ITL (ms):                            41.15     
+P99 ITL (ms):                            41.68     
+----------------End-to-end Latency----------------
+Mean E2EL (ms):                          10507.51  
+Median E2EL (ms):                        10494.74  
+P50 E2EL (ms):                           10494.74  
+P95 E2EL (ms):                           10916.03  
+P99 E2EL (ms):                           11062.56  
+==================================================
