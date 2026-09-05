@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 import statistics
+import sys
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,10 +11,25 @@ OUT = ROOT / "results/optimization_stage1"
 variants = {"off": ROOT / "results/optimization_stage0/anchor_tp22",
             "shm_wire": OUT / "anchor_both_tp22", "shm_wire_tcp16": OUT / "anchor_all_tp22"}
 result = {"scope": "TP2+2 representative anchors, not the full matrix", "rows": []}
+conditions = [(512,128,1),(512,128,4),(8192,256,1),(8192,256,4)]
+stem = "representative"
+matrix_mode = len(sys.argv) == 2
+if len(sys.argv) > 2:
+    raise SystemExit("Usage: summarize_stage1.py [completed-stage1-matrix-directory]")
+if matrix_mode:
+    OUT = Path(sys.argv[1]).resolve()
+    assert json.loads((OUT/"completion.json").read_text())["result"] == "COMPLETED"
+    config = json.loads((OUT/"matrix_config.json").read_text())
+    assert config["repeats"] == 3
+    variants = {"tp_"+p.replace(":","_"): OUT/("tp_"+p.replace(":","_")) for p in config["pairs"].split(",")}
+    conditions = [(isl,osl,int(c)) for isl,osl in config["workloads"] for c in config["concurrency"].split(",")]
+    result.update(scope="Completed stage-1 matrix: ordinary serial execution only",config=config)
+    stem = "stage1_time_breakdown"
 large = []
 for name, root in variants.items():
-    assert json.loads((root / "anchor.json").read_text())["result"] == "PASS"
-    for isl, osl, c in [(512,128,1),(512,128,4),(8192,256,1),(8192,256,4)]:
+    if not matrix_mode:
+        assert json.loads((root / "anchor.json").read_text())["result"] == "PASS"
+    for isl, osl, c in conditions:
         points, requests, per_request = [], [], []
         for r in range(3):
             folder = root / f"isl_{isl}_osl_{osl}_c_{c}_r_{r}"
@@ -52,6 +68,6 @@ for name, root in variants.items():
         for phase in ("prefill","decode"):
             entry["trace"][phase] = {k:statistics.mean(x[phase][k] for x in per_request) for k in per_request[0][phase]}
         result["rows"].append(entry)
-(OUT / "representative_summary.json").write_text(json.dumps(result,indent=2))
-(OUT / "representative_large_artifacts.json").write_text(json.dumps({"files":large},indent=2))
+(OUT / (stem+"_summary.json")).write_text(json.dumps(result,indent=2))
+(OUT / (stem+"_large_artifacts.json")).write_text(json.dumps({"files":large},indent=2))
 print(json.dumps({"rows":len(result["rows"]),"trace_files":len(large),"bytes":sum(x["bytes"] for x in large)}))
