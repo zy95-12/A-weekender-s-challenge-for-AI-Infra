@@ -42,6 +42,7 @@ python -m split_serving_sim \
 - `requests.jsonl`：逐请求指标和 token 时间戳；
 - `trace.jsonl`：逐 batch/resource 的流水区间；
 - `gantt.html`：独立、可交互的流水甘特图。
+- `gantt.svg`：不依赖 JavaScript、可在 GitHub 直接预览的静态总览。
 
 ## 已提交的示例结果
 
@@ -49,6 +50,7 @@ python -m split_serving_sim \
 - [`outputs/demo/requests.jsonl`](outputs/demo/requests.jsonl)
 - [`outputs/demo/trace.jsonl`](outputs/demo/trace.jsonl)
 - [`outputs/demo/gantt.html`](outputs/demo/gantt.html)
+- [`outputs/demo/gantt.svg`](outputs/demo/gantt.svg)
 
 本次 demo 的关键结果为：
 
@@ -122,7 +124,11 @@ Synthetic workload 支持固定间隔或 Poisson 到达，也可以传入显式 
 
 ## 甘特图
 
-打开 `outputs/demo/gantt.html`，或执行：
+GitHub Raw 会使用 CSP 禁止内联 JavaScript，因此在 GitHub 上请直接预览
+[`outputs/demo/gantt.svg`](outputs/demo/gantt.svg)。HTML 本身也包含静态首屏，不再因脚本
+被禁用而显示空白。
+
+需要缩放、拖拽和展开子流时，在本地打开 `outputs/demo/gantt.html`，或执行：
 
 ```bash
 python -m http.server 8000 --directory outputs/demo
@@ -147,7 +153,7 @@ python -m http.server 8000 --directory outputs/demo
 python -m unittest discover -s tests -v
 ```
 
-当前包含 15 个行为测试，覆盖配置校验、batch-aware Roofline、WAN batching、chunk
+当前包含 16 个行为测试，覆盖配置校验、batch-aware Roofline、WAN batching、chunk
 因果关系、lazy decode、共享 Edge GPU、依赖时序、BS batching、operator/TP 子流和甘特图输出。
 
 ## 当前边界

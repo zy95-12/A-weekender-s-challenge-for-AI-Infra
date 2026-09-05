@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from split_serving_sim.visualization import render_gantt_html
+from split_serving_sim.visualization import render_gantt_html, render_gantt_svg
 
 
 class VisualizationTest(unittest.TestCase):
@@ -42,6 +42,28 @@ class VisualizationTest(unittest.TestCase):
         self.assertIn("<svg", rendered)
         self.assertIn("滚轮缩放", rendered)
         self.assertIn("attention", rendered)
+
+    def test_writes_script_free_svg_for_github_preview(self) -> None:
+        trace = [
+            {
+                "batch_id": 0,
+                "resource": "edge_gpu",
+                "stage": "edge_front",
+                "phases": ["prefill"],
+                "request_ids": [0],
+                "start_time_ms": 0.0,
+                "end_time_ms": 3.0,
+                "duration_ms": 3.0,
+                "input_shape": "B=1, tokens=[16], hidden=64",
+            }
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "gantt.svg"
+            render_gantt_svg(trace, target)
+            rendered = target.read_text(encoding="utf-8")
+        self.assertIn("<svg", rendered)
+        self.assertIn("edge_gpu", rendered)
+        self.assertNotIn("<script", rendered)
 
 
 if __name__ == "__main__":

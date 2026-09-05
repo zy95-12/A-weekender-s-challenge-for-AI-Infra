@@ -7,7 +7,7 @@ from typing import Any
 
 from .config import load_config
 from .simulator import Simulator
-from .visualization import render_gantt_html
+from .visualization import render_gantt_html, render_gantt_svg
 
 
 def _write_json(path: Path, value: Any) -> None:
@@ -45,6 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     _write_jsonl(output_dir / "trace.jsonl", result.trace)
     if config.simulation.trace_enabled:
         render_gantt_html(result.trace, output_dir / "gantt.html")
+        render_gantt_svg(result.trace, output_dir / "gantt.svg")
     print(json.dumps(result.summary, ensure_ascii=False, indent=2))
     return 0
 

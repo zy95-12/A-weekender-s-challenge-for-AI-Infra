@@ -1,8 +1,87 @@
 from __future__ import annotations
 
 import json
+import html
 from pathlib import Path
 from typing import Any
+
+
+STAGE_COLORS = {
+    "edge_front": "#2563eb",
+    "wan_up": "#06b6d4",
+    "cloud_middle": "#7c3aed",
+    "wan_down": "#14b8a6",
+    "edge_tail": "#f59e0b",
+}
+
+
+def _resource_order(traces: list[dict[str, Any]]) -> list[str]:
+    preferred = ["edge_gpu", "wan_up", "cloud_gpu", "wan_down"]
+    discovered = {str(row["resource"]) for row in traces}
+    resources = [name for name in preferred if name in discovered]
+    resources.extend(sorted(discovered - set(resources)))
+    return resources
+
+
+def _static_svg_markup(traces: list[dict[str, Any]], svg_id: str | None = None) -> str:
+    if not traces:
+        return "<svg xmlns='http://www.w3.org/2000/svg' width='800' height='100'><text x='20' y='50'>No trace data.</text></svg>"
+    resources = _resource_order(traces)
+    start_ms = min(float(row["start_time_ms"]) for row in traces)
+    end_ms = max(float(row["end_time_ms"]) for row in traces)
+    duration_ms = max(end_ms - start_ms, 1e-9)
+    label_width, plot_width, top, lane_height = 150, 1400, 58, 58
+    width = label_width + plot_width + 20
+    height = top + lane_height * len(resources) + 42
+    id_attribute = f" id='{html.escape(svg_id)}'" if svg_id else ""
+    parts = [
+        f"<svg{id_attribute} xmlns='http://www.w3.org/2000/svg' width='{width}' height='{height}' viewBox='0 0 {width} {height}'>",
+        "<rect width='100%' height='100%' fill='white'/>",
+        "<text x='12' y='24' font-family='sans-serif' font-size='14' font-weight='bold'>Static overview — open gantt.html locally for zoom and expandable subflows</text>",
+    ]
+    positions: dict[str, float] = {}
+    for index, resource in enumerate(resources):
+        y = top + index * lane_height
+        positions[resource] = y
+        parts.append(
+            f"<rect x='0' y='{y}' width='{width}' height='{lane_height}' fill='#f8fafc'/>"
+        )
+        parts.append(
+            f"<text x='10' y='{y + 31}' font-family='sans-serif' font-size='13' font-weight='bold'>{html.escape(resource)}</text>"
+        )
+    for tick in range(11):
+        ratio = tick / 10
+        x = label_width + ratio * plot_width
+        value = start_ms + ratio * duration_ms
+        parts.append(
+            f"<line x1='{x:.2f}' y1='42' x2='{x:.2f}' y2='{height - 30}' stroke='#dce3ed'/>"
+        )
+        parts.append(
+            f"<text x='{x:.2f}' y='39' text-anchor='middle' font-family='sans-serif' font-size='10'>{value:.1f} ms</text>"
+        )
+    for row in traces:
+        start = float(row["start_time_ms"])
+        end = float(row["end_time_ms"])
+        x = label_width + (start - start_ms) / duration_ms * plot_width
+        bar_width = max((end - start) / duration_ms * plot_width, 0.8)
+        y = positions[str(row["resource"])] + 11
+        color = STAGE_COLORS.get(str(row["stage"]), "#64748b")
+        stroke_width = 1.8 if "decode" in row["phases"] else 0.5
+        title = html.escape(
+            f"B{row['batch_id']} | {row['stage']} | {'/'.join(row['phases'])} | "
+            f"requests={row['request_ids']} | {float(row['duration_ms']):.3f} ms | "
+            f"{row.get('input_shape', '')}"
+        )
+        parts.append(
+            f"<rect x='{x:.2f}' y='{y}' width='{bar_width:.2f}' height='34' rx='2' fill='{color}' stroke='#172033' stroke-width='{stroke_width}'><title>{title}</title></rect>"
+        )
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def render_gantt_svg(traces: list[dict[str, Any]], destination: Path) -> None:
+    """Write a script-free overview that GitHub can preview directly."""
+    destination.write_text(_static_svg_markup(traces), encoding="utf-8")
 
 
 def render_gantt_html(traces: list[dict[str, Any]], destination: Path) -> None:
@@ -82,4 +161,7 @@ svg.addEventListener('wheel',e=>{e.preventDefault();const rect=svg.getBoundingCl
 let drag=null;svg.addEventListener('mousedown',e=>{if(e.clientX<svg.getBoundingClientRect().left+labelWidth)return;drag={x:e.clientX,start:viewStart,end:viewEnd};svg.style.cursor='grabbing';});window.addEventListener('mousemove',e=>{if(!drag)return;const delta=-(e.clientX-drag.x)/plotWidth*(drag.end-drag.start);setWindow(drag.start+delta,drag.end+delta);});window.addEventListener('mouseup',()=>{drag=null;svg.style.cursor='grab';});
 render();</script></body></html>
 """
+    prefix = prefix.replace(
+        '<svg id="chart"></svg>', _static_svg_markup(traces, svg_id="chart")
+    )
     destination.write_text(prefix + payload + suffix, encoding="utf-8")
