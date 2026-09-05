@@ -79,8 +79,7 @@ class PipelineScheduler(Scheduler):
             raise RuntimeError("Pipeline KV release failed; restart required")
         for job in jobs:
             self.admission.release(job)
-        if not self.active or all(j in jobs for j in self.active):
-            self.front_used = 0
+        self.front_used=sum((j.front_position+15)//16 for j in self.active if j not in jobs)
 
     def admit_pending(self):
         while len(self.active) < self.args.max_active:
@@ -183,6 +182,7 @@ class PipelineScheduler(Scheduler):
                     self.kv_used=local["kv_used_blocks"]
                     rollback_ms=(time.perf_counter()-t)*1000
                 job.position=job.front_position=keep
+                self.front_used=sum((j.front_position+15)//16 for j in self.active)
             else:
                 output=[result["tokens"][index]] if command["emit"] else []
                 job.position+=item["query_len"]
