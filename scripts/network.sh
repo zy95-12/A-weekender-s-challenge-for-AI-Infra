@@ -25,23 +25,8 @@ up)
     ip -n split-cloud link set split-c up
   fi
   ;;
-wan)
-  delay="${2:-5}"
-  [[ "$delay" =~ ^[0-9]+$ ]] && (( delay <= 100 )) || { echo 'Delay must be 0..100 ms'; exit 1; }
-  for pair in 'split-enterprise split-e' 'split-cloud split-c'; do
-    read -r ns dev <<< "$pair"
-    ip netns exec "$ns" tc qdisc replace dev "$dev" root handle 1: tbf rate 10gbit burst 2mb latency 100ms
-    ip netns exec "$ns" tc qdisc replace dev "$dev" parent 1:1 handle 10: netem delay "${delay}ms" limit 100000
-  done
-  ;;
-local)
-  ip netns exec split-enterprise tc qdisc del dev split-e root 2>/dev/null || true
-  ip netns exec split-cloud tc qdisc del dev split-c root 2>/dev/null || true
-  ;;
-check)
-  ip netns exec split-enterprise ping -c 5 10.205.0.2
-  ip netns exec split-cloud iperf3 -s -1 -D --logfile /tmp/split-poc-iperf.log
-  ip netns exec split-enterprise iperf3 -c 10.205.0.2 -t 5 -P 4 -J
+wan|local|check)
+  exec python3 "$(dirname -- "${BASH_SOURCE[0]}")/network_state.py" "$@"
   ;;
 down)
   # Caller must stop only POC processes first. Never touch the management NIC.
@@ -50,5 +35,5 @@ down)
     ip netns del "$ns" 2>/dev/null || true
   done
   ;;
-*) echo 'network.sh up|wan [one-way-ms]|local|check|down'; exit 1;;
+*) echo 'network.sh up|wan [one-way-ms] [--delay-ms 5 --bandwidth-gbps 10]|local|check [--output PATH]|down'; exit 1;;
 esac

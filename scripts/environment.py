@@ -24,6 +24,8 @@ def main():
             "packages": run([sys.executable, "-m", "pip", "freeze"]),
             "source_sha256": {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                               for folder in ("split_poc", "scripts") for p in (root / folder).glob("*.py")}}
+    for path in (root / "poc", root / "scripts/network.sh"):
+        data["source_sha256"][str(path.relative_to(root))] = hashlib.sha256(path.read_bytes()).hexdigest()
     model_manifest = root / "models/qwen/checksums.json"
     if model_manifest.exists():
         data["model"] = json.loads(model_manifest.read_text())

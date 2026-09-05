@@ -9,6 +9,7 @@ import sys
 import sysconfig
 import time
 import urllib.request
+from network_state import configure
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN = ROOT / "run"
@@ -77,20 +78,25 @@ def up(args):
     enterprise_tp = args.enterprise_tp or args.tp
     cloud_tp = args.cloud_tp or args.tp
     if (RUN / "enterprise.pid.json").exists():
+        reusable = False
         try:
             with urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=3) as response:
                 current = json.load(response)
             previous = json.loads((RUN / "launch.json").read_text())
-            if current["split"] == args.split and current["tp"] == enterprise_tp and previous == vars(args):
-                print("Already running: http://127.0.0.1:8000")
-                return
+            process_keys = set(vars(args)) - {"wan", "delay", "bandwidth_gbps"}
+            reusable = (current["split"] == args.split and current["tp"] == enterprise_tp
+                        and all(previous.get(key) == vars(args)[key] for key in process_keys))
         except Exception:
             pass
+        if reusable:
+            # Network errors must propagate, not trigger an unrelated GPU restart.
+            configure(args.wan, args.delay, args.bandwidth_gbps)
+            print("Already running; network reapplied and verified: http://127.0.0.1:8000")
+            return
         stop()
     subprocess.run(["bash", str(ROOT / "scripts/network.sh"), "up"], check=True)
     subprocess.run([str(PYTHON), str(ROOT / "scripts/model_views.py")], cwd=ROOT, check=True)
-    subprocess.run(["bash", str(ROOT / "scripts/network.sh"), "wan", str(args.delay)] if args.wan else
-                   ["bash", str(ROOT / "scripts/network.sh"), "local"], check=True)
+    configure(args.wan, args.delay, args.bandwidth_gbps)
     stamp = time.strftime("%Y%m%d-%H%M%S")
     results = ROOT / "results" / stamp
     results.mkdir(parents=True)
@@ -149,7 +155,8 @@ if __name__ == "__main__":
     parser.add_argument("--enterprise-tp", type=int, choices=[1, 2])
     parser.add_argument("--cloud-tp", type=int, choices=[1, 2])
     parser.add_argument("--wan", action="store_true")
-    parser.add_argument("--delay", type=int, default=5)
+    parser.add_argument("--delay", "--delay-ms", dest="delay", type=float, default=5)
+    parser.add_argument("--bandwidth-gbps", type=float, default=10)
     parser.add_argument("--profile", action="store_true")
     parser.add_argument("--phase-profile", action="store_true")
     args = parser.parse_args()

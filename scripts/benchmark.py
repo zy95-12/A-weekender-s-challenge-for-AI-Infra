@@ -9,6 +9,8 @@ import time
 import signal
 import shutil
 import httpx
+from network_state import expected, snapshot, verify, check, network_lock
+from benchmark_artifacts import export_trace
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,6 +30,7 @@ def main():
     args = parser.parse_args()
     launch_file = ROOT / "run/launch.json"
     deployment = json.loads(launch_file.read_text()) if launch_file.exists() else None
+    intent = expected(deployment)
     if deployment and (deployment.get("profile") or deployment.get("phase_profile")):
         raise SystemExit("Restart the demo without --profile before measuring SLO")
     if args.correctness_report or (args.requests >= 1000 and not args.baseline):
@@ -42,6 +45,12 @@ def main():
                 raise SystemExit(f"Correctness configuration mismatch: {key}")
     dest = Path(args.output).resolve()
     dest.mkdir(parents=True, exist_ok=True)
+    if (dest / "summary.json").exists():
+        raise RuntimeError(f"Refusing to overwrite existing summary: {dest}")
+    for rate in args.rates.split(","):
+        point_path = dest / f"qps_{rate}"
+        if point_path.exists() and any(point_path.iterdir()):
+            raise RuntimeError(f"Refusing to overwrite existing experiment: {point_path}")
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(str(ROOT / "models/qwen"), local_files_only=True)
     dataset = dest / "workload.jsonl"
@@ -59,21 +68,22 @@ def main():
     for rate in args.rates.split(","):
         folder = dest / f"qps_{rate}"
         folder.mkdir(exist_ok=True)
+        if any(folder.iterdir()):
+            raise RuntimeError(f"Refusing to overwrite existing experiment: {folder}")
         prefix = f"qps-{rate}-{time.time_ns()}-"
-        network = {}
-        for namespace, device in (("split-enterprise", "split-e"), ("split-cloud", "split-c")):
-            snapshot = subprocess.run(["ip", "netns", "exec", namespace, "tc", "-j", "-s",
-                                       "qdisc", "show", "dev", device], capture_output=True, text=True)
-            network[namespace] = {"exit_code": snapshot.returncode,
-                                  "stdout": snapshot.stdout, "stderr": snapshot.stderr}
+        network_check = check(intent, folder / "network_check.json")
+        network = snapshot()
         (folder / "network.json").write_text(json.dumps(network, indent=2))
+        verify(network, intent)
         live = None
         pointer = ROOT / "run/current_results"
         if pointer.exists():
             live = Path(pointer.read_text().strip())
             for name in ("environment.json", "enterprise_config.json", "cloud_config.json"):
                 if (live / name).exists():
-                    shutil.copyfile(live / name, folder / name)
+                    shutil.copyfile(live / name, folder / ("launch_environment.json" if name == "environment.json" else name))
+        subprocess.run([sys.executable, str(ROOT / "scripts/environment.py"), str(folder / "environment.json")],
+                       cwd=ROOT, check=True)
         trace_path = live / "split_trace.jsonl" if live else None
         trace_offset = trace_path.stat().st_size if trace_path and trace_path.exists() else 0
         command = [str(ROOT / ".venv/bin/vllm"), "bench", "serve", "--backend", "openai",
@@ -90,7 +100,11 @@ def main():
             command += ["--goodput", "ttft:3000", "tpot:100"]
         if args.max_concurrency:
             command += ["--max-concurrency", str(args.max_concurrency)]
-        (folder / "config.json").write_text(json.dumps({"command": command, "deployment": deployment, **vars(args)}, indent=2))
+        (folder / "config.json").write_text(json.dumps({"command": command, "deployment": deployment,
+            "experiment_id": prefix, "network_intent": intent, "network_measured": network_check["measured"],
+            "telemetry_scope": "client_process_including_warmup", **vars(args)}, indent=2))
+        validation = {"result": "RUNNING", "experiment_id": prefix, "started_at_unix": time.time()}
+        (folder / "measurement_validation.json").write_text(json.dumps(validation, indent=2))
         telemetry = None
         if live:
             telemetry = subprocess.Popen([sys.executable, str(ROOT / "scripts/telemetry.py"),
@@ -100,14 +114,27 @@ def main():
             with (folder / "client.log").open("w") as logfile:
                 print(f"Benchmark QPS={rate}, requests={args.requests}", flush=True)
                 subprocess.run(command, cwd=ROOT, env=env, stdout=logfile, stderr=subprocess.STDOUT, check=True)
+        except BaseException as error:
+            validation.update(result="FAIL", error=str(error))
+            (folder / "measurement_validation.json").write_text(json.dumps(validation, indent=2))
+            raise
         finally:
             if telemetry and telemetry.poll() is None:
                 os.killpg(telemetry.pid, signal.SIGTERM)
                 telemetry.wait(timeout=10)
             if trace_path and trace_path.exists():
-                with trace_path.open("rb") as source, (folder / "split_trace.jsonl").open("wb") as target:
-                    source.seek(trace_offset)
-                    shutil.copyfileobj(source, target)
+                export_trace(trace_path, trace_offset, folder, prefix, args.requests)
+        after = snapshot()
+        (folder / "network_after.json").write_text(json.dumps(after, indent=2))
+        try:
+            verify(after, intent)
+            current_intent = expected(json.loads(launch_file.read_text()))
+            if current_intent != intent:
+                raise ValueError("Network intent changed during measurement")
+        except Exception as error:
+            validation.update(result="FAIL", error=str(error))
+            (folder / "measurement_validation.json").write_text(json.dumps(validation, indent=2))
+            raise
         result = json.loads((folder / "benchmark.json").read_text())
         success = result["completed"] / args.requests
         lengths_ok = all(length == args.output_tokens for length, error in
@@ -129,12 +156,17 @@ def main():
                              and point["p99_tpot_ms"] <= 100)
         points.append(point)
         if args.baseline and (success != 1 or not lengths_ok):
+            validation.update(result="FAIL", error="Failed requests or invalid token lengths")
+            (folder / "measurement_validation.json").write_text(json.dumps(validation, indent=2))
             raise RuntimeError("Baseline has failed requests or invalid token lengths; inspect raw client result")
         with (folder / "requests.jsonl").open("w") as f:
             for i, (ttft, itls, length, error) in enumerate(zip(result["ttfts"], result["itls"], result["output_lens"], result["errors"])):
-                f.write(json.dumps({"client_request_id": prefix + str(i), "ttft_ms": ttft * 1000,
+                f.write(json.dumps({"client_request_id": prefix + str(i), "experiment_id": prefix,
+                    "is_warmup": False, "is_measured": True, "ttft_ms": ttft * 1000,
                     "tpot_ms": sum(itls) * 1000 / (length - 1) if length > 1 else None,
                     "e2e_ms": (ttft + sum(itls)) * 1000, "output_tokens": length, "error": error}) + "\n")
+        validation.update(result="PASS", finished_at_unix=time.time())
+        (folder / "measurement_validation.json").write_text(json.dumps(validation, indent=2))
     passing = [p for p in points if p["slo_pass"] and p["offered_qps"] is not None]
     summary = {"points": points, "max_slo_offered_qps": (max((p["offered_qps"] for p in passing), default=None)
                                                         if args.requests >= 1000 and not args.baseline else None),
@@ -146,4 +178,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with network_lock():
+        main()

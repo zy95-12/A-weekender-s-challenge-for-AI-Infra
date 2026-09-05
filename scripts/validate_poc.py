@@ -23,6 +23,7 @@ def main():
     args = parser.parse_args()
     output = (ROOT / args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
+    (output / "validation.json").write_text(json.dumps({"result": "RUNNING"}))
     def run(name, command, env=None):
         print(f"START {name}", flush=True)
         start = time.time()
@@ -56,6 +57,7 @@ def main():
         run("acceptance_" + label, [str(PYTHON), "scripts/acceptance.py", "--output", str(output / ("acceptance_" + label + ".json"))])
         run("down_" + label, ["bash", "poc", "down"])
     run("up_wan", ["bash", "poc", "up", "--wan"])
+    run("network_check", ["bash", "poc", "network-check", "--output", str(output / "network_check.json")])
     run("correctness_wan", [str(PYTHON), "scripts/correctness.py", "--reference", str(ref),
                             "--steps", "33", "--output", str(output / "correctness_wan")])
     run("benchmark_wan", [str(PYTHON), "scripts/benchmark.py", "--rates", "0.5,1,2",

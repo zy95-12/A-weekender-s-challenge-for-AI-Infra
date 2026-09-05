@@ -35,12 +35,36 @@ ssh -L 8000:127.0.0.1:8000 root@<服务器地址>
 ./poc up --split 3:1 --wan
 ./poc up --enterprise-tp 1 --cloud-tp 2  # 两侧 TP 可独立配置
 ./poc wan 5                 # 双向各 5ms + 各 10Gbps
-./poc network-check         # ping 与 iperf3，需要已安装 iperf3
+./poc wan --delay-ms 10 --bandwidth-gbps 1
+./poc up --wan --delay-ms 5 --bandwidth-gbps 10
+./poc network-check --output run/network_check.json
 ./poc local                 # 恢复专用链路无限制
 ```
 
 只有项目的 `split-e` / `split-c` 链路接受 tc 配置；不修改管理网卡。
+`wan/local` 会核验实际 qdisc 并同步 `run/launch.json` 与 `run/network.json`；
+`up` 即使复用服务，也重新应用并核验所请求的网络配置。
+`network-check` 需要 ping、iperf3，除命令成功外，还要求零丢包、平均 RTT 与双向配置延迟之和相差不超过 2 ms、
+实测 TCP 吞吐在配置带宽的 80%–110% 内。可通过 `--rtt-tolerance-ms`、`--min-bandwidth-ratio` 调整独立检查的容差；
+benchmark 使用上述默认值。这是实验条件检查，不是推理 SLO 门槛。
 入口只绑定主机 loopback；不要直接将无认证的演示接口暴露公网。
+
+### 测量证据与 warmup
+
+每个新 benchmark 点先执行网络检查，再保存测量前后的 `network.json` / `network_after.json`。
+配置不符、读取失败或前置 ping/iperf 验证失败会终止实验；只有 `measurement_validation.json` 为 `PASS` 的新测量点才通过测量检查。
+使用新的输出目录，脚本拒绝覆盖已存在的测量点/汇总。通过本项目命令进行的网络修改、网络检查与 benchmark 互斥；
+不要在测量中直接运行外部 tc、修改源码或发送无关请求。前后快照不能排除外部程序在中途修改再恢复配置。
+
+`environment.json` 在测量时重新采集，含源码 SHA-256、Git commit 与 dirty 状态；
+服务启动时的环境另存为 `launch_environment.json`，两者不可混为一谈。
+`config.json` 包含完整命令、实验 ID、网络意图与实测 RTT/吞吐。
+`split_trace.jsonl` 只保留正式请求 ID 对应的记录，带 `experiment_id/is_measured/is_warmup`；
+其余记录另存 `excluded_trace.jsonl`，标记为 `warmup_or_unattributed`，`is_warmup=null`，
+因为不能将其他客户端流量误认成 warmup。`trace_scope.json` 记录过滤计数。
+TTFT/TPOT/QPS 仍由官方客户端统计；遥测覆盖整个客户端进程（含 warmup），并非纯正式请求窗口。
+
+历史 `validation_final` 和 `baseline_20260905` 数据保持原样，不补造新证据，也不声称由修复后的脚本生成。
 
 ## API
 
