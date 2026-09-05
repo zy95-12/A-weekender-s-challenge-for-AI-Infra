@@ -15,10 +15,11 @@ class Stage(str, Enum):
     CLOUD_MIDDLE = "cloud_middle"
     WAN_DOWN = "wan_down"
     EDGE_TAIL = "edge_tail"
+    PD_KV_TRANSFER = "pd_kv_transfer"
 
 
 GPU_STAGES = {Stage.EDGE_FRONT, Stage.CLOUD_MIDDLE, Stage.EDGE_TAIL}
-NETWORK_STAGES = {Stage.WAN_UP, Stage.WAN_DOWN}
+NETWORK_STAGES = {Stage.WAN_UP, Stage.WAN_DOWN, Stage.PD_KV_TRANSFER}
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ class WorkItem:
     produces_logits: bool = False
     dependencies: tuple[int, ...] = ()
     ready_time: float = 0.0
+    recompute_tokens: int = 0
 
     def with_ready_time(self, ready_time: float) -> "WorkItem":
         return WorkItem(
@@ -52,6 +54,7 @@ class WorkItem:
             produces_logits=self.produces_logits,
             dependencies=self.dependencies,
             ready_time=ready_time,
+            recompute_tokens=self.recompute_tokens,
         )
 
 

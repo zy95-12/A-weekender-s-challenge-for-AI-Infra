@@ -9,6 +9,15 @@ from tests.helpers import copied_toy_config
 
 
 class ConfigTest(unittest.TestCase):
+    def test_parses_attention_scheduler_and_nested_continuous_batching(self) -> None:
+        data = copied_toy_config()
+        data["static_policy"]["continuous_batching"] = {"enabled": False}
+        data["attention_backend"] = {"mode": "separate"}
+        data["scheduler"] = {"policy": "priority", "max_num_seqs": 2}
+        config = parse_config(data)
+        self.assertFalse(config.static_policy.continuous_batching)
+        self.assertEqual(config.attention_backend.mode, "separate")
+        self.assertEqual(config.scheduler.policy, "priority")
     def test_valid_config(self) -> None:
         config = parse_config(copied_toy_config())
         self.assertEqual(config.model.name, "toy")

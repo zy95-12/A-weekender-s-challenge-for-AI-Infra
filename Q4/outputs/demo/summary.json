@@ -1,32 +1,32 @@
 {
   "num_requests": 4,
   "simulation_start_ms": 0.0,
-  "simulation_end_ms": 545.3519443532637,
-  "simulation_duration_ms": 545.3519443532637,
-  "observed_request_throughput_qps": 7.334713007658982,
-  "observed_output_throughput_tokens_s": 29.338852030635927,
+  "simulation_end_ms": 496.64115443369104,
+  "simulation_duration_ms": 496.64115443369104,
+  "observed_request_throughput_qps": 8.054104989670282,
+  "observed_output_throughput_tokens_s": 64.43283991736226,
   "ttft_ms": {
-    "p50": 152.42370567897794,
-    "p95": 152.42370567897797,
-    "p99": 152.42370567897797
+    "p50": 202.9606399203082,
+    "p95": 248.59889825675023,
+    "p99": 252.66373782230298
   },
   "tpot_ms": {
-    "p50": 66.05960683428565,
-    "p95": 101.6374929691428,
-    "p99": 101.6384440932571
+    "p50": 30.430023908571457,
+    "p95": 77.1014218803731,
+    "p99": 120.76326745024524
   },
   "e2e_ms": {
-    "p50": 349.75569212469213,
-    "p95": 443.63414351440645,
-    "p99": 451.9767387454922
+    "p50": 465.151163690834,
+    "p95": 466.58393701426246,
+    "p99": 466.6297109498053
   },
-  "average_batch_size": 1.6,
+  "average_batch_size": 1.6991150442477876,
   "resource_utilization": {
-    "cloud_gpu/pp_0": 0.4060893528114462,
-    "cloud_gpu/pp_1": 0.40590096804255754,
-    "edge_gpu": 0.3800564194494952,
-    "wan_down": 0.1303642551129278,
-    "wan_up": 0.1303642551129278
+    "cloud_gpu/pp_0": 0.5870490775142365,
+    "cloud_gpu/pp_1": 0.5711299682551274,
+    "edge_gpu": 0.50795404076488,
+    "wan_down": 0.22402138648148334,
+    "wan_up": 0.244156648955659
   },
   "slo": {
     "ttft_limit_ms": 3000.0,
@@ -41,7 +41,10 @@
     "prefill_token_budget": 512,
     "prefill_chunk_size": 512,
     "scheduler": "fcfs",
-    "continuous_batching": true
+    "continuous_batching": true,
+    "attention_backend": "unified",
+    "scheduler_policy": "fcfs",
+    "max_num_seqs": 8
   },
   "parallel_plan": [
     {

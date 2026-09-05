@@ -22,6 +22,17 @@ def item(item_id: int, tokens: int = 16) -> WorkItem:
 
 
 class PerformanceTest(unittest.TestCase):
+    def test_mixed_attention_backend_can_be_unified_or_separate(self) -> None:
+        mixed = [item(0), WorkItem(id=99, request_id=99, phase=Phase.DECODE, stage=Stage.EDGE_FRONT, token_start=32, token_count=1, context_tokens=32)]
+        unified = RooflineModel(parse_config(copied_toy_config())).estimate("edge_front", mixed)
+        self.assertTrue(any(op.name.endswith(".mix attention") for op in unified.sub_operations))
+        data = copied_toy_config()
+        data["attention_backend"] = {"mode": "separate"}
+        separate = RooflineModel(parse_config(data)).estimate("edge_front", mixed)
+        names = [op.name for op in separate.sub_operations]
+        self.assertTrue(any(name.endswith(".prefill attention") for name in names))
+        self.assertTrue(any(name.endswith(".decode attention") for name in names))
+        self.assertGreater(separate.total_time_s, unified.total_time_s)
     def test_roofline_is_batch_aware_and_reuses_weights(self) -> None:
         model = RooflineModel(parse_config(copied_toy_config()))
         single = model.estimate("edge_front", [item(0)])

@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 
 from .config import SimulationConfig, StageConfig
-from .core import OperatorWorkload, PerformanceEstimate, Phase, Stage, SubOperation, WorkItem
+from .core import NETWORK_STAGES, OperatorWorkload, PerformanceEstimate, Phase, Stage, SubOperation, WorkItem
 
 
 @dataclass(frozen=True)
@@ -21,6 +21,7 @@ class Qwen3WorkloadModel:
     """Build a Qwen3 operator sequence from Hugging Face model dimensions."""
 
     def __init__(self, config: SimulationConfig):
+        self.config = config
         self.model = config.model
 
     def _shape(self, *dimensions: int | str) -> str:
@@ -102,7 +103,7 @@ class Qwen3WorkloadModel:
         if not items:
             raise ValueError("cannot build an empty workload")
         model = self.model
-        tokens = sum(item.token_count for item in items)
+        tokens = sum(item.token_count + item.recompute_tokens for item in items)
         tp = stage.tp_degree
         local_q_heads = model.num_attention_heads // tp
         local_q_width = local_q_heads * model.head_dim
@@ -130,16 +131,6 @@ class Qwen3WorkloadModel:
 
         previous_output = "embed_tokens" if stage.layer_start == 0 else ""
 
-        context_pairs = sum(
-            (
-                item.token_count * item.token_start
-                + item.token_count * (item.token_count + 1) / 2
-            )
-            if item.phase == Phase.PREFILL
-            else item.token_count * max(item.context_tokens, item.token_count)
-            for item in items
-        )
-        cache_tokens = sum(max(item.context_tokens, item.token_count) for item in items)
         for layer in range(stage.layer_start, stage.layer_end):
             prefix = f"layer_{layer:02d}"
             layer_input_dependencies = (previous_output,) if previous_output else ()
@@ -252,26 +243,47 @@ class Qwen3WorkloadModel:
                     dependencies=(f"{prefix}.rope", f"{prefix}.v_proj"),
                 )
             )
-            operators.append(
-                ModeledOperator(
-                    name=f"layer_{layer:02d}.attention",
+            base_attention_dependencies = (f"{prefix}.rope", f"{prefix}.kv_cache_update")
+            phase_groups = [
+                (phase, [item for item in items if item.phase == phase])
+                for phase in (Phase.PREFILL, Phase.DECODE)
+                if any(item.phase == phase for item in items)
+            ]
+            separate = self.config.attention_backend.mode == "separate" and len(phase_groups) == 2
+            attention_names: list[str] = []
+            groups = phase_groups if separate else [(None, list(items))]
+            for phase, group_items in groups:
+                group_tokens = sum(item.token_count + item.recompute_tokens for item in group_items)
+                group_pairs = sum(
+                    ((item.token_count + item.recompute_tokens) * item.token_start + (item.token_count + item.recompute_tokens) * (item.token_count + item.recompute_tokens + 1) / 2)
+                    if item.phase == Phase.PREFILL
+                    else (item.token_count + item.recompute_tokens) * max(item.context_tokens, item.token_count)
+                    for item in group_items
+                )
+                group_cache = sum(max(item.context_tokens, item.token_count) for item in group_items)
+                label = (
+                    f"{phase.value} attention"
+                    if phase is not None
+                    else "mix attention" if len(phase_groups) == 2 else "attention"
+                )
+                attention_name = f"{prefix}.{label}"
+                dependencies = (
+                    (attention_names[-1],)
+                    if separate and attention_names
+                    else base_attention_dependencies
+                )
+                operators.append(ModeledOperator(
+                    name=attention_name,
                     category="compute",
                     workload=OperatorWorkload(
-                        flops=4.0 * local_q_width * context_pairs,
-                        memory_bytes=(
-                            tokens * local_q_width
-                            + 2.0 * cache_tokens * local_kv_width
-                            + tokens * local_q_width
-                        )
-                        * model.dtype_bytes,
+                        flops=4.0 * local_q_width * group_pairs,
+                        memory_bytes=(2.0 * group_tokens * local_q_width + 2.0 * group_cache * local_kv_width) * model.dtype_bytes,
                     ),
-                    input_shape=(
-                        f"{model.dtype} Q[{tokens}, {local_q_heads}, {model.head_dim}], "
-                        f"KV[B, {local_kv_heads}, L_i, {model.head_dim}]"
-                    ),
-                    dependencies=(f"{prefix}.rope", f"{prefix}.kv_cache_update"),
-                )
-            )
+                    input_shape=(f"{model.dtype} Q[{group_tokens}, {local_q_heads}, {model.head_dim}], KV[B, {local_kv_heads}, L_i, {model.head_dim}]"),
+                    dependencies=dependencies,
+                ))
+                attention_names.append(attention_name)
+            attention_dependency = attention_names[-1]
             operators.append(
                 self._linear(
                     "o_proj",
@@ -280,7 +292,7 @@ class Qwen3WorkloadModel:
                     model.query_width,
                     model.hidden_size,
                     local_input_width=local_q_width,
-                    dependencies=(f"{prefix}.attention",),
+                    dependencies=(attention_dependency,),
                 )
             )
             attention_output = f"{prefix}.o_proj"
@@ -422,7 +434,7 @@ class Qwen3WorkloadModel:
         )
 
     def input_shape(self, items: Sequence[WorkItem]) -> str:
-        return self._shape(sum(item.token_count for item in items), self.model.hidden_size)
+        return self._shape(sum(item.token_count + item.recompute_tokens for item in items), self.model.hidden_size)
 
 
 class RooflineModel:
@@ -432,7 +444,10 @@ class RooflineModel:
 
     def estimate(self, stage_name: str, items: Sequence[WorkItem]) -> PerformanceEstimate:
         stage = self.config.stage(stage_name)
-        hardware = self.config.hardware[stage.resource]
+        resources = {stage.resource_for_phase(item.phase.value) for item in items}
+        if len(resources) != 1:
+            raise ValueError("one batch cannot span phase-specific resources")
+        hardware = self.config.hardware[next(iter(resources))]
         pipeline_ranks = {item.pipeline_rank for item in items}
         if len(pipeline_ranks) != 1:
             raise ValueError("a batch cannot mix pipeline ranks")
@@ -536,8 +551,15 @@ class NetworkModel:
         )
 
     def estimate(self, stage: Stage, items: Sequence[WorkItem]) -> PerformanceEstimate:
-        if stage not in {Stage.WAN_UP, Stage.WAN_DOWN}:
+        if stage not in NETWORK_STAGES:
             raise ValueError(f"not a network stage: {stage}")
+        if stage == Stage.PD_KV_TRANSFER:
+            payload = float(sum(item.context_tokens for item in items) * self.config.model.num_layers * 2 * self.config.model.hidden_size * self.config.model.dtype_bytes)
+            pd = self.config.scheduler.pd_disaggregation
+            serialization = payload / (pd.kv_transfer_bandwidth_gb_s * 1e9)
+            latency = pd.kv_transfer_latency_ms / 1000.0
+            shape = f"{self.config.model.dtype} KV[{sum(item.context_tokens for item in items)}, {self.config.model.num_layers}, 2, {self.config.model.hidden_size}]"
+            return PerformanceEstimate(0.0, 0.0, payload, 0.0, serialization, 0.0, latency, serialization + latency, shape, (SubOperation("pd_kv_transfer", "communication", serialization + latency, shape),))
         payload = self.payload_bytes(items)
         bandwidth_gbps = (
             self.config.network.uplink_gbps

@@ -101,13 +101,14 @@ class ExecutionDAG:
         return created
 
     def add_prefill(
-        self, request_id: int, input_tokens: int, chunk_size: int, ready_time: float
+        self, request_id: int, input_tokens: int, chunk_size: int,
+        ready_time: float, token_offset: int = 0,
     ) -> list[WorkItem]:
         previous_front: tuple[int, ...] = ()
         previous_cloud: tuple[int, ...] = ()
         previous_tail: tuple[int, ...] = ()
         chunk_index = 0
-        token_start = 0
+        token_start = token_offset
         created: list[int] = []
 
         while token_start < input_tokens:
@@ -232,6 +233,15 @@ class ExecutionDAG:
             first_dependencies=(down,),
         )
         return self._newly_ready([*front, up, *cloud, down, *tail], ready_time)
+
+    def add_pd_kv_transfer(self, request_id: int, token_count: int, ready_time: float, dependency: int) -> list[WorkItem]:
+        transfer = self._add(
+            request_id=request_id, phase=Phase.PREFILL,
+            stage=Stage.PD_KV_TRANSFER, token_start=0,
+            token_count=token_count, context_tokens=token_count,
+            dependencies=(dependency,),
+        )
+        return self._newly_ready([transfer], ready_time)
 
     def _newly_ready(self, item_ids: list[int], ready_time: float) -> list[WorkItem]:
         ready: list[WorkItem] = []

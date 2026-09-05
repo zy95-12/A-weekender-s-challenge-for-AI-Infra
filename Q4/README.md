@@ -34,7 +34,8 @@ python -m split_serving_sim \
 - Edge TP=1、Cloud TP=4×PP=2；
 - 10 Gbps 上下行和 10 ms RTT；
 - BS=8、prefill chunk=512、每批 prefill budget=512、FCFS continuous batching；
-- 4 个请求，每 100 ms 到达一个，每个输入 512 tokens、输出 4 tokens。
+- 4 个请求，每 10 ms 到达一个，每个输入 512 tokens、输出 8 tokens；该到达模式会产生
+  可供甘特图检查的 mixed prefill/decode batch。
 
 命令输出：
 
@@ -56,13 +57,14 @@ python -m split_serving_sim \
 
 ```text
 Requests                 4
-Average batch size       1.60
-Observed throughput      7.33 requests/s
-P99 TTFT                 152.42 ms
-P99 TPOT                 101.64 ms
-Cloud PP0 utilization    40.6%
-Cloud PP1 utilization    40.6%
-Edge GPU utilization     38.0%
+Average batch size       1.70
+Observed throughput      8.05 requests/s
+P99 TTFT                 252.66 ms
+P99 TPOT                 120.76 ms
+Mixed batches            4
+Cloud PP0 utilization    58.7%
+Cloud PP1 utilization    57.1%
+Edge GPU utilization     50.8%
 SLO                      Fail
 ```
 
@@ -74,7 +76,7 @@ Observed throughput 只是指定输入流量下的观测结果，不代表最大
 config.py          JSON schema、解析和拓扑/显存校验
 performance.py     Qwen3 逐层算子 workload、Roofline、TP 和 WAN 模型
 dag.py             Prefill chunk DAG 与 lazy decode DAG
-scheduler.py       FCFS scheduler 与 batch capacity/backpressure
+scheduler.py       vLLM-style running-first 调度、FCFS/priority 排序与 backpressure
 simulator.py       Event queue、资源占用和 batch execution
 metrics.py         TTFT、TPOT、E2E 和利用率
 visualization.py   独立 HTML/SVG 甘特图
@@ -87,7 +89,7 @@ cli.py             命令行入口和结果文件输出
 JSON Config
     -> Request Arrival
     -> Lazy Execution DAG
-    -> FCFS Scheduler / Batch Formation
+    -> vLLM-style Scheduler / Batch Formation
     -> Roofline or Network Duration
     -> Resource-aware Event Loop
     -> Metrics + Trace + Gantt
@@ -98,7 +100,8 @@ JSON Config
 - `batch_size` 是上限，eager dispatch 可以执行更小的 batch；
 - `max_batched_tokens` 同时限制一个 batch 的 token 数；
 - `prefill_token_budget` 限制单次调度注入的 prefill token，避免 prefill 洪峰长期阻塞 decode；
-- Scheduler 严格按 ready time、request ID、work-item ID 做 FCFS，不提供 decode 插队；
+- Scheduler 先推进 running requests，再按 `fcfs`、`priority` 或实验性的
+  `shortest_prefill` 顺序接纳 waiting requests；
 - 一个 GPU batch 只包含同一 stage，但可以混合 ready 的 prefill/decode work；
 - Edge Front 和 Edge Tail 共享 topology 中配置的 Edge GPU；
 - prefill chunk 在每个模型 stage 上保持因果顺序，同时允许跨 stage overlap；
@@ -109,7 +112,7 @@ JSON Config
 
 ### Continuous batching 开关
 
-`static_policy.continuous_batching=true` 时，系统维护最多 `batch_size` 个 active sequence
+`static_policy.continuous_batching.enabled=true` 时，系统维护最多 `scheduler.max_num_seqs` 个 active sequence
 slots；请求先进入 FCFS admission queue，有空 slot 时立刻补入。每次资源空闲都根据当前
 ready work items 重新形成 batch，因此 batch 成员可以在 decode iteration 之间变化，完成的
 sequence slot 会由等待请求补入。
@@ -119,8 +122,7 @@ sequence slot 会由等待请求补入。
 
 ```json
 {
-  "scheduler": "fcfs",
-  "continuous_batching": false
+  "continuous_batching": {"enabled": false}
 }
 ```
 
@@ -129,6 +131,39 @@ dispatch 时。
 
 配置解析也接受等价的短名称 `continuous_batch`，README 和示例统一使用
 `continuous_batching`。
+
+## Attention backend 与 Scheduler/KV
+
+```json
+{
+  "attention_backend": {"mode": "unified"},
+  "scheduler": {
+    "policy": "fcfs",
+    "max_num_seqs": 8,
+    "enable_chunked_prefill": true,
+    "kv_cache": {
+      "enabled": false,
+      "block_size_tokens": 16,
+      "num_blocks": 0,
+      "watermark": 0.0,
+      "prefix_caching": false,
+      "enable_preemption": true,
+      "preemption_mode": "recompute"
+    }
+  }
+}
+```
+
+- `unified`：mixed batch 每层只有一个 `mix attention`，对应 FlashAttention 风格；
+- `separate`：mixed batch 每层顺序执行 `prefill attention`、`decode attention`，对应
+  FlashInfer 风格，并产生两次 kernel launch；
+- 点击 mixed batch 后，详情区分别列出 Prefill requests 和 Decode requests；
+- KV block pool、watermark、prefix sharing/LRU eviction 会影响 admission；
+- priority 模式可在安全点抢占低优先级请求，恢复时在各 GPU stage 计入 recompute；
+- PD 模式可以通过每个 stage 的 `prefill_resource`、`decode_resource` 分离计算资源，
+  并在首 token 前插入显式 `pd_kv_transfer`。
+
+完整调研、配置和精度边界见 [`docs/SCHEDULER_RESEARCH.md`](docs/SCHEDULER_RESEARCH.md)。
 
 ## Qwen3 cost model
 
@@ -247,10 +282,10 @@ python -m http.server 8000 --directory outputs/demo
 python -m unittest discover -s tests -v
 ```
 
-当前包含 28 个行为测试，覆盖 Hugging Face profile、Qwen3/GQA shape、逐层 TP collective、
+当前包含 33 个行为测试，覆盖 Hugging Face profile、Qwen3/GQA shape、逐层 TP collective、
 PP 对角流水、replica sticky routing、continuous/static batching、FCFS、WAN 和甘特图输出。
 
 ## 当前边界
 
 暂未实现 QPS 搜索、GPU profiling 校准、SP/CP、动态 replica 负载均衡、EP/MoE/MLA、
-PD Separation、speculative decode、KV paging、prefix cache、CUDA stream overlap 和随机 WAN jitter。
+speculative decode、逐 stage 独立 KV pool、CUDA stream overlap 和随机 WAN jitter。

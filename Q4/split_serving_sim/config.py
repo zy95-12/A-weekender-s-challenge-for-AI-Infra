@@ -54,6 +54,8 @@ class StageConfig:
     pp_degree: int = 1
     pp_layer_ranges: tuple[tuple[int, int], ...] = ()
     replicas: int = 1
+    prefill_resource: str | None = None
+    decode_resource: str | None = None
 
     @property
     def num_layers(self) -> int:
@@ -72,6 +74,13 @@ class StageConfig:
         )
         width = layers_per_rank + (1 if pipeline_rank < remainder else 0)
         return start, start + width
+
+    def resource_for_phase(self, phase: str) -> str:
+        if phase == "prefill" and self.prefill_resource:
+            return self.prefill_resource
+        if phase == "decode" and self.decode_resource:
+            return self.decode_resource
+        return self.resource
 
 
 @dataclass(frozen=True)
@@ -109,11 +118,46 @@ class StaticPolicyConfig:
 
 
 @dataclass(frozen=True)
+class AttentionBackendConfig:
+    mode: str = "unified"
+
+
+@dataclass(frozen=True)
+class KVCacheConfig:
+    enabled: bool = False
+    block_size_tokens: int = 16
+    num_blocks: int = 0
+    watermark: float = 0.0
+    prefix_caching: bool = False
+    enable_preemption: bool = True
+    preemption_mode: str = "recompute"
+
+
+@dataclass(frozen=True)
+class PDDisaggregationConfig:
+    enabled: bool = False
+    kv_transfer_bandwidth_gb_s: float = 100.0
+    kv_transfer_latency_ms: float = 0.1
+
+
+@dataclass(frozen=True)
+class SchedulerConfig:
+    policy: str = "fcfs"
+    max_num_seqs: int = 256
+    enable_chunked_prefill: bool = True
+    kv_cache: KVCacheConfig = field(default_factory=KVCacheConfig)
+    pd_disaggregation: PDDisaggregationConfig = field(default_factory=PDDisaggregationConfig)
+
+
+@dataclass(frozen=True)
 class RequestSpec:
     request_id: int
     arrival_time_ms: float
     input_tokens: int
     output_tokens: int
+    priority: int = 0
+    prefix_id: str | None = None
+    prefix_tokens: int = 0
 
 
 @dataclass(frozen=True)
@@ -148,6 +192,8 @@ class SimulationConfig:
     hardware: dict[str, HardwareConfig]
     network: NetworkConfig
     static_policy: StaticPolicyConfig
+    attention_backend: AttentionBackendConfig
+    scheduler: SchedulerConfig
     workload: WorkloadConfig
     slo: SLOConfig | None = None
     simulation: SimulationOptions = field(default_factory=SimulationOptions)
@@ -232,6 +278,8 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
             pp_degree=int(item.get("pp_degree", 1)),
             pp_layer_ranges=_parse_pp_layer_ranges(item),
             replicas=int(item.get("replicas", 1)),
+            prefill_resource=str(item["prefill_resource"]) if item.get("prefill_resource") else None,
+            decode_resource=str(item["decode_resource"]) if item.get("decode_resource") else None,
         )
         for item in _required(topology_data, "stages", "topology")
     )
@@ -284,6 +332,13 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         != bool(policy_data["continuous_batch"])
     ):
         raise ConfigError("static_policy continuous batching aliases disagree")
+    continuous_value = policy_data.get(
+        "continuous_batching", policy_data.get("continuous_batch", True)
+    )
+    if isinstance(continuous_value, dict):
+        continuous_value = continuous_value.get("enabled", True)
+    if not isinstance(continuous_value, bool):
+        raise ConfigError("continuous_batching.enabled must be boolean")
     policy = StaticPolicyConfig(
         max_batch_size=int(configured_batch_size),
         max_batched_tokens=int(
@@ -307,10 +362,32 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         ),
         dispatch_mode=str(policy_data.get("dispatch_mode", "eager")),
         scheduler=str(policy_data.get("scheduler", "fcfs")),
-        continuous_batching=bool(
-            policy_data.get(
-                "continuous_batching", policy_data.get("continuous_batch", True)
-            )
+        continuous_batching=continuous_value,
+    )
+
+    attention_backend = AttentionBackendConfig(
+        mode=str(data.get("attention_backend", {}).get("mode", "unified"))
+    )
+    scheduler_data = data.get("scheduler", {})
+    kv_data = scheduler_data.get("kv_cache", {})
+    pd_data = scheduler_data.get("pd_disaggregation", {})
+    scheduler = SchedulerConfig(
+        policy=str(scheduler_data.get("policy", policy.scheduler)),
+        max_num_seqs=int(scheduler_data.get("max_num_seqs", policy.max_batch_size)),
+        enable_chunked_prefill=bool(scheduler_data.get("enable_chunked_prefill", True)),
+        kv_cache=KVCacheConfig(
+            enabled=bool(kv_data.get("enabled", False)),
+            block_size_tokens=int(kv_data.get("block_size_tokens", 16)),
+            num_blocks=int(kv_data.get("num_blocks", 0)),
+            watermark=float(kv_data.get("watermark", 0.0)),
+            prefix_caching=bool(kv_data.get("prefix_caching", False)),
+            enable_preemption=bool(kv_data.get("enable_preemption", True)),
+            preemption_mode=str(kv_data.get("preemption_mode", "recompute")),
+        ),
+        pd_disaggregation=PDDisaggregationConfig(
+            enabled=bool(pd_data.get("enabled", False)),
+            kv_transfer_bandwidth_gb_s=float(pd_data.get("kv_transfer_bandwidth_gb_s", 100.0)),
+            kv_transfer_latency_ms=float(pd_data.get("kv_transfer_latency_ms", 0.1)),
         ),
     )
 
@@ -323,6 +400,9 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
             ),
             input_tokens=int(_required(item, "input_tokens", "workload.requests[]")),
             output_tokens=int(_required(item, "output_tokens", "workload.requests[]")),
+            priority=int(item.get("priority", 0)),
+            prefix_id=str(item["prefix_id"]) if item.get("prefix_id") is not None else None,
+            prefix_tokens=int(item.get("prefix_tokens", 0)),
         )
         for item in workload_data.get("requests", [])
     )
@@ -363,6 +443,8 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         hardware=hardware,
         network=network,
         static_policy=policy,
+        attention_backend=attention_backend,
+        scheduler=scheduler,
         workload=workload,
         slo=slo,
         simulation=simulation,
@@ -396,8 +478,12 @@ def validate_config(config: SimulationConfig) -> None:
         if stage.layer_start != cursor or stage.layer_end <= stage.layer_start:
             raise ConfigError("topology layer ranges must be contiguous and non-empty")
         cursor = stage.layer_end
-        if stage.resource not in config.hardware:
-            raise ConfigError(f"unknown hardware resource: {stage.resource}")
+        stage_resources = {
+            stage.resource_for_phase("prefill"),
+            stage.resource_for_phase("decode"),
+        }
+        if stage_resources - config.hardware.keys():
+            raise ConfigError(f"unknown hardware resource in stage {stage.name}")
         if stage.tp_degree <= 0 or stage.pp_degree <= 0 or stage.replicas <= 0:
             raise ConfigError(f"parallel degrees must be positive for {stage.name}")
         if stage.pp_degree > stage.num_layers:
@@ -423,7 +509,7 @@ def validate_config(config: SimulationConfig) -> None:
                     f"pp_layer_ranges must be contiguous and cover {stage.name}"
                 )
         required_devices = stage.tp_degree * stage.pp_degree * stage.replicas
-        if required_devices > config.hardware[stage.resource].count:
+        if any(required_devices > config.hardware[resource].count for resource in stage_resources):
             raise ConfigError(
                 f"TP times PP times replicas exceeds device count for {stage.name}"
             )
@@ -491,8 +577,27 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("prefill_token_budget cannot exceed max_batched_tokens")
     if policy.dispatch_mode != "eager":
         raise ConfigError("only dispatch_mode='eager' is supported in the MVP")
-    if policy.scheduler != "fcfs":
-        raise ConfigError("only scheduler='fcfs' is supported")
+    if config.scheduler.policy not in {"fcfs", "priority", "shortest_prefill"}:
+        raise ConfigError("scheduler.policy must be fcfs, priority, or shortest_prefill")
+    if config.scheduler.max_num_seqs <= 0:
+        raise ConfigError("scheduler.max_num_seqs must be positive")
+    if config.attention_backend.mode not in {"unified", "separate"}:
+        raise ConfigError("attention_backend.mode must be unified or separate")
+    kv = config.scheduler.kv_cache
+    if kv.enabled and kv.num_blocks <= 0:
+        raise ConfigError("enabled KV cache requires positive num_blocks")
+    if kv.block_size_tokens <= 0 or not 0 <= kv.watermark < 1:
+        raise ConfigError("invalid KV block size or watermark")
+    pd = config.scheduler.pd_disaggregation
+    if pd.kv_transfer_bandwidth_gb_s <= 0 or pd.kv_transfer_latency_ms < 0:
+        raise ConfigError("invalid PD KV transfer bandwidth or latency")
+    if pd.enabled and any(
+        not stage.prefill_resource
+        or not stage.decode_resource
+        or stage.prefill_resource == stage.decode_resource
+        for stage in config.stages
+    ):
+        raise ConfigError("PD requires distinct prefill_resource/decode_resource per stage")
 
     workload = config.workload
     if workload.mode == "synthetic":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from copy import deepcopy
 
 from split_serving_sim.config import parse_config
 from split_serving_sim.simulator import Simulator
@@ -9,6 +10,108 @@ from tests.helpers import copied_toy_config
 
 
 class SimulatorTest(unittest.TestCase):
+    def test_pd_disaggregation_routes_phases_and_transfers_kv(self) -> None:
+        data = copied_toy_config()
+        for stage in data["topology"]["stages"]:
+            base_resource = stage["resource"]
+            prefill_resource = f"{stage['name']}_prefill"
+            decode_resource = f"{stage['name']}_decode"
+            data["hardware"][prefill_resource] = deepcopy(
+                data["hardware"][base_resource]
+            )
+            data["hardware"][decode_resource] = deepcopy(
+                data["hardware"][base_resource]
+            )
+            stage["prefill_resource"] = prefill_resource
+            stage["decode_resource"] = decode_resource
+        data["scheduler"] = {
+            "pd_disaggregation": {
+                "enabled": True,
+                "kv_transfer_bandwidth_gb_s": 50,
+                "kv_transfer_latency_ms": 0.2,
+            }
+        }
+
+        result = Simulator(parse_config(data)).run()
+        gpu_rows = [
+            row
+            for row in result.trace
+            if row["stage"] in {"edge_front", "cloud_middle", "edge_tail"}
+        ]
+        self.assertTrue(
+            all(
+                row["resource"].startswith(f"{row['stage']}_{row['phases'][0]}")
+                for row in gpu_rows
+            )
+        )
+        transfers = [row for row in result.trace if row["stage"] == "pd_kv_transfer"]
+        self.assertEqual(len(transfers), len(result.requests))
+        self.assertTrue(all(row["phases"] == ["prefill"] for row in transfers))
+
+    def test_priority_scheduler_preempts_and_recomputes_at_safe_point(self) -> None:
+        data = copied_toy_config()
+        data["static_policy"]["max_batch_size"] = 2
+        data["scheduler"] = {
+            "policy": "priority",
+            "max_num_seqs": 2,
+            "kv_cache": {
+                "enabled": True,
+                "block_size_tokens": 16,
+                "num_blocks": 8,
+                "enable_preemption": True,
+                "preemption_mode": "recompute",
+            },
+        }
+        data["workload"] = {
+            "mode": "trace",
+            "requests": [
+                {
+                    "request_id": 0,
+                    "arrival_time_ms": 0,
+                    "input_tokens": 64,
+                    "output_tokens": 8,
+                    "priority": 10,
+                },
+                {
+                    "request_id": 1,
+                    "arrival_time_ms": 0,
+                    "input_tokens": 16,
+                    "output_tokens": 8,
+                    "priority": 10,
+                },
+                {
+                    "request_id": 2,
+                    "arrival_time_ms": 12,
+                    "input_tokens": 16,
+                    "output_tokens": 2,
+                    "priority": 0,
+                },
+            ],
+        }
+
+        result = Simulator(parse_config(data)).run()
+        preemptions = [
+            event
+            for event in result.summary["kv_cache"]["events"]
+            if event["event"] == "preempt_recompute"
+        ]
+        self.assertTrue(preemptions)
+        victim = preemptions[0]["request_id"]
+        self.assertTrue(
+            any(
+                victim in row["request_ids"] and row["recompute_tokens"] > 0
+                for row in result.trace
+            )
+        )
+
+    def test_kv_capacity_serializes_admission(self) -> None:
+        data = copied_toy_config()
+        data["scheduler"] = {"policy": "fcfs", "max_num_seqs": 4, "kv_cache": {"enabled": True, "block_size_tokens": 16, "num_blocks": 3}}
+        result = Simulator(parse_config(data)).run()
+        by_id = {row["request_id"]: row for row in result.requests}
+        second_start = min(row["start_time_ms"] for row in result.trace if 1 in row["request_ids"])
+        self.assertGreaterEqual(second_start, by_id[0]["finish_time_ms"])
+        self.assertIn("kv_cache", result.summary)
     def test_simulation_produces_request_metrics_and_batches(self) -> None:
         result = Simulator(parse_config(copied_toy_config())).run()
         self.assertEqual(len(result.requests), 2)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import heapq
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any
 
@@ -10,8 +10,9 @@ from .config import RequestSpec, SimulationConfig
 from .core import GPU_STAGES, NETWORK_STAGES, PerformanceEstimate, Phase, Stage, WorkItem
 from .dag import ExecutionDAG
 from .metrics import RequestRuntime, build_summary
+from .kv_cache import PagedKVCache
 from .performance import NetworkModel, RooflineModel
-from .scheduler import FCFSScheduler, SchedulerSnapshot
+from .scheduler import SchedulerSnapshot, VLLMScheduler
 
 
 class EventType(str, Enum):
@@ -62,22 +63,25 @@ class Simulator:
         self.dag = ExecutionDAG(
             {Stage(stage.name): stage.pp_degree for stage in config.stages}
         )
-        self.scheduler = FCFSScheduler(config.static_policy)
+        self.scheduler = VLLMScheduler(config.static_policy, config.scheduler)
         self.roofline = RooflineModel(config)
         self.network = NetworkModel(config)
         resource_names = {
             self._parallel_resource_id(
-                stage.resource,
+                stage.resource_for_phase(phase),
                 replica,
                 stage.replicas,
                 pipeline_rank,
                 stage.pp_degree,
             )
             for stage in config.stages
+            for phase in ("prefill", "decode")
             for replica in range(stage.replicas)
             for pipeline_rank in range(stage.pp_degree)
         }
         resource_names.update({"wan_up", "wan_down"})
+        if config.scheduler.pd_disaggregation.enabled:
+            resource_names.add("pd_kv_transfer")
         self.resources = {name: Resource(name) for name in sorted(resource_names)}
         self.queues: dict[str, list[WorkItem]] = {name: [] for name in self.resources}
         self.requests: dict[int, RequestRuntime] = {}
@@ -93,12 +97,24 @@ class Simulator:
         self.active_static_cohort: set[int] = set()
         self.request_cohorts: dict[int, int] = {}
         self._cohort_sequence = 0
+        self.request_specs: dict[int, RequestSpec] = {}
+        self.request_priorities: dict[int, int] = {}
+        self.request_arrival_times: dict[int, float] = {}
+        self.request_cached_prefix_tokens: dict[int, int] = {}
+        self.kv_cache = PagedKVCache(config.scheduler.kv_cache) if config.scheduler.kv_cache.enabled else None
+        self.kv_events: list[dict[str, Any]] = []
+        self.running_batches: dict[int, BatchExecution] = {}
+        self.preempted_request_ids: set[int] = set()
+        self.recompute_pending_stages: dict[int, set[Stage]] = {}
 
     def run(self) -> SimulationResult:
         request_specs = self._request_specs()
         if not request_specs:
             raise ValueError("workload generated no requests")
         for spec in request_specs:
+            self.request_specs[spec.request_id] = spec
+            self.request_priorities[spec.request_id] = spec.priority
+            self.request_arrival_times[spec.request_id] = spec.arrival_time_ms / 1000.0
             self.requests[spec.request_id] = RequestRuntime(
                 request_id=spec.request_id,
                 arrival_time=spec.arrival_time_ms / 1000.0,
@@ -156,7 +172,16 @@ class Simulator:
             "prefill_chunk_size": self.config.static_policy.prefill_chunk_size,
             "scheduler": self.config.static_policy.scheduler,
             "continuous_batching": self.config.static_policy.continuous_batching,
+            "attention_backend": self.config.attention_backend.mode,
+            "scheduler_policy": self.config.scheduler.policy,
+            "max_num_seqs": self.config.scheduler.max_num_seqs,
         }
+        if self.kv_cache is not None:
+            summary["kv_cache"] = {
+                "capacity_blocks": self.kv_cache.config.num_blocks,
+                "used_blocks_at_end": self.kv_cache.used_blocks,
+                "events": self.kv_events,
+            }
         summary["parallel_plan"] = [
             {
                 "stage": stage.name,
@@ -215,30 +240,62 @@ class Simulator:
 
     def _start_request(self, request_id: int) -> None:
         request = self.requests[request_id]
+        spec = self.request_specs[request_id]
+        cached = self.kv_cache.cached_tokens(spec.prefix_id, spec.prefix_tokens) if self.kv_cache else 0
+        self.request_cached_prefix_tokens[request_id] = cached
         ready = self.dag.add_prefill(
             request.request_id,
             request.input_tokens,
-            self.config.static_policy.prefill_chunk_size,
+            self.config.static_policy.prefill_chunk_size if self.config.scheduler.enable_chunked_prefill else request.input_tokens,
             self.clock,
+            token_offset=cached,
         )
         self._enqueue(ready)
 
     def _admit_waiting_requests(self) -> None:
         if self.config.static_policy.continuous_batching:
             available_slots = (
-                self.config.static_policy.max_batch_size
+                self.config.scheduler.max_num_seqs
                 - len(self.active_continuous_requests)
             )
-            admitted = self.waiting_request_ids[:available_slots]
-            del self.waiting_request_ids[: len(admitted)]
+            ordered = self._ordered_waiting_requests()
+            # A full sequence table must not prevent a higher-priority request
+            # from reaching the safe-point preemption path.  This mirrors the
+            # running-first behavior: work already executing finishes, then a
+            # lower-priority sequence can yield its slot and KV allocation.
+            while (
+                ordered
+                and available_slots <= 0
+                and self._preempt_for(ordered[0])
+            ):
+                available_slots = (
+                    self.config.scheduler.max_num_seqs
+                    - len(self.active_continuous_requests)
+                )
+                ordered = self._ordered_waiting_requests()
+            admitted = []
+            for request_id in ordered:
+                if len(admitted) >= available_slots:
+                    break
+                if self._reserve_kv(request_id):
+                    admitted.append(request_id)
+            self.waiting_request_ids = [request_id for request_id in self.waiting_request_ids if request_id not in set(admitted)]
             for request_id in admitted:
                 self.active_continuous_requests.add(request_id)
-                self._start_request(request_id)
+                if request_id in self.preempted_request_ids:
+                    self.preempted_request_ids.remove(request_id)
+                else:
+                    self._start_request(request_id)
             return
         if self.active_static_cohort or not self.waiting_request_ids:
             return
-        cohort = self.waiting_request_ids[: self.config.static_policy.max_batch_size]
-        del self.waiting_request_ids[: len(cohort)]
+        cohort = []
+        for request_id in self._ordered_waiting_requests():
+            if len(cohort) >= self.config.static_policy.max_batch_size:
+                break
+            if self._reserve_kv(request_id):
+                cohort.append(request_id)
+        self.waiting_request_ids = [request_id for request_id in self.waiting_request_ids if request_id not in set(cohort)]
         cohort_id = self._cohort_sequence
         self._cohort_sequence += 1
         self.active_static_cohort = set(cohort)
@@ -246,11 +303,53 @@ class Simulator:
             self.request_cohorts[request_id] = cohort_id
             self._start_request(request_id)
 
+    def _ordered_waiting_requests(self) -> list[int]:
+        if self.config.scheduler.policy == "priority":
+            return sorted(self.waiting_request_ids, key=lambda request_id: (self.request_priorities[request_id], self.request_arrival_times[request_id], request_id))
+        if self.config.scheduler.policy == "shortest_prefill":
+            return sorted(self.waiting_request_ids, key=lambda request_id: (self.requests[request_id].input_tokens, self.request_arrival_times[request_id], request_id))
+        return list(self.waiting_request_ids)
+
+    def _reserve_kv(self, request_id: int) -> bool:
+        if self.kv_cache is None or request_id in self.kv_cache.allocations:
+            return True
+        spec = self.request_specs[request_id]
+        admission = self.kv_cache.reserve(request_id, spec.input_tokens + spec.output_tokens, prefix_id=spec.prefix_id, prefix_tokens=spec.prefix_tokens)
+        while admission is None and self._preempt_for(request_id):
+            admission = self.kv_cache.reserve(request_id, spec.input_tokens + spec.output_tokens, prefix_id=spec.prefix_id, prefix_tokens=spec.prefix_tokens)
+        if admission is None:
+            return False
+        self.kv_events.append({"time_ms": self.clock * 1000.0, "event": "allocate", "request_id": request_id, "blocks": admission.allocated_blocks, "prefix_hit_blocks": admission.prefix_hit_blocks, "evicted_prefix_blocks": admission.evicted_prefix_blocks})
+        return True
+
+    def _preempt_for(self, incoming_id: int) -> bool:
+        if self.kv_cache is None or not self.config.scheduler.kv_cache.enable_preemption or self.config.scheduler.policy != "priority":
+            return False
+        busy = {item.request_id for batch in self.running_batches.values() for item in batch.items}
+        incoming_priority = self.request_priorities[incoming_id]
+        victims = []
+        for request_id in self.active_continuous_requests:
+            queued = [item for queue in self.queues.values() for item in queue if item.request_id == request_id]
+            if request_id not in busy and queued and all(item.stage == Stage.EDGE_FRONT for item in queued) and self.outstanding_prefill_chunks.get(request_id, 0) == 0 and self.request_priorities[request_id] > incoming_priority:
+                victims.append(request_id)
+        if not victims:
+            return False
+        victim = max(victims, key=lambda request_id: (self.request_priorities[request_id], self.request_arrival_times[request_id]))
+        freed = self.kv_cache.free_request(victim)
+        self.active_continuous_requests.remove(victim)
+        if victim not in self.waiting_request_ids:
+            self.waiting_request_ids.append(victim)
+        self.preempted_request_ids.add(victim)
+        self.recompute_pending_stages[victim] = set(GPU_STAGES)
+        self.kv_events.append({"time_ms": self.clock * 1000.0, "event": "preempt_recompute", "request_id": victim, "for_request_id": incoming_id, "freed_blocks": freed})
+        return freed > 0
+
     def _finish_batch(self, batch: BatchExecution) -> None:
         resource = self.resources[batch.resource_id]
         if resource.running_batch_id != batch.batch_id:
             raise RuntimeError(f"resource/batch mismatch: {batch.resource_id}")
         resource.running_batch_id = None
+        self.running_batches.pop(batch.batch_id, None)
         resource.busy_time += batch.end_time - batch.start_time
 
         for item in batch.items:
@@ -270,9 +369,19 @@ class Simulator:
                 == self.config.stage(Stage.EDGE_TAIL.value).pp_degree - 1
             ):
                 if item.phase == Phase.PREFILL and self.dag.is_final_prefill(item):
-                    self._token_ready(item.request_id)
+                    if self.kv_cache is not None:
+                        spec = self.request_specs[item.request_id]
+                        blocks = self.kv_cache.publish_prefix(item.request_id, spec.prefix_id, spec.prefix_tokens)
+                        if blocks:
+                            self.kv_events.append({"time_ms": self.clock * 1000.0, "event": "publish_prefix", "request_id": item.request_id, "prefix_id": spec.prefix_id, "blocks": blocks})
+                    if self.config.scheduler.pd_disaggregation.enabled:
+                        self._enqueue(self.dag.add_pd_kv_transfer(item.request_id, self.requests[item.request_id].input_tokens, self.clock, item.id))
+                    else:
+                        self._token_ready(item.request_id)
                 elif item.phase == Phase.DECODE:
                     self._token_ready(item.request_id)
+            elif item.stage == Stage.PD_KV_TRANSFER:
+                self._token_ready(item.request_id)
 
     def _token_ready(self, request_id: int) -> None:
         request = self.requests[request_id]
@@ -281,6 +390,9 @@ class Simulator:
             request.first_token_time = self.clock
         if len(request.token_times) >= request.output_tokens:
             request.finish_time = self.clock
+            if self.kv_cache is not None:
+                freed = self.kv_cache.free_request(request_id)
+                self.kv_events.append({"time_ms": self.clock * 1000.0, "event": "free", "request_id": request_id, "blocks": freed})
             if self.config.static_policy.continuous_batching:
                 self.active_continuous_requests.remove(request_id)
             if (
@@ -326,11 +438,13 @@ class Simulator:
             return "wan_up"
         if item.stage == Stage.WAN_DOWN:
             return "wan_down"
+        if item.stage == Stage.PD_KV_TRANSFER:
+            return "pd_kv_transfer"
         stage = self.config.stage(item.stage.value)
         # Naive but KV-safe routing: a request remains sticky to one replica.
         replica = item.request_id % stage.replicas
         return self._parallel_resource_id(
-            stage.resource,
+            stage.resource_for_phase(item.phase.value),
             replica,
             stage.replicas,
             item.pipeline_rank,
@@ -346,6 +460,10 @@ class Simulator:
                 current_time=self.clock,
                 outstanding_prefill_chunks=dict(self.outstanding_prefill_chunks),
                 total_outstanding_prefill_chunks=self.total_outstanding_prefill_chunks,
+                running_request_ids=frozenset(self.active_continuous_requests | self.active_static_cohort),
+                request_priorities=self.request_priorities,
+                request_arrival_times=self.request_arrival_times,
+                request_input_tokens={request_id: spec.input_tokens for request_id, spec in self.request_specs.items()},
             )
             items = self.scheduler.form_batch(self.queues[resource_id], snapshot)
             if not items:
@@ -357,6 +475,16 @@ class Simulator:
             self._start_batch(resource, items)
 
     def _start_batch(self, resource: Resource, items: list[WorkItem]) -> None:
+        adjusted = []
+        for item in items:
+            pending = self.recompute_pending_stages.get(item.request_id)
+            if pending and item.stage in pending and item.stage in GPU_STAGES:
+                item = replace(item, recompute_tokens=item.context_tokens)
+                pending.remove(item.stage)
+                if not pending:
+                    self.recompute_pending_stages.pop(item.request_id, None)
+            adjusted.append(item)
+        items = adjusted
         stage = items[0].stage
         if any(item.stage != stage for item in items):
             raise RuntimeError("a batch cannot mix execution stages")
@@ -382,6 +510,7 @@ class Simulator:
             end_time=end_time,
         )
         resource.running_batch_id = batch_id
+        self.running_batches[batch_id] = batch
         for item in items:
             queue_time = self.clock - item.ready_time
             request = self.requests[item.request_id]
@@ -431,6 +560,8 @@ class Simulator:
             ) if batch.stage in GPU_STAGES else None,
             "phases": sorted({item.phase.value for item in batch.items}),
             "request_ids": [item.request_id for item in batch.items],
+            "prefill_request_ids": sorted({item.request_id for item in batch.items if item.phase == Phase.PREFILL}),
+            "decode_request_ids": sorted({item.request_id for item in batch.items if item.phase == Phase.DECODE}),
             "cohort_ids": [
                 self.request_cohorts.get(item.request_id) for item in batch.items
             ],
@@ -447,9 +578,14 @@ class Simulator:
             "duration_ms": (batch.end_time - batch.start_time) * 1000.0,
             "batch_size": len(batch.items),
             "total_tokens": sum(item.token_count for item in batch.items),
+            "recompute_tokens": sum(item.recompute_tokens for item in batch.items),
             "input_shape": batch.estimate.input_shape,
             "sub_operations": sub_operations,
             "flops": batch.estimate.flops,
             "memory_bytes": batch.estimate.memory_bytes,
             "communication_bytes": batch.estimate.communication_bytes,
+            "attention_backend": self.config.attention_backend.mode,
+            "scheduler_policy": self.config.scheduler.policy,
+            "kv_blocks_used": self.kv_cache.used_blocks if self.kv_cache else None,
+            "kv_blocks_free": self.kv_cache.free_blocks if self.kv_cache else None,
         }
