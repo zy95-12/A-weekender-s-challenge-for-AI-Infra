@@ -158,7 +158,7 @@ class Scheduler:
 
 def optimization_config(args):
     return {key: getattr(args,key) for key in ("ipc_mode","wire_fast","tcp_buffer_mib",
-            "prefill_chunk_size","scheduler_policy","decode_quota","pipeline_window")}
+            "prefill_chunk_size","scheduler_policy","decode_quota","pipeline_window","speculative_tokens")}
 
 
 def create_app(args):
@@ -273,10 +273,14 @@ def create_app(args):
             try:
                 command, arrays = unpack(body)
                 allowed = {"op", "phase", "items", "batch_id"}
-                if set(command) != allowed or command["op"] != "forward" or command["phase"] not in {"prefill", "decode"}:
+                if set(command) != allowed or command["op"] != "forward" or command["phase"] not in ({"prefill", "decode", "verify"} if args.speculative_tokens else {"prefill", "decode"}):
                     raise ValueError("Unsupported execution metadata")
                 if not 1 <= len(command["items"]) <= args.max_active:
                     raise ValueError("Invalid batch size")
+                if command["phase"]=="verify" and (len(command["items"])!=1 or
+                        not 1<=command["items"][0].get("query_len",0)<=args.speculative_tokens+1 or
+                        command["items"][0].get("position",0)<1):
+                    raise ValueError("Invalid verification window")
                 seen = set()
                 for item in command["items"]:
                     if set(item) != {"request_id", "position", "query_len"}:
@@ -288,7 +292,7 @@ def create_app(args):
                         raise ValueError("Invalid positions")
                     if not 0 <= item["position"] < 16384 or not 1 <= item["query_len"] <= 16384 - item["position"]:
                         raise ValueError("Sequence too long")
-                    if (command["phase"] == "prefill" and item["position"] != 0 and not args.prefill_chunk_size) or (command["phase"] == "decode" and item["query_len"] != 1):
+                    if (command["phase"] == "prefill" and item["position"] != 0 and not args.prefill_chunk_size and not args.speculative_tokens) or (command["phase"] == "decode" and item["query_len"] != 1):
                         raise ValueError("Invalid phase")
                 n = sum(x["query_len"] for x in command["items"])
                 if len(arrays) != 2 or any(a.shape != (n, 2048) for a in arrays):
@@ -308,7 +312,7 @@ def create_app(args):
                         last_seen[item["request_id"]] = time.monotonic()
                     cloud_metrics["kv_used_blocks"] = result["meta"]["timings"]["cloud_kv_used_blocks"]
                     cloud_metrics["forward_steps"] += 1
-                    cloud_metrics[command["phase"] + "_tokens"] += n
+                    cloud_metrics[("decode" if command["phase"]=="verify" else command["phase"]) + "_tokens"] += n
                     result["meta"]["timings"]["cloud_send_ns"] = time.perf_counter_ns()
                     return pack(result["meta"], result["arrays"], fast=args.wire_fast)
             try:
@@ -331,6 +335,31 @@ def create_app(args):
                     return result
             return gate.release(ids, release_owned) if gate else release_owned()
 
+
+        @app.post("/truncate")
+        def truncate(body: dict):
+            if not args.speculative_tokens or set(body)!={"lengths"} or not isinstance(body["lengths"],dict):
+                raise HTTPException(400,"Unsupported KV rollback")
+            lengths=body["lengths"]
+            if not 1<=len(lengths)<=args.max_active or any(type(v) is not int or v<0 for v in lengths.values()):
+                raise HTTPException(400,"Invalid KV rollback")
+            def truncate_owned():
+                with lock:
+                    result=executor.call({"op":"truncate","lengths":lengths})
+                    cloud_metrics["kv_used_blocks"]=result["kv_used_blocks"]
+                    return result
+            with gate.condition:
+                if any(rid not in gate.positions or n>gate.positions[rid] for rid,n in lengths.items()):
+                    raise HTTPException(400,"Rollback exceeds committed position")
+                try:
+                    result=truncate_owned()
+                except BaseException as error:
+                    gate.failure=str(error)
+                    gate.condition.notify_all()
+                    raise
+                gate.positions.update(lengths)
+                gate.condition.notify_all()
+                return result
 
         @app.on_event("startup")
         async def cleanup_start():
@@ -544,12 +573,15 @@ def main():
     parser.add_argument("--scheduler-policy", choices=["legacy","decode-first"], default="legacy")
     parser.add_argument("--decode-quota", type=int, default=1, help="Maximum decode rounds before one waiting prefill chunk")
     parser.add_argument("--tcp-buffer-mib", type=int, default=0, help="0 preserves default sockets; nonzero requires Linux CAP_NET_ADMIN")
+    parser.add_argument("--speculative-tokens", type=int, default=0, help="Prompt-lookup draft; 0 disables speculation")
     parser.add_argument("--pipeline-window", type=int, default=0, help="0 disables async front/RPC/back pipeline")
     parser.add_argument("--phase-profile", action="store_true",
                         help="Detailed synchronous GPU stage timings; disable for baseline throughput")
     args = parser.parse_args()
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:
         parser.error("Invalid prefill chunk or decode quota")
+    if not 0 <= args.speculative_tokens <= 8 or (args.speculative_tokens and not args.pipeline_window):
+        parser.error("Speculation requires pipeline mode and 1..8 draft tokens")
     if not 0 <= args.pipeline_window <= 8:
         parser.error("Pipeline window must be 0..8")
     if not 0 <= args.tcp_buffer_mib <= 64:

@@ -121,7 +121,7 @@ def up(args):
             common.append("--wire-fast")
         common += ["--prefill-chunk-size", str(args.prefill_chunk_size),
                    "--scheduler-policy", args.scheduler_policy, "--decode-quota", str(args.decode_quota)]
-        common += ["--tcp-buffer-mib", str(args.tcp_buffer_mib), "--pipeline-window", str(args.pipeline_window)]
+        common += ["--tcp-buffer-mib", str(args.tcp_buffer_mib), "--pipeline-window", str(args.pipeline_window), "--speculative-tokens", str(args.speculative_tokens)]
         if args.profile or args.phase_profile:
             common.append("--phase-profile")
         if not args.profile:
@@ -171,9 +171,12 @@ if __name__ == "__main__":
     parser.add_argument("--tcp-buffer-mib", type=int, default=0)
     parser.add_argument("--phase-profile", action="store_true")
     parser.add_argument("--pipeline-window", type=int, default=0)
+    parser.add_argument("--speculative-tokens", type=int, default=0)
     args = parser.parse_args()
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:
         parser.error("Invalid prefill chunk or decode quota")
+    if not 0 <= args.speculative_tokens <= 8 or (args.speculative_tokens and not args.pipeline_window):
+        parser.error("Speculation requires pipeline mode and 1..8 draft tokens")
     if not 0 <= args.pipeline_window <= 8:
         parser.error("Pipeline window must be 0..8")
     if not 0 <= args.tcp_buffer_mib <= 64:
