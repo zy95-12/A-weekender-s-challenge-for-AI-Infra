@@ -65,6 +65,9 @@ def main():
     parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe")
     parser.add_argument("--wire-fast", action="store_true")
     parser.add_argument("--tcp-buffer-mib", type=int, default=0)
+    parser.add_argument("--prefill-chunk-size", type=int, default=0)
+    parser.add_argument("--scheduler-policy", choices=["legacy", "decode-first"], default="legacy")
+    parser.add_argument("--decode-quota", type=int, default=1)
     args = parser.parse_args()
     output = (ROOT / args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -76,7 +79,8 @@ def main():
     if manifest.exists():
         previous = json.loads(manifest.read_text())
         identity = ("split", "pairs", "concurrency", "repeats", "workloads", "dtype", "network",
-                    "ipc_mode", "wire_fast", "tcp_buffer_mib")
+                    "ipc_mode", "wire_fast", "tcp_buffer_mib", "prefill_chunk_size",
+                    "scheduler_policy", "decode_quota")
         if not args.resume or any(previous.get(key) != config[key] for key in identity):
             raise RuntimeError("Existing matrix differs or --resume is missing; use a fresh output directory")
     manifest.write_text(json.dumps(config, indent=2))
@@ -108,6 +112,8 @@ def main():
                   "--ipc-mode", args.ipc_mode, "--tcp-buffer-mib", str(args.tcp_buffer_mib)]
         if args.wire_fast:
             common.append("--wire-fast")
+        common += ["--prefill-chunk-size", str(args.prefill_chunk_size),
+                   "--scheduler-policy", args.scheduler_policy, "--decode-quota", str(args.decode_quota)]
         correctness = folder / "correctness"
         reference = "results/baseline_native_tp1" if enterprise_tp == cloud_tp == 1 else "results/validation_final/reference"
         mixed_tp = enterprise_tp != cloud_tp

@@ -79,7 +79,8 @@ def main():
                 "representative_token_idx": record["token_idx"],
                 "representative_context_len": record["context_len"],
                 "representative_queue_ms": record["queue_ms"],
-                "raw_activation_bytes_each_direction": 2 * 2048 * 2 * (isl if record["phase"] == "prefill" else record["batch_size"]),
+                "raw_activation_bytes_each_direction": 2 * 2048 * 2 * (record.get("query_len", isl) if record["phase"] == "prefill" else record["batch_size"]),
+                "emits_token": record.get("emits_token", True),
                 **{metric: record.get(metric) for metric in metrics}})
     csv_output(root / "profile_batches.csv", batches)
     profile_groups = {}

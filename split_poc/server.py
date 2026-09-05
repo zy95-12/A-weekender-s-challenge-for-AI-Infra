@@ -45,6 +45,7 @@ class Scheduler:
         self.completed = self.failed = self.steps = self.kv_used = 0
         self.prompt_tokens = self.generation_tokens = 0
         self.last_trace = None
+        self.decode_rounds = 0
         self.http = httpx.Client(base_url=args.cloud, timeout=120, trust_env=False)
         Path(args.results).mkdir(parents=True, exist_ok=True)
         self.trace = open(Path(args.results) / "split_trace.jsonl", "a", buffering=1)
@@ -89,18 +90,20 @@ class Scheduler:
                         self.active.append(self.pending.get_nowait())
                 if not self.active:
                     continue
-                prefills = [j for j in self.active if not j.prefilled]
-                batch = prefills[:1] if prefills else self.active[:]
-                phase = "prefill" if prefills else "decode"
+                from split_poc.scheduling import choose
+                batch, phase, self.decode_rounds = choose(self.active, self.args.scheduler_policy,
+                                                         self.decode_rounds, self.args.decode_quota)
                 items, tokens = [], []
                 for job in batch:
-                    ids = job.ids if phase == "prefill" else [
+                    ids = job.ids[job.position:job.position+(self.args.prefill_chunk_size or len(job.ids))] if phase == "prefill" else [
                         job.forced[len(job.tokens) - 1] if job.forced is not None else job.tokens[-1]]
                     items.append({"request_id": job.id, "position": job.position, "query_len": len(ids)})
                     tokens.extend(ids)
                 command = {"op": "forward", "phase": phase, "items": items,
                            "token_ids": tokens, "batch_id": uuid.uuid4().hex,
                            "capture": any(j.capture for j in batch)}
+                command["emit"] = phase == "decode" or all(
+                    j.position + item["query_len"] == len(j.ids) for j,item in zip(batch,items))
                 t = time.perf_counter()
                 result = self.executor.call(command)
                 elapsed = (time.perf_counter() - t) * 1000
@@ -110,23 +113,28 @@ class Scheduler:
                 for i, job in enumerate(batch):
                     now = time.perf_counter()
                     token = result["tokens"][i]
-                    job.tokens.append(token)
-                    if job.capture:
+                    emits = phase == "decode" or job.position + items[i]["query_len"] == len(job.ids)
+                    if emits:
+                        job.tokens.append(token)
+                    if job.capture and emits:
                         job.logits.append(result["logits"][i])
                     trace = {"request_id": job.id, "client_request_id": job.client_id, "time_ns": time.time_ns(),
                         "batch_id": command["batch_id"], "batch_size": len(batch),
                         "phase": phase, "token_idx": len(job.tokens) - 1,
+                        "emits_token": emits, "query_len": items[i]["query_len"], "position_start": job.position,
                         "context_len": job.position + items[i]["query_len"],
-                        "queue_ms": (t - (job.created if phase == "prefill" else job.last_step)) * 1000,
+                        "queue_ms": (t - (job.created if job.position == 0 else job.last_step)) * 1000,
                         "step_wall_ms": elapsed, "timings_scope": "batch",
                         **result["timings"]}
                     self.trace.write(json.dumps(trace) + "\n")
                     self.last_trace = trace
                     if phase == "prefill":
-                        self.prompt_tokens += len(job.ids)
-                    self.generation_tokens += 1
+                        self.prompt_tokens += items[i]["query_len"]
+                    self.generation_tokens += int(emits)
                     job.position += items[i]["query_len"]
-                    job.last_step, job.prefilled = now, True
+                    job.last_step, job.prefilled = now, job.position >= len(job.ids)
+                    if not emits:
+                        continue
                     done = len(job.tokens) >= job.limit or (token in self.eos and not job.ignore_eos)
                     job.events.put({"token": token, "done": done,
                                     "finish_reason": "length" if len(job.tokens) >= job.limit else "stop"})
@@ -148,6 +156,11 @@ class Scheduler:
                 time.sleep(0.1)
 
 
+def optimization_config(args):
+    return {key: getattr(args,key) for key in ("ipc_mode","wire_fast","tcp_buffer_mib",
+            "prefill_chunk_size","scheduler_policy","decode_quota")}
+
+
 def create_app(args):
     app = FastAPI(title=f"Split-vLLM {args.role}")
     cloud_tp = None
@@ -160,8 +173,7 @@ def create_app(args):
         if tuple(remote_config.get("layer_split", [])) != SPLITS[args.split]:
             raise RuntimeError("Cloud layer partition differs from Enterprise")
         cloud_tp = remote_config["tp"]
-        if remote_config.get("optimizations") != {"ipc_mode": args.ipc_mode, "wire_fast": args.wire_fast,
-                                                 "tcp_buffer_mib": args.tcp_buffer_mib}:
+        if remote_config.get("optimizations") != optimization_config(args):
             raise RuntimeError("Cloud optimization flags differ from Enterprise")
     executor = Executor(vars(args))
     app.state.executor = executor
@@ -194,8 +206,7 @@ def create_app(args):
         return {"status": "ready", "role": args.role, "split": args.split, "tp": args.tp,
                 "cloud_tp": cloud_tp, "model_id": MODEL_ID, "revision": REVISION, "protocol": 1,
                 "layer_split": SPLITS[args.split],
-                "optimizations": {"ipc_mode": args.ipc_mode, "wire_fast": args.wire_fast,
-                                  "tcp_buffer_mib": args.tcp_buffer_mib},
+                "optimizations": optimization_config(args),
                 "gpu_pids": [p.pid for p in executor.processes],
                 "worker_audits": executor.worker_audits,
                 "active": len(scheduler.active) if scheduler else len(last_seen),
@@ -265,7 +276,7 @@ def create_app(args):
                         raise ValueError("Invalid positions")
                     if not 0 <= item["position"] < 16384 or not 1 <= item["query_len"] <= 16384 - item["position"]:
                         raise ValueError("Sequence too long")
-                    if (command["phase"] == "prefill" and item["position"] != 0) or (command["phase"] == "decode" and item["query_len"] != 1):
+                    if (command["phase"] == "prefill" and item["position"] != 0 and not args.prefill_chunk_size) or (command["phase"] == "decode" and item["query_len"] != 1):
                         raise ValueError("Invalid phase")
                 n = sum(x["query_len"] for x in command["items"])
                 if len(arrays) != 2 or any(a.shape != (n, 2048) for a in arrays):
@@ -503,10 +514,15 @@ def main():
     parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe",
                         help="Cloud-local CPU IPC only; never bypasses WAN")
     parser.add_argument("--wire-fast", action="store_true", help="Single-join lossless FP16 wire encoding")
+    parser.add_argument("--prefill-chunk-size", type=int, default=0, help="0 preserves full prefill")
+    parser.add_argument("--scheduler-policy", choices=["legacy","decode-first"], default="legacy")
+    parser.add_argument("--decode-quota", type=int, default=1, help="Maximum decode rounds before one waiting prefill chunk")
     parser.add_argument("--tcp-buffer-mib", type=int, default=0, help="0 preserves default sockets; nonzero requires Linux CAP_NET_ADMIN")
     parser.add_argument("--phase-profile", action="store_true",
                         help="Detailed synchronous GPU stage timings; disable for baseline throughput")
     args = parser.parse_args()
+    if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:
+        parser.error("Invalid prefill chunk or decode quota")
     if not 0 <= args.tcp_buffer_mib <= 64:
         parser.error("TCP buffer must be 0..64 MiB")
     if args.tp not in {1, 2}:

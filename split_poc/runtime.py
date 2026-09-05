@@ -211,7 +211,8 @@ class Runner:
             max_decode_seq_len=0 if prefill else max(lengths),
             context_lens_tensor=tensor([x["position"] for x in items]),
             block_tables=(torch.empty((len(items), 0), dtype=torch.int32, device="cuda")
-                          if prefill else tensor([x + [0] * (max_blocks - len(x)) for x in tables])),
+                          if prefill and all(x["position"]==0 for x in items)
+                          else tensor([x + [0] * (max_blocks - len(x)) for x in tables])),
             use_cuda_graph=False, max_query_len=max(queries), max_decode_query_len=1,
             query_start_loc=tensor([0] + np.cumsum(queries).tolist()),
             seq_start_loc=tensor([0] + np.cumsum(lengths).tolist()))
@@ -305,12 +306,16 @@ class Runner:
                     hidden, residual = self.broadcast_hidden(remote, n)
                 with self.timed(f"enterprise_back_{phase}", timings):
                     hidden, residual = self.model.layers(positions, hidden, residual, range(self.model.end, 36))
-                    hidden, _ = self.model.model.norm(hidden, residual)
-                    indices = torch.tensor(np.cumsum([x["query_len"] for x in items]) - 1, device="cuda")
-                    logits = self.model.logits_processor(self.model.model.embed_tokens,
-                                                        hidden.index_select(0, indices), None)
+                    if command.get("emit",True):
+                        hidden, _ = self.model.model.norm(hidden, residual)
+                        indices = torch.tensor(np.cumsum([x["query_len"] for x in items]) - 1, device="cuda")
+                        logits = self.model.logits_processor(self.model.model.embed_tokens,
+                                                            hidden.index_select(0, indices), None)
                 self.pool.commit(items)
                 if self.rank == 0:
+                    if not command.get("emit",True):
+                        return {"tokens":[0]*len(items), "timings":timings, "logits":None,
+                                "kv_used_blocks":self.args["kv_blocks"]-len(self.pool.free)}
                     logits = logits.float().cpu().numpy()
                     if not np.isfinite(logits).all():
                         raise RuntimeError("Non-finite logits; refusing to return a generated token")
