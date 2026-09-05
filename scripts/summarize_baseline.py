@@ -21,6 +21,20 @@ def csv_output(path, rows):
         writer.writerows(rows)
 
 
+def network_summary(log):
+    """Read both structured fail-closed checks and historical ping+iperf logs."""
+    match = re.search(r"rtt min/avg/max/mdev = [\d.]+/([\d.]+)/", log)
+    rtt = match.group(1) if match else "未采集"
+    if "{" not in log:
+        return rtt, "未采集"
+    data = json.loads(log[log.index("{"):])
+    if "measured" in data:
+        if data.get("result") != "PASS":
+            raise ValueError("Cannot summarize a failed network check as valid")
+        return f"{data['measured']['rtt_ms']:.3f}", f"{data['measured']['throughput_gbps']:.3f}"
+    return rtt, f"{data['end']['sum_received']['bits_per_second'] / 1e9:.3f}"
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("root")
@@ -158,12 +172,7 @@ def main():
         correctness = json.loads(path.read_text())
         network_path = path.parent.parent / "network_check.log"
         network = network_path.read_text() if network_path.exists() else ""
-        rtt_match = re.search(r"rtt min/avg/max/mdev = [\d.]+/([\d.]+)/", network)
-        rtt = rtt_match.group(1) if rtt_match else "未采集"
-        bandwidth = "未采集"
-        if "{" in network:
-            iperf = json.loads(network[network.index("{"):])
-            bandwidth = f"{iperf['end']['sum_received']['bits_per_second'] / 1e9:.3f}"
+        rtt, bandwidth = network_summary(network)
         free = correctness.get("free_running", [])
         matching = f"{sum(item['exact_match'] for item in free)}/{len(free)} 个输入长度"
         lines.append(f"| {path.parent.parent.name} | {rtt} | {bandwidth} | {correctness['result']} | "
