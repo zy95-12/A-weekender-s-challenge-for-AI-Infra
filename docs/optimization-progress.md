@@ -233,3 +233,15 @@ Nsight 产物；矩阵没有 completion.json，目前无运行进程，不再续
 尚未完成新增开关的完整故障注入覆盖；已通过的真实取消/资源回收与组件测试
 构成本次代表场景证据，不能据此声称所有故障情形已验收。后续 chunk/流水会
 针对新增状态转换单独验证取消、错误传播和释放，不继承未经验证的结论。
+
+## 后续阶段代表验收交付（2026-09-06）
+
+以下实现/报告在独立 PR 分支，不能将本阶段1分支的代码当作包含后续实现。
+
+- [PR #11](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/11)：串行 chunk/公平调度实现、取消和数值验证。四档块大小均 logits 超限，greedy 一致；逐层误差在首块 position0/layer0 已出现。仍为数值阻塞，未保留为通过验收的优化。
+- [PR #12](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/12)：不切块跨请求流水通过代表验收；8k TP2+2 C4 TTFT −25.1%、QPS +6.4%，C1 TPOT +6.0%。独立 Nsight 证明计算/传输重叠，真实在途 worker 故障后失败关闭。异步长 prompt chunk 仍依赖阶段2门槛。
+- [PR #13](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/13)：端侧 prompt-lookup、逐位置 q=1 内核及合并 WAN 验证，k0/k2/k4 的 132 位置 logits 均逐值一致。相同 79-token 正常 EOS 复制任务，k2 TPOT 32.87→25.10 ms，最大输出间隔 35.68→87.56 ms；通用解释/代码回退，默认关闭。
+
+54 项最终集成 CPU 测试与 Python 编译通过。PR #11–13 保持 draft，未合并；
+Issue #6 保持开放。大型产物仅本地保存并有校验清单，不假称外部备份。
+演示恢复为本阶段1的 TP2+2 WAN 配置，流水和投机不默认开启。
