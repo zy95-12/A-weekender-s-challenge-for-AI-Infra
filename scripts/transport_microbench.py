@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT))
 import numpy as np
 from split_poc.wire import pack, unpack
 from split_poc.local_ipc import LocalMailbox
+from split_poc.transport import http_client, serve
 
 
 def echo_worker(pipe, names):
@@ -95,7 +96,7 @@ def server(args):
         if mailbox:
             mailbox.close()
 
-    uvicorn.run(app, host="10.205.0.2", port=8099, access_log=False)
+    serve(app, "10.205.0.2", 8099, args.tcp_buffer_mib)
 
 
 def client(args):
@@ -104,7 +105,7 @@ def client(args):
     rows = []
     concurrent_rows = []
     output = Path(args.output)
-    with httpx.Client(base_url="http://10.205.0.2:8099", timeout=60, trust_env=False) as http:
+    with http_client(args.tcp_buffer_mib, base_url="http://10.205.0.2:8099", timeout=60, trust_env=False) as http:
         for size in sizes:
             # Both tensors together have exactly `size` bytes in each direction.
             arrays = [np.full((size//8192, 2048), value, np.float16) for value in (.25, -.5)]
@@ -171,6 +172,7 @@ def main():
     parser.add_argument("--repeats",type=int,default=10)
     parser.add_argument("--ipc-mode",choices=["pipe","shm"],default="pipe")
     parser.add_argument("--wire-fast",action="store_true")
+    parser.add_argument("--tcp-buffer-mib",type=int,default=0)
     args=parser.parse_args()
     if args.action=="server":
         server(args)
@@ -186,7 +188,7 @@ def main():
             check(intent,output/"network_check.json")
             subprocess.run([sys.executable,str(ROOT/"scripts/environment.py"),str(output/"environment.json")],check=True,cwd=ROOT)
             with (output/"server.log").open("w") as log:
-                extra=["--ipc-mode",args.ipc_mode]+(["--wire-fast"] if args.wire_fast else [])
+                extra=["--ipc-mode",args.ipc_mode,"--tcp-buffer-mib",str(args.tcp_buffer_mib)]+(["--wire-fast"] if args.wire_fast else [])
                 process=subprocess.Popen(["ip","netns","exec","split-cloud",sys.executable,__file__,"server",*extra],stdout=log,stderr=subprocess.STDOUT)
                 try:
                     for _ in range(60):
