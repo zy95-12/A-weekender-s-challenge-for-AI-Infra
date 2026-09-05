@@ -195,6 +195,10 @@ class Simulator:
                 self.config.execution.preserve_batch_across_stages
             ),
         }
+        summary["performance_profile"] = {
+            "enabled": self.config.performance_profile.enabled,
+            "samples": len(self.config.performance_profile.samples),
+        }
         summary["network"] = {
             "uplink_gbps": self.config.network.uplink_gbps,
             "downlink_gbps": self.config.network.downlink_gbps,
@@ -712,6 +716,12 @@ class Simulator:
                     "duration_ms": operation.duration_s * 1000.0,
                     "input_shape": operation.input_shape,
                     "dependencies": list(operation.dependencies),
+                    "profile_type": operation.profile_type,
+                    "profile_signature": operation.profile_signature,
+                    "profile_source": operation.profile_source,
+                    "profile_correction_factor": (
+                        operation.profile_correction_factor
+                    ),
                 }
             )
             cursor = operation_end

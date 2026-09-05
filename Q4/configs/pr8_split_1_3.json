@@ -18,6 +18,7 @@
   },
   "network": {"uplink_gbps": 10, "downlink_gbps": 10, "rtt_ms": 10, "efficiency": 0.8, "activation_tensor_count": 2, "protocol_overhead_bytes": 384, "sender_overhead_ms": 0, "receiver_overhead_ms": 0},
   "execution": {"mode": "synchronous_rpc", "preserve_batch_across_stages": true},
+  "performance_profile": {"path": "../profiles/pr8_a10.json", "enabled": false},
   "static_policy": {"batch_size": 8, "max_batched_tokens": 16384, "prefill_token_budget": 16384, "prefill_chunk_size": 4096, "continuous_batching": {"enabled": true}, "pipeline_depth": 1, "max_outstanding_prefill_chunks": 1, "dispatch_mode": "eager"},
   "attention_backend": {"mode": "unified"},
   "scheduler": {"policy": "split_poc_naive", "max_num_seqs": 8, "enable_chunked_prefill": false, "kv_cache": {"enabled": true, "allocation_mode": "on_demand", "block_size_tokens": 16, "num_blocks": 8192, "watermark": 0, "prefix_caching": false, "enable_preemption": false, "preemption_mode": "recompute"}, "pd_disaggregation": {"enabled": false}},

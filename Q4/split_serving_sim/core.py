@@ -72,6 +72,10 @@ class SubOperation:
     duration_s: float
     input_shape: str
     dependencies: tuple[str, ...] = ()
+    profile_type: str = ""
+    profile_signature: str = ""
+    profile_source: str = "roofline"
+    profile_correction_factor: float = 1.0
 
 
 @dataclass(frozen=True)

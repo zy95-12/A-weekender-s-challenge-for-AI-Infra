@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 
 from .config import SimulationConfig, StageConfig
 from .core import NETWORK_STAGES, OperatorWorkload, PerformanceEstimate, Phase, Stage, SubOperation, WorkItem
+from .profiling import ProfilingDatabase, network_signature, operator_type, workload_signature
 
 
 @dataclass(frozen=True)
@@ -446,6 +447,7 @@ class RooflineModel:
     def __init__(self, config: SimulationConfig):
         self.config = config
         self.workloads = Qwen3WorkloadModel(config)
+        self.profiles = ProfilingDatabase(config.performance_profile)
 
     def estimate(self, stage_name: str, items: Sequence[WorkItem]) -> PerformanceEstimate:
         stage = self.config.stage(stage_name)
@@ -504,21 +506,42 @@ class RooflineModel:
         for operator in operators:
             if operator.category == "communication":
                 factor = ring_factor if operator.communication_kind == "all_reduce" else 1.0
-                duration = (
+                base_duration = (
                     hardware.interconnect_latency_us * 1e-6
                     + factor
                     * operator.workload.communication_bytes
                     / (hardware.interconnect_bandwidth_gb_s * 1e9)
                 )
-                collective_time += duration
             else:
                 operator_compute = operator.workload.flops / peak_flops
                 operator_memory = operator.workload.memory_bytes / memory_bandwidth
                 launch = hardware.kernel_overhead_us * 1e-6
-                duration = max(operator_compute, operator_memory) + launch
+                base_duration = max(operator_compute, operator_memory) + launch
                 compute_time += operator_compute
                 memory_time += operator_memory
                 overhead += launch
+            kind = operator_type(operator.name, operator.category)
+            signature = (
+                workload_signature(operator.input_shape, operator.workload)
+                if self.config.simulation.trace_enabled
+                or self.profiles.needs_signature(kind)
+                else ""
+            )
+            phases = "/".join(sorted({item.phase.value for item in items}))
+            profile = self.profiles.correct(
+                kind,
+                signature,
+                base_duration,
+                {
+                    "phase": phases,
+                    "tp_degree": stage.tp_degree,
+                    "stage": stage_name,
+                    "dtype": self.config.model.dtype,
+                },
+            )
+            duration = profile.duration_s
+            if operator.category == "communication":
+                collective_time += duration
             sub_operations.append(
                 SubOperation(
                     name=operator.name,
@@ -526,6 +549,10 @@ class RooflineModel:
                     duration_s=duration,
                     input_shape=operator.input_shape,
                     dependencies=operator.dependencies,
+                    profile_type=kind,
+                    profile_signature=signature,
+                    profile_source=profile.source,
+                    profile_correction_factor=profile.correction_factor,
                 )
             )
 
@@ -547,6 +574,7 @@ class RooflineModel:
 class NetworkModel:
     def __init__(self, config: SimulationConfig):
         self.config = config
+        self.profiles = ProfilingDatabase(config.performance_profile)
 
     def payload_bytes(self, items: Sequence[WorkItem]) -> float:
         tensor_bytes = (
@@ -584,6 +612,27 @@ class NetworkModel:
             f"{tensors} x {self.config.model.dtype} "
             f"[{sum(item.token_count for item in items)}, {self.config.model.hidden_size}]"
         )
+        phases = "/".join(sorted({item.phase.value for item in items}))
+        direction = "up" if stage == Stage.WAN_UP else "down"
+        signature = network_signature(payload, shape)
+        profile = self.profiles.correct(
+            "network_transfer",
+            signature,
+            total,
+            {"direction": direction, "phase": phases},
+        )
+        scale = profile.duration_s / total if total else 1.0
+        sender_overhead *= scale
+        serialization *= scale
+        propagation *= scale
+        receiver_overhead *= scale
+        total = profile.duration_s
+        profile_fields = {
+            "profile_type": "network_transfer",
+            "profile_signature": signature,
+            "profile_source": profile.source,
+            "profile_correction_factor": profile.correction_factor,
+        }
         return PerformanceEstimate(
             flops=0.0,
             memory_bytes=0.0,
@@ -595,9 +644,9 @@ class NetworkModel:
             total_time_s=total,
             input_shape=shape,
             sub_operations=(
-                SubOperation("sender_staging", "communication", sender_overhead, shape),
-                SubOperation("wan_serialization", "communication", serialization, shape),
-                SubOperation("wan_propagation", "communication", propagation, shape),
-                SubOperation("receiver_staging", "communication", receiver_overhead, shape),
+                SubOperation("sender_staging", "communication", sender_overhead, shape, **profile_fields),
+                SubOperation("wan_serialization", "communication", serialization, shape, **profile_fields),
+                SubOperation("wan_propagation", "communication", propagation, shape, **profile_fields),
+                SubOperation("receiver_staging", "communication", receiver_overhead, shape, **profile_fields),
             ),
         )

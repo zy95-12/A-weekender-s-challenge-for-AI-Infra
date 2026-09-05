@@ -120,6 +120,22 @@ class ExecutionConfig:
 
 
 @dataclass(frozen=True)
+class ProfileSampleConfig:
+    operator_type: str
+    latency_ms: float
+    roofline_ms: float | None = None
+    signature: str | None = None
+    match: tuple[tuple[str, str], ...] = ()
+    source: str = ""
+
+
+@dataclass(frozen=True)
+class PerformanceProfileConfig:
+    enabled: bool = False
+    samples: tuple[ProfileSampleConfig, ...] = ()
+
+
+@dataclass(frozen=True)
 class StaticPolicyConfig:
     max_batch_size: int
     max_batched_tokens: int
@@ -210,6 +226,7 @@ class SimulationConfig:
     hardware: dict[str, HardwareConfig]
     network: NetworkConfig
     execution: ExecutionConfig
+    performance_profile: PerformanceProfileConfig
     static_policy: StaticPolicyConfig
     attention_backend: AttentionBackendConfig
     scheduler: SchedulerConfig
@@ -239,6 +256,41 @@ def _parse_pp_layer_ranges(item: dict[str, Any]) -> tuple[tuple[int, int], ...]:
     return tuple((int(value[0]), int(value[1])) for value in raw_ranges)
 
 
+def parse_performance_profile(data: dict[str, Any]) -> PerformanceProfileConfig:
+    samples = tuple(
+        ProfileSampleConfig(
+            operator_type=str(
+                _required(item, "operator_type", "performance_profile.samples[]")
+            ),
+            latency_ms=float(
+                _required(item, "latency_ms", "performance_profile.samples[]")
+            ),
+            roofline_ms=(
+                float(item["roofline_ms"])
+                if item.get("roofline_ms") is not None
+                else None
+            ),
+            signature=(str(item["signature"]) if item.get("signature") else None),
+            match=tuple(
+                sorted(
+                    (str(key), str(value))
+                    for key, value in item.get("match", {}).items()
+                )
+            ),
+            source=str(item.get("source", "")),
+        )
+        for item in data.get("samples", [])
+    )
+    return PerformanceProfileConfig(
+        enabled=bool(data.get("enabled", bool(samples))), samples=samples
+    )
+
+
+def load_performance_profile(path: str | Path) -> PerformanceProfileConfig:
+    with Path(path).open("r", encoding="utf-8") as handle:
+        return parse_performance_profile(json.load(handle))
+
+
 def load_config(path: str | Path) -> SimulationConfig:
     config_path = Path(path)
     with config_path.open("r", encoding="utf-8") as handle:
@@ -251,6 +303,16 @@ def load_config(path: str | Path) -> SimulationConfig:
             hf_data = json.load(handle)
         # Experiment-level fields intentionally override the checked-in HF profile.
         data["model"] = {**hf_data, **model_data}
+    profile_data = data.get("performance_profile", {})
+    profile_path = profile_data.get("path")
+    if profile_path:
+        resolved_profile_path = config_path.parent / str(profile_path)
+        with resolved_profile_path.open("r", encoding="utf-8") as handle:
+            loaded_profile = json.load(handle)
+        data["performance_profile"] = {
+            **loaded_profile,
+            **{key: value for key, value in profile_data.items() if key != "path"},
+        }
     return parse_config(data)
 
 
@@ -348,6 +410,8 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
             )
         ),
     )
+    profile_data = data.get("performance_profile", {})
+    performance_profile = parse_performance_profile(profile_data)
 
     policy_data = _required(data, "static_policy", "root")
     configured_batch_size = policy_data.get(
@@ -484,6 +548,7 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         hardware=hardware,
         network=network,
         execution=execution,
+        performance_profile=performance_profile,
         static_policy=policy,
         attention_backend=attention_backend,
         scheduler=scheduler,
@@ -625,6 +690,11 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError(
             "max_detailed_trace_records cannot exceed max_trace_records"
         )
+    for sample in config.performance_profile.samples:
+        if not sample.operator_type or sample.latency_ms < 0:
+            raise ConfigError("performance profile samples require a type and non-negative latency")
+        if sample.roofline_ms is not None and sample.roofline_ms <= 0:
+            raise ConfigError("performance profile roofline_ms must be positive")
 
     policy = config.static_policy
     if min(

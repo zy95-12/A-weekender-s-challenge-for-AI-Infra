@@ -144,3 +144,33 @@ Calibration should use a held-out protocol: fit operator-class lookup or
 efficiencies, size-dependent RPC staging, NCCL latency/bandwidth and fixed
 per-step residual on part of PR #8, then evaluate untouched TP/workload points.
 Fitting all 32 points and reporting the same points would not be validation.
+
+## Profile-guided correction experiment
+
+Q4 now supports exact-signature latency replacement, operator-type average
+correction and Roofline fallback. A profile generated from the compact PR #8
+artifacts gives the following in-sample result:
+
+| Profile applied | TTFT MAPE | TPOT MAPE | QPS MAPE |
+|---|---:|---:|---:|
+| None / Roofline baseline | 33.49% | 13.84% | 20.21% |
+| MM + FA kernel only | 44.02% | 22.20% | 36.29% |
+| MM + FA + NCCL | 23.32% | 16.02% | 22.17% |
+| Network transfer only | 27.49% | 12.04% | 13.77% |
+| All available profile data | 32.53% | 11.84% | 12.58% |
+
+The full profile reduces QPS MAPE by 7.63 percentage points (37.8% relative)
+and TPOT MAPE by 2.00 points (14.5% relative), but TTFT improves by only 0.96
+points. TTFT bias flips from -33.49% to +21.21%.
+
+This result is intentionally not described as held-out validation. PR #8 does
+not commit per-shape operator timings: CUDA kernel data is aggregated across
+all workloads. MM/FA/NCCL therefore use type-average factors fitted on the same
+matrix. Network samples have exact payload signatures, but their timings come
+from independent Nsight runs and include synchronization/profiling effects;
+using them as normal-run latency overcorrects Prefill.
+
+The experiment shows that the lookup mechanism works, but also that profiling
+scope must match the simulated critical path. Real per-operator, per-shape wall
+latencies and normal-run D2H/HTTP/H2D timings are required before expecting the
+8%–12% end-to-end range discussed above.

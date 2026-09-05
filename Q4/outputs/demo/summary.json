@@ -56,6 +56,10 @@
     "mode": "pipelined",
     "preserve_batch_across_stages": false
   },
+  "performance_profile": {
+    "enabled": false,
+    "samples": 0
+  },
   "network": {
     "uplink_gbps": 10.0,
     "downlink_gbps": 10.0,

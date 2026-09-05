@@ -48,10 +48,14 @@ def worker(args: argparse.Namespace) -> int:
     limit = args.memory_limit_mb * 1024 * 1024
     resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
 
-    from split_serving_sim.config import load_config
+    from split_serving_sim.config import load_config, load_performance_profile
     from split_serving_sim.simulator import Simulator
 
     base = load_config(args.config)
+    if args.profile:
+        base = replace(
+            base, performance_profile=load_performance_profile(args.profile)
+        )
     base = configure(base, args.edge_tp, args.cloud_tp)
     workload = replace(
         base.workload,
@@ -303,7 +307,9 @@ def run_parent(args: argparse.Namespace) -> int:
         ["git", "rev-parse", args.pr8_ref], cwd=repo, text=True
     ).strip()
     fingerprint = hashlib.sha256(
-        config.read_bytes() + pr8_commit.encode("ascii")
+        config.read_bytes()
+        + (Path(args.profile).read_bytes() if args.profile else b"")
+        + pr8_commit.encode("ascii")
     ).hexdigest()
     baseline = list(
         csv.DictReader(
@@ -347,6 +353,8 @@ def run_parent(args: argparse.Namespace) -> int:
             "--concurrency", row["client_concurrency"],
             "--memory-limit-mb", str(args.memory_limit_mb),
         ]
+        if args.profile:
+            command.extend(("--profile", str(Path(args.profile).resolve())))
         predicted = json.loads(
             subprocess.check_output(command, text=True, timeout=args.point_timeout_s)
         )
@@ -371,9 +379,13 @@ def run_parent(args: argparse.Namespace) -> int:
         with checkpoint.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(item, separators=(",", ":")) + "\n")
 
-    from split_serving_sim.config import load_config
+    from split_serving_sim.config import load_config, load_performance_profile
 
     base = load_config(config)
+    if args.profile:
+        base = replace(
+            base, performance_profile=load_performance_profile(args.profile)
+        )
     end_to_end = end_to_end_summary(matrix)
     by_topology = {
         f"tp_{edge_tp}_{cloud_tp}": end_to_end_summary(
@@ -389,7 +401,8 @@ def run_parent(args: argparse.Namespace) -> int:
             "pr8_ref": args.pr8_ref,
             "pr8_commit": pr8_commit,
             "simulator_config": args.config,
-            "calibrated_on_baseline": False,
+            "performance_profile": args.profile,
+            "calibrated_on_baseline": bool(args.profile),
         },
         "memory": {
             "child_limit_mb": args.memory_limit_mb,
@@ -413,6 +426,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--pr8-ref", default="origin/pr8-review")
     result.add_argument("--output", default="outputs/validation/pr8_accuracy.json")
     result.add_argument("--memory-limit-mb", type=int, default=768)
+    result.add_argument("--profile")
     result.add_argument("--point-timeout-s", type=int, default=120)
     result.add_argument("--no-resume", action="store_true")
     result.add_argument("--worker", action="store_true")

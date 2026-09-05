@@ -201,6 +201,35 @@ dispatch 时。
 
 ## Qwen2/Qwen3 cost model
 
+### Profiling 修正接口
+
+可选的 `performance_profile` 按以下顺序修正 Roofline：同类型且 signature
+完全一致时直接采用 profiling 延迟；没有相同 signature 时使用同类型、同作用域样本的平均
+`latency_ms / roofline_ms`；没有同类型样本时保持原 Roofline。
+
+```json
+{
+  "performance_profile": {
+    "path": "../profiles/pr8_a10.json",
+    "enabled": true
+  }
+}
+```
+
+每个 sample 可以包含 `operator_type`、`signature`、`latency_ms`、
+`roofline_ms` 和 `match`。`match` 可限制 `phase`、`tp_degree`、`stage`、
+`dtype` 或网络方向。trace 会记录最终使用的 profile source 和修正系数。
+
+PR #8 profile 可通过以下命令重新生成和验证：
+
+```bash
+python tools/build_pr8_profile.py --repo .. --pr8-ref origin/pr8-review
+python tools/validate_pr8_baseline.py \
+  --repo .. --pr8-ref origin/pr8-review \
+  --profile profiles/pr8_a10.json \
+  --output outputs/validation/pr8_accuracy_profiled.json
+```
+
 `configs/example.json` 通过 `hf_config_path` 引用
 [`models/qwen3_32b_config.json`](models/qwen3_32b_config.json)。该文件摘自
 [`Qwen/Qwen3-32B config.json`](https://huggingface.co/Qwen/Qwen3-32B/blob/main/config.json)，
@@ -352,7 +381,7 @@ python -m http.server 8000 --directory outputs/demo
 python -m unittest discover -s tests -v
 ```
 
-当前包含 38 个行为测试，覆盖 Hugging Face profile、Qwen2/Qwen3 GQA shape、逐层 TP collective、
+当前包含 39 个行为测试，覆盖 Hugging Face profile、Qwen2/Qwen3 GQA shape、逐层 TP collective、
 PP 对角流水、replica sticky routing、continuous/static batching、FCFS、PR #8 同步 RPC、
 双 tensor WAN、按需 KV、trace 内存保护和甘特图输出。
 

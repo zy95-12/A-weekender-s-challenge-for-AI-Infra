@@ -7,3 +7,4 @@ outputs/*
 !outputs/validation/
 outputs/validation/*
 !outputs/validation/pr8_accuracy.json
+!outputs/validation/pr8_accuracy_profiled.json
