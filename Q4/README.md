@@ -301,6 +301,24 @@ Synthetic workload 支持固定间隔或 Poisson 到达，也可以传入显式 
 
 ## 甘特图
 
+长输出会产生大量逐算子对象。`simulation` 提供两级内存保护：
+
+```json
+{
+  "simulation": {
+    "trace_enabled": true,
+    "max_trace_records": 20000,
+    "max_detailed_trace_records": 200
+  }
+}
+```
+
+- `max_trace_records` 限制 timeline batch 总数；
+- `max_detailed_trace_records` 限制携带逐算子子流的 batch 数；
+- 超过明细限制的 batch 仍保留 stage 总耗时，并标记
+  `sub_operations_omitted=true`；
+- 不需要甘特图的矩阵实验应设置 `trace_enabled=false`。
+
 GitHub Raw 会使用 CSP 禁止内联 JavaScript，因此在 GitHub 上请直接预览
 [`outputs/demo/gantt.svg`](outputs/demo/gantt.svg)。HTML 本身也包含静态首屏，不再因脚本
 被禁用而显示空白。
@@ -334,9 +352,13 @@ python -m http.server 8000 --directory outputs/demo
 python -m unittest discover -s tests -v
 ```
 
-当前包含 37 个行为测试，覆盖 Hugging Face profile、Qwen2/Qwen3 GQA shape、逐层 TP collective、
+当前包含 38 个行为测试，覆盖 Hugging Face profile、Qwen2/Qwen3 GQA shape、逐层 TP collective、
 PP 对角流水、replica sticky routing、continuous/static batching、FCFS、PR #8 同步 RPC、
-双 tensor WAN、按需 KV 和甘特图输出。
+双 tensor WAN、按需 KV、trace 内存保护和甘特图输出。
+
+PR #8 baseline 的量化验证、受限内存复现命令和误差分解见
+[`docs/PR8_VALIDATION.md`](docs/PR8_VALIDATION.md)，机器可读结果见
+[`outputs/validation/pr8_accuracy.json`](outputs/validation/pr8_accuracy.json)。
 
 ## 当前边界
 

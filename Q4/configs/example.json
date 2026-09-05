@@ -104,6 +104,8 @@
   },
   "simulation": {
     "max_time_s": 3600,
-    "trace_enabled": true
+    "trace_enabled": true,
+    "max_trace_records": 20000,
+    "max_detailed_trace_records": 200
   }
 }

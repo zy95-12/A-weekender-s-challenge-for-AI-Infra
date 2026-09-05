@@ -111,6 +111,8 @@ class Simulator:
         self.sync_expected: tuple[Stage, int] | None = None
         self.sync_transaction_id: int | None = None
         self._sync_transaction_sequence = 0
+        self.trace_records_dropped = 0
+        self.trace_detail_records_dropped = 0
 
     def run(self) -> SimulationResult:
         request_specs = self._request_specs()
@@ -199,6 +201,19 @@ class Simulator:
             "rtt_ms": self.config.network.rtt_ms,
             "activation_tensor_count": self.config.network.activation_tensor_count,
             "protocol_overhead_bytes": self.config.network.protocol_overhead_bytes,
+        }
+        summary["trace"] = {
+            "enabled": self.config.simulation.trace_enabled,
+            "records": len(self.trace),
+            "records_dropped": self.trace_records_dropped,
+            "detailed_records": sum(
+                bool(row["sub_operations"]) for row in self.trace
+            ),
+            "detail_records_dropped": self.trace_detail_records_dropped,
+            "max_trace_records": self.config.simulation.max_trace_records,
+            "max_detailed_trace_records": (
+                self.config.simulation.max_detailed_trace_records
+            ),
         }
         if self.kv_cache is not None:
             summary["kv_cache"] = {
@@ -622,7 +637,20 @@ class Simulator:
                 )
                 self.total_outstanding_prefill_chunks += 1
         if self.config.simulation.trace_enabled:
-            self.trace.append(self._trace_record(batch))
+            if len(self.trace) < self.config.simulation.max_trace_records:
+                include_details = (
+                    len(self.trace)
+                    < self.config.simulation.max_detailed_trace_records
+                )
+                self.trace.append(
+                    self._trace_record(batch, include_sub_operations=include_details)
+                )
+                if not include_details and batch.estimate.sub_operations:
+                    self.trace_detail_records_dropped += 1
+            else:
+                self.trace_records_dropped += 1
+                if batch.estimate.sub_operations:
+                    self.trace_detail_records_dropped += 1
         self._push_event(end_time, EventType.BATCH_FINISH, batch)
 
     def _advance_sync_transaction(self, batch: BatchExecution) -> None:
@@ -665,10 +693,15 @@ class Simulator:
             self.sync_expected = None
             self.sync_transaction_id = None
 
-    def _trace_record(self, batch: BatchExecution) -> dict[str, Any]:
+    def _trace_record(
+        self, batch: BatchExecution, *, include_sub_operations: bool = True
+    ) -> dict[str, Any]:
         cursor = batch.start_time
         sub_operations: list[dict[str, Any]] = []
-        for operation in batch.estimate.sub_operations:
+        operations = (
+            batch.estimate.sub_operations if include_sub_operations else ()
+        )
+        for operation in operations:
             operation_end = cursor + operation.duration_s
             sub_operations.append(
                 {
@@ -716,6 +749,9 @@ class Simulator:
             "recompute_tokens": sum(item.recompute_tokens for item in batch.items),
             "input_shape": batch.estimate.input_shape,
             "sub_operations": sub_operations,
+            "sub_operations_omitted": bool(
+                batch.estimate.sub_operations and not include_sub_operations
+            ),
             "flops": batch.estimate.flops,
             "memory_bytes": batch.estimate.memory_bytes,
             "communication_bytes": batch.estimate.communication_bytes,

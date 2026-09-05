@@ -10,6 +10,23 @@ from tests.helpers import copied_toy_config
 
 
 class SimulatorTest(unittest.TestCase):
+    def test_trace_limits_keep_coarse_batches_without_operator_details(self) -> None:
+        data = copied_toy_config()
+        data["simulation"] = {
+            "trace_enabled": True,
+            "max_trace_records": 3,
+            "max_detailed_trace_records": 1,
+        }
+        result = Simulator(parse_config(data)).run()
+
+        self.assertEqual(len(result.trace), 3)
+        self.assertTrue(result.trace[0]["sub_operations"])
+        self.assertFalse(result.trace[0]["sub_operations_omitted"])
+        self.assertFalse(result.trace[1]["sub_operations"])
+        self.assertTrue(result.trace[1]["sub_operations_omitted"])
+        self.assertGreater(result.summary["trace"]["records_dropped"], 0)
+        self.assertGreater(result.summary["trace"]["detail_records_dropped"], 0)
+
     def test_on_demand_kv_grows_at_prefill_and_decode_boundaries(self) -> None:
         data = copied_toy_config()
         data["scheduler"] = {

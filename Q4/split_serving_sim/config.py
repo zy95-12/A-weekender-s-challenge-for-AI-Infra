@@ -199,6 +199,8 @@ class SLOConfig:
 class SimulationOptions:
     trace_enabled: bool = True
     max_time_s: float = 3600.0
+    max_trace_records: int = 20_000
+    max_detailed_trace_records: int = 200
 
 
 @dataclass(frozen=True)
@@ -470,6 +472,10 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
     simulation = SimulationOptions(
         trace_enabled=bool(simulation_data.get("trace_enabled", True)),
         max_time_s=float(simulation_data.get("max_time_s", 3600.0)),
+        max_trace_records=int(simulation_data.get("max_trace_records", 20_000)),
+        max_detailed_trace_records=int(
+            simulation_data.get("max_detailed_trace_records", 200)
+        ),
     )
 
     config = SimulationConfig(
@@ -607,6 +613,18 @@ def validate_config(config: SimulationConfig) -> None:
         and not config.execution.preserve_batch_across_stages
     ):
         raise ConfigError("synchronous_rpc must preserve batches across stages")
+    if min(
+        config.simulation.max_trace_records,
+        config.simulation.max_detailed_trace_records,
+    ) < 0:
+        raise ConfigError("simulation trace limits cannot be negative")
+    if (
+        config.simulation.max_detailed_trace_records
+        > config.simulation.max_trace_records
+    ):
+        raise ConfigError(
+            "max_detailed_trace_records cannot exceed max_trace_records"
+        )
 
     policy = config.static_policy
     if min(
