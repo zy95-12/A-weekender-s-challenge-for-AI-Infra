@@ -1,0 +1,306 @@
+{
+  "scope": "TP2+2 8192/256 C1/C4, three repeats of four requests; descriptive tails",
+  "variants": {
+    "window0": {
+      "1": {
+        "repeats": 3,
+        "requests": 12,
+        "mean_ttft_ms": {
+          "mean": 1018.7699326667143,
+          "repeat_std": 18.143864104583546
+        },
+        "mean_tpot_ms": {
+          "mean": 32.18042669052272,
+          "repeat_std": 0.22667828221223835
+        },
+        "achieved_qps": {
+          "mean": 0.10840466510294534,
+          "repeat_std": 0.0008634526522568422
+        },
+        "ttft_ms_pooled": {
+          "p50": 1017.0863394998833,
+          "p95": 1047.1352153500902,
+          "p99": 1056.4015110702076
+        },
+        "tpot_ms_pooled": {
+          "p50": 32.239344547058536,
+          "p95": 32.42477041156797,
+          "p99": 32.48315166662672
+        }
+      },
+      "4": {
+        "repeats": 3,
+        "requests": 12,
+        "mean_ttft_ms": {
+          "mean": 2546.6939879167207,
+          "repeat_std": 11.735203255966269
+        },
+        "mean_tpot_ms": {
+          "mean": 39.52896989052269,
+          "repeat_std": 0.11115776500309002
+        },
+        "achieved_qps": {
+          "mean": 0.31676338021979866,
+          "repeat_std": 0.0008815038719773896
+        },
+        "ttft_ms_pooled": {
+          "p50": 2545.5210465001983,
+          "p95": 4074.0696911500436,
+          "p99": 4076.8126982299236
+        },
+        "tpot_ms_pooled": {
+          "p50": 39.54554460392234,
+          "p95": 45.51907824294149,
+          "p99": 45.58273860074542
+        }
+      },
+      "mixed": {
+        "repeats": 3,
+        "decode_max_gap_ms": [
+          1034.490461,
+          1018.940234,
+          1037.22267
+        ],
+        "long_ttft_ms": [
+          1031.552853,
+          1015.995839,
+          1034.107843
+        ]
+      }
+    },
+    "window2": {
+      "1": {
+        "repeats": 3,
+        "requests": 12,
+        "mean_ttft_ms": {
+          "mean": 1351.0841274999545,
+          "repeat_std": 4.8146287564349475
+        },
+        "mean_tpot_ms": {
+          "mean": 34.05935321241834,
+          "repeat_std": 0.1894585665552581
+        },
+        "achieved_qps": {
+          "mean": 0.09963748085933825,
+          "repeat_std": 0.00045890178034822143
+        },
+        "ttft_ms_pooled": {
+          "p50": 1349.8576524998498,
+          "p95": 1362.0405205999987,
+          "p99": 1363.6867049200691
+        },
+        "tpot_ms_pooled": {
+          "p50": 33.89159104509756,
+          "p95": 34.989549802353125,
+          "p99": 35.609612896942124
+        }
+      },
+      "4": {
+        "repeats": 3,
+        "requests": 12,
+        "mean_ttft_ms": {
+          "mean": 2369.0424321666037,
+          "repeat_std": 1.266521778523031
+        },
+        "mean_tpot_ms": {
+          "mean": 39.03777490522875,
+          "repeat_std": 0.08782471714944727
+        },
+        "achieved_qps": {
+          "mean": 0.3214579005812486,
+          "repeat_std": 0.0005369779868435093
+        },
+        "ttft_ms_pooled": {
+          "p50": 2360.786884000163,
+          "p95": 3397.9754872999365,
+          "p99": 3400.177623059808
+        },
+        "tpot_ms_pooled": {
+          "p50": 38.92303870392086,
+          "p95": 42.87861165921632,
+          "p99": 42.93887205419712
+        }
+      },
+      "mixed": {
+        "repeats": 3,
+        "decode_max_gap_ms": [
+          608.063277,
+          574.318574,
+          574.987608
+        ],
+        "long_ttft_ms": [
+          1327.724934,
+          1330.060928,
+          1336.081408
+        ]
+      }
+    },
+    "window2_shm": {
+      "1": {
+        "repeats": 3,
+        "requests": 12,
+        "mean_ttft_ms": {
+          "mean": 1035.7491771667355,
+          "repeat_std": 7.282232734297466
+        },
+        "mean_tpot_ms": {
+          "mean": 34.126254083333066,
+          "repeat_std": 0.2820232740041651
+        },
+        "achieved_qps": {
+          "mean": 0.10269194185365162,
+          "repeat_std": 0.0007997343110801663
+        },
+        "ttft_ms_pooled": {
+          "p50": 1034.5864049998,
+          "p95": 1045.1691255500918,
+          "p99": 1047.4737747097242
+        },
+        "tpot_ms_pooled": {
+          "p50": 34.025990900000565,
+          "p95": 34.84165152745096,
+          "p99": 34.86271619098025
+        }
+      },
+      "4": {
+        "repeats": 3,
+        "requests": 12,
+        "mean_ttft_ms": {
+          "mean": 1908.1730379167159,
+          "repeat_std": 10.760577692036078
+        },
+        "mean_tpot_ms": {
+          "mean": 38.580152155228916,
+          "repeat_std": 0.09098718254498701
+        },
+        "achieved_qps": {
+          "mean": 0.3371142443165252,
+          "repeat_std": 0.0008237407921752991
+        },
+        "ttft_ms_pooled": {
+          "p50": 1910.901195999486,
+          "p95": 2761.1392169504597,
+          "p99": 2771.4934425903903
+        },
+        "tpot_ms_pooled": {
+          "p50": 38.38288862941191,
+          "p95": 41.841809514901925,
+          "p99": 41.84792170847055
+        }
+      },
+      "mixed": {
+        "repeats": 3,
+        "decode_max_gap_ms": [
+          581.862124,
+          587.344255,
+          620.304259
+        ],
+        "long_ttft_ms": [
+          1042.647059,
+          1040.566181,
+          1034.815169
+        ]
+      }
+    }
+  },
+  "overlap": {
+    "result": "PASS",
+    "classification": "independent Nsight capture, not ordinary TTFT/TPOT",
+    "gpu_scope": "enterprise device 0 only; non-NCCL kernels launched inside front/back NVTX ranges",
+    "transport_scope": "upload body / download body socket I/O; excludes headers/cloud wait",
+    "profile_batches": 41,
+    "gpu_kernel_count": 4813,
+    "transfer_ranges": 82,
+    "gpu_compute_union_ms": 490.742534,
+    "transport_union_ms": 1415.330163,
+    "cross_batch_compute_transport_overlap_union_ms": 50.775989,
+    "transport_without_model_compute_ms": 1364.554174,
+    "examples": [
+      {
+        "gpu_kernel": "triton_poi_fused_add_bitwise_and_bitwise_not_bitwise_or_ge_lt_mul_sub_0",
+        "compute_batch": "c75d43e3670943dda127f81351ae0436",
+        "transport_batch": "30493ab5dbdf4a5d9b203ec22e034d12",
+        "kernel_start_ns": 673788613,
+        "kernel_end_ns": 673790405,
+        "transport_start_ns": 670593987,
+        "transport_end_ns": 801257536,
+        "overlap_ms": 0.001792
+      },
+      {
+        "gpu_kernel": "void at::native::vectorized_gather_kernel<(int)16, long>(char *, char *, T2 *, int, long, long, long, long, bool)",
+        "compute_batch": "c75d43e3670943dda127f81351ae0436",
+        "transport_batch": "30493ab5dbdf4a5d9b203ec22e034d12",
+        "kernel_start_ns": 673913509,
+        "kernel_end_ns": 673982853,
+        "transport_start_ns": 670593987,
+        "transport_end_ns": 801257536,
+        "overlap_ms": 0.069344
+      },
+      {
+        "gpu_kernel": "void at::native::elementwise_kernel<(int)128, (int)4, void at::native::gpu_kernel_impl_nocast<at::native::<unnamed>::masked_fill_kernel(at::TensorIterator &, const c10::Scalar &)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 11)]::operator ()() const::[lambda(c10::Half, bool) (instance 1)]>(at::TensorIteratorBase &, const T1 &)::[lambda(int) (instance 1)]>(int, T3)",
+        "compute_batch": "c75d43e3670943dda127f81351ae0436",
+        "transport_batch": "30493ab5dbdf4a5d9b203ec22e034d12",
+        "kernel_start_ns": 673983589,
+        "kernel_end_ns": 674133989,
+        "transport_start_ns": 670593987,
+        "transport_end_ns": 801257536,
+        "overlap_ms": 0.1504
+      },
+      {
+        "gpu_kernel": "void vllm::rms_norm_kernel<c10::Half>(T1 *, const T1 *, long, const T1 *, float, int, int)",
+        "compute_batch": "c75d43e3670943dda127f81351ae0436",
+        "transport_batch": "30493ab5dbdf4a5d9b203ec22e034d12",
+        "kernel_start_ns": 676502112,
+        "kernel_end_ns": 676747455,
+        "transport_start_ns": 670593987,
+        "transport_end_ns": 801257536,
+        "overlap_ms": 0.245343
+      },
+      {
+        "gpu_kernel": "void cutlass::Kernel2<cutlass_80_tensorop_f16_s16816gemm_relu_f16_256x128_32x3_tn_align8>(T1::Params)",
+        "compute_batch": "c75d43e3670943dda127f81351ae0436",
+        "transport_batch": "30493ab5dbdf4a5d9b203ec22e034d12",
+        "kernel_start_ns": 676750975,
+        "kernel_end_ns": 677255294,
+        "transport_start_ns": 670593987,
+        "transport_end_ns": 801257536,
+        "overlap_ms": 0.504319
+      },
+      {
+        "gpu_kernel": "void vllm::rotary_embedding_kernel<c10::Half, (bool)1>(const long *, T1 *, T1 *, const T1 *, int, long, long, long, int, int, int)",
+        "compute_batch": "c75d43e3670943dda127f81351ae0436",
+        "transport_batch": "30493ab5dbdf4a5d9b203ec22e034d12",
+        "kernel_start_ns": 677256158,
+        "kernel_end_ns": 677352254,
+        "transport_start_ns": 670593987,
+        "transport_end_ns": 801257536,
+        "overlap_ms": 0.096096
+      },
+      {
+        "gpu_kernel": "void at::native::vectorized_elementwise_kernel<(int)4, at::native::FillFunctor<c10::Half>, std::array<char *, (unsigned long)1>>(int, T2, T3)",
+        "compute_batch": "c75d43e3670943dda127f81351ae0436",
+        "transport_batch": "30493ab5dbdf4a5d9b203ec22e034d12",
+        "kernel_start_ns": 677353086,
+        "kernel_end_ns": 677387870,
+        "transport_start_ns": 670593987,
+        "transport_end_ns": 801257536,
+        "overlap_ms": 0.034784
+      },
+      {
+        "gpu_kernel": "void vllm::reshape_and_cache_flash_kernel<unsigned short, unsigned short, (vllm::Fp8KVCacheDataType)0>(const T1 *, const T1 *, T2 *, T2 *, const long *, long, long, long, long, long, int, int, int, const float *, const float *)",
+        "compute_batch": "c75d43e3670943dda127f81351ae0436",
+        "transport_batch": "30493ab5dbdf4a5d9b203ec22e034d12",
+        "kernel_start_ns": 677388734,
+        "kernel_end_ns": 677414974,
+        "transport_start_ns": 670593987,
+        "transport_end_ns": 801257536,
+        "overlap_ms": 0.02624
+      }
+    ],
+    "cloud_gpu0_cross_batch_overlap_union_ms": 477.171467,
+    "either_side_cross_batch_overlap_union_ms": 527.947456,
+    "cloud_clock_alignment": "same-host Nsight session epoch start + activity timestamps; one GPU per side",
+    "cloud_session_offset_ns": 437500642,
+    "aligned_upload_before_cloud_kernel": true
+  }
+}

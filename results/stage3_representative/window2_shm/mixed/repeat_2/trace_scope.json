@@ -1,0 +1,7 @@
+{
+  "measured_rows": 256,
+  "excluded_rows": 0,
+  "experiment_id": "mixed-1788622785162107548-",
+  "policy": "Exact measured request IDs only in split_trace.jsonl. Excluded rows may be client warmup or other traffic; is_warmup=null means unknown.",
+  "telemetry_scope": "Entire vLLM client process, including initial warmup; not a measured-only window."
+}
