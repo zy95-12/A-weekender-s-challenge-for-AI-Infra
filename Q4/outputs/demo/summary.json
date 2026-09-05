@@ -1,31 +1,32 @@
 {
   "num_requests": 4,
   "simulation_start_ms": 0.0,
-  "simulation_end_ms": 553.3172994501459,
-  "simulation_duration_ms": 553.3172994501459,
-  "observed_request_throughput_qps": 7.229125140267553,
-  "observed_output_throughput_tokens_s": 28.91650056107021,
+  "simulation_end_ms": 545.3519443532637,
+  "simulation_duration_ms": 545.3519443532637,
+  "observed_request_throughput_qps": 7.334713007658982,
+  "observed_output_throughput_tokens_s": 29.338852030635927,
   "ttft_ms": {
-    "p50": 154.9483078131989,
-    "p95": 159.84982295159415,
-    "p99": 160.28645481100705
+    "p50": 152.42370567897794,
+    "p95": 152.42370567897797,
+    "p99": 152.42370567897797
   },
   "tpot_ms": {
-    "p50": 66.87532022857141,
-    "p95": 105.26443918958378,
-    "p99": 105.2747124000981
+    "p50": 66.05960683428565,
+    "p95": 101.6374929691428,
+    "p99": 101.6384440932571
   },
   "e2e_ms": {
-    "p50": 357.72573122157445,
-    "p95": 451.60593421128885,
-    "p99": 459.94862256237457
+    "p50": 349.75569212469213,
+    "p95": 443.63414351440645,
+    "p99": 451.9767387454922
   },
   "average_batch_size": 1.6,
   "resource_utilization": {
-    "cloud_gpu": 0.8054528219461868,
-    "edge_gpu": 0.3745852651212766,
-    "wan_down": 0.12848757859305954,
-    "wan_up": 0.12848757859305948
+    "cloud_gpu/pp_0": 0.4060893528114462,
+    "cloud_gpu/pp_1": 0.40590096804255754,
+    "edge_gpu": 0.3800564194494952,
+    "wan_down": 0.1303642551129278,
+    "wan_up": 0.1303642551129278
   },
   "slo": {
     "ttft_limit_ms": 3000.0,
@@ -38,6 +39,65 @@
     "batch_size": 8,
     "max_batched_tokens": 8192,
     "prefill_token_budget": 512,
-    "prefill_chunk_size": 512
-  }
+    "prefill_chunk_size": 512,
+    "scheduler": "fcfs",
+    "continuous_batching": true
+  },
+  "parallel_plan": [
+    {
+      "stage": "edge_front",
+      "layer_range": [
+        0,
+        6
+      ],
+      "tp_degree": 1,
+      "pp_degree": 1,
+      "pp_layer_ranges": [
+        [
+          0,
+          6
+        ]
+      ],
+      "replicas": 1,
+      "devices": 1
+    },
+    {
+      "stage": "cloud_middle",
+      "layer_range": [
+        6,
+        62
+      ],
+      "tp_degree": 4,
+      "pp_degree": 2,
+      "pp_layer_ranges": [
+        [
+          6,
+          34
+        ],
+        [
+          34,
+          62
+        ]
+      ],
+      "replicas": 1,
+      "devices": 8
+    },
+    {
+      "stage": "edge_tail",
+      "layer_range": [
+        62,
+        64
+      ],
+      "tp_degree": 1,
+      "pp_degree": 1,
+      "pp_layer_ranges": [
+        [
+          62,
+          64
+        ]
+      ],
+      "replicas": 1,
+      "devices": 1
+    }
+  ]
 }

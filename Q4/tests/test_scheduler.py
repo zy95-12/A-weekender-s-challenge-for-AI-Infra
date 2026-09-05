@@ -4,15 +4,15 @@ import unittest
 
 from split_serving_sim.config import parse_config
 from split_serving_sim.core import Phase, Stage, WorkItem
-from split_serving_sim.scheduler import NaiveScheduler, SchedulerSnapshot
+from split_serving_sim.scheduler import FCFSScheduler, SchedulerSnapshot
 
 from tests.helpers import copied_toy_config
 
 
 class SchedulerTest(unittest.TestCase):
-    def test_decode_is_selected_first_and_prefill_respects_budget(self) -> None:
+    def test_fcfs_uses_ready_time_and_prefill_respects_budget(self) -> None:
         config = parse_config(copied_toy_config()).static_policy
-        scheduler = NaiveScheduler(config)
+        scheduler = FCFSScheduler(config)
         candidates = [
             WorkItem(
                 id=0,
@@ -49,13 +49,14 @@ class SchedulerTest(unittest.TestCase):
                 token_start=32,
                 token_count=1,
                 context_tokens=32,
+                ready_time=1.0,
             ),
         ]
         selected = scheduler.form_batch(
             candidates,
             SchedulerSnapshot(0.0, {}, 0),
         )
-        self.assertEqual(selected[0].phase, Phase.DECODE)
+        self.assertEqual([item.id for item in selected], [0, 1, 3])
         self.assertEqual(
             sum(item.token_count for item in selected if item.phase == Phase.PREFILL),
             config.prefill_token_budget,

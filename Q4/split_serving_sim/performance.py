@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .config import SimulationConfig, StageConfig
 from .core import OperatorWorkload, PerformanceEstimate, Phase, Stage, SubOperation, WorkItem
@@ -14,6 +14,7 @@ class ModeledOperator:
     workload: OperatorWorkload
     input_shape: str
     dependencies: tuple[str, ...] = ()
+    communication_kind: str | None = None
 
 
 class Qwen3WorkloadModel:
@@ -54,6 +55,7 @@ class Qwen3WorkloadModel:
             workload=workload,
             input_shape=self._shape(tokens, local_in),
             dependencies=dependencies,
+            communication_kind="all_reduce",
         )
 
     def _elementwise(
@@ -431,8 +433,45 @@ class RooflineModel:
     def estimate(self, stage_name: str, items: Sequence[WorkItem]) -> PerformanceEstimate:
         stage = self.config.stage(stage_name)
         hardware = self.config.hardware[stage.resource]
-        operators = self.workloads.build_operators(stage, items)
-        workload = self.workloads.build(stage, items)
+        pipeline_ranks = {item.pipeline_rank for item in items}
+        if len(pipeline_ranks) != 1:
+            raise ValueError("a batch cannot mix pipeline ranks")
+        pipeline_rank = pipeline_ranks.pop()
+        layer_start, layer_end = stage.pipeline_layer_range(pipeline_rank)
+        local_stage = replace(
+            stage,
+            layer_start=layer_start,
+            layer_end=layer_end,
+            pp_degree=1,
+        )
+        operators = self.workloads.build_operators(local_stage, items)
+        if pipeline_rank < stage.pp_degree - 1:
+            tokens = sum(item.token_count for item in items)
+            operators.append(
+                ModeledOperator(
+                    name=f"pp_{pipeline_rank}_send",
+                    category="communication",
+                    workload=OperatorWorkload(
+                        0.0,
+                        0.0,
+                        float(
+                            tokens
+                            * self.config.model.hidden_size
+                            * self.config.model.dtype_bytes
+                        ),
+                    ),
+                    input_shape=self.workloads.input_shape(items),
+                    dependencies=(operators[-1].name,),
+                    communication_kind="p2p",
+                )
+            )
+        workload = OperatorWorkload(
+            flops=sum(operator.workload.flops for operator in operators),
+            memory_bytes=sum(operator.workload.memory_bytes for operator in operators),
+            communication_bytes=sum(
+                operator.workload.communication_bytes for operator in operators
+            ),
+        )
         peak_flops = hardware.peak_flops_tflops * 1e12 * hardware.compute_efficiency
         memory_bandwidth = hardware.hbm_bandwidth_gb_s * 1e9 * hardware.memory_efficiency
         ring_factor = 2.0 * (stage.tp_degree - 1) / stage.tp_degree
@@ -444,9 +483,10 @@ class RooflineModel:
 
         for operator in operators:
             if operator.category == "communication":
+                factor = ring_factor if operator.communication_kind == "all_reduce" else 1.0
                 duration = (
                     hardware.interconnect_latency_us * 1e-6
-                    + ring_factor
+                    + factor
                     * operator.workload.communication_bytes
                     / (hardware.interconnect_bandwidth_gb_s * 1e9)
                 )

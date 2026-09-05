@@ -51,11 +51,27 @@ class StageConfig:
     layer_end: int
     resource: str
     tp_degree: int = 1
+    pp_degree: int = 1
+    pp_layer_ranges: tuple[tuple[int, int], ...] = ()
     replicas: int = 1
 
     @property
     def num_layers(self) -> int:
         return self.layer_end - self.layer_start
+
+    def pipeline_layer_range(self, pipeline_rank: int) -> tuple[int, int]:
+        if not 0 <= pipeline_rank < self.pp_degree:
+            raise ValueError(f"invalid pipeline rank for {self.name}: {pipeline_rank}")
+        if self.pp_layer_ranges:
+            return self.pp_layer_ranges[pipeline_rank]
+        layers_per_rank, remainder = divmod(self.num_layers, self.pp_degree)
+        start = (
+            self.layer_start
+            + pipeline_rank * layers_per_rank
+            + min(pipeline_rank, remainder)
+        )
+        width = layers_per_rank + (1 if pipeline_rank < remainder else 0)
+        return start, start + width
 
 
 @dataclass(frozen=True)
@@ -85,11 +101,11 @@ class StaticPolicyConfig:
     max_batched_tokens: int
     prefill_token_budget: int
     prefill_chunk_size: int
-    decode_priority: bool = True
-    edge_tail_priority: bool = True
     pipeline_depth: int = 4
     max_outstanding_prefill_chunks: int = 8
     dispatch_mode: str = "eager"
+    scheduler: str = "fcfs"
+    continuous_batching: bool = True
 
 
 @dataclass(frozen=True)
@@ -149,6 +165,15 @@ def _required(data: dict[str, Any], key: str, location: str) -> Any:
     return data[key]
 
 
+def _parse_pp_layer_ranges(item: dict[str, Any]) -> tuple[tuple[int, int], ...]:
+    raw_ranges = item.get("pp_layer_ranges", [])
+    if not isinstance(raw_ranges, list):
+        raise ConfigError("topology.stages[].pp_layer_ranges must be a list")
+    if any(not isinstance(value, list) or len(value) != 2 for value in raw_ranges):
+        raise ConfigError("topology.stages[].pp_layer_ranges must contain [start, end]")
+    return tuple((int(value[0]), int(value[1])) for value in raw_ranges)
+
+
 def load_config(path: str | Path) -> SimulationConfig:
     config_path = Path(path)
     with config_path.open("r", encoding="utf-8") as handle:
@@ -204,6 +229,8 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
             layer_end=int(_required(item, "layer_end", "topology.stages[]")),
             resource=str(_required(item, "resource", "topology.stages[]")),
             tp_degree=int(item.get("tp_degree", 1)),
+            pp_degree=int(item.get("pp_degree", 1)),
+            pp_layer_ranges=_parse_pp_layer_ranges(item),
             replicas=int(item.get("replicas", 1)),
         )
         for item in _required(topology_data, "stages", "topology")
@@ -250,6 +277,13 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         and int(policy_data["batch_size"]) != int(policy_data["max_batch_size"])
     ):
         raise ConfigError("static_policy batch_size aliases disagree")
+    if (
+        "continuous_batching" in policy_data
+        and "continuous_batch" in policy_data
+        and bool(policy_data["continuous_batching"])
+        != bool(policy_data["continuous_batch"])
+    ):
+        raise ConfigError("static_policy continuous batching aliases disagree")
     policy = StaticPolicyConfig(
         max_batch_size=int(configured_batch_size),
         max_batched_tokens=int(
@@ -264,8 +298,6 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         prefill_chunk_size=int(
             _required(policy_data, "prefill_chunk_size", "static_policy")
         ),
-        decode_priority=bool(policy_data.get("decode_priority", True)),
-        edge_tail_priority=bool(policy_data.get("edge_tail_priority", True)),
         pipeline_depth=int(policy_data.get("pipeline_depth", 4)),
         max_outstanding_prefill_chunks=int(
             policy_data.get(
@@ -274,6 +306,12 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
             )
         ),
         dispatch_mode=str(policy_data.get("dispatch_mode", "eager")),
+        scheduler=str(policy_data.get("scheduler", "fcfs")),
+        continuous_batching=bool(
+            policy_data.get(
+                "continuous_batching", policy_data.get("continuous_batch", True)
+            )
+        ),
     )
 
     workload_data = _required(data, "workload", "root")
@@ -360,10 +398,35 @@ def validate_config(config: SimulationConfig) -> None:
         cursor = stage.layer_end
         if stage.resource not in config.hardware:
             raise ConfigError(f"unknown hardware resource: {stage.resource}")
-        if stage.tp_degree <= 0 or stage.replicas <= 0:
+        if stage.tp_degree <= 0 or stage.pp_degree <= 0 or stage.replicas <= 0:
             raise ConfigError(f"parallel degrees must be positive for {stage.name}")
-        if stage.tp_degree * stage.replicas > config.hardware[stage.resource].count:
-            raise ConfigError(f"TP times replicas exceeds device count for {stage.name}")
+        if stage.pp_degree > stage.num_layers:
+            raise ConfigError(f"PP exceeds layer count for {stage.name}")
+        if stage.pp_layer_ranges:
+            if len(stage.pp_layer_ranges) != stage.pp_degree:
+                raise ConfigError(f"pp_layer_ranges must match PP degree for {stage.name}")
+            if (
+                stage.pp_layer_ranges[0][0] != stage.layer_start
+                or stage.pp_layer_ranges[-1][1] != stage.layer_end
+                or any(
+                    start >= end
+                    for start, end in stage.pp_layer_ranges
+                )
+                or any(
+                    left[1] != right[0]
+                    for left, right in zip(
+                        stage.pp_layer_ranges, stage.pp_layer_ranges[1:]
+                    )
+                )
+            ):
+                raise ConfigError(
+                    f"pp_layer_ranges must be contiguous and cover {stage.name}"
+                )
+        required_devices = stage.tp_degree * stage.pp_degree * stage.replicas
+        if required_devices > config.hardware[stage.resource].count:
+            raise ConfigError(
+                f"TP times PP times replicas exceeds device count for {stage.name}"
+            )
         if config.model.num_attention_heads % stage.tp_degree != 0:
             raise ConfigError(f"attention heads are not divisible by TP for {stage.name}")
         if config.model.intermediate_size % stage.tp_degree != 0:
@@ -381,6 +444,15 @@ def validate_config(config: SimulationConfig) -> None:
             raise ConfigError(f"vocabulary is not divisible by TP for {stage.name}")
     if cursor != config.model.num_layers:
         raise ConfigError("topology layer ranges must cover all model layers")
+
+    shared_resource_layouts: dict[str, tuple[int, int, int]] = {}
+    for stage in config.stages:
+        layout = (stage.tp_degree, stage.pp_degree, stage.replicas)
+        previous_layout = shared_resource_layouts.setdefault(stage.resource, layout)
+        if previous_layout != layout:
+            raise ConfigError(
+                f"stages sharing {stage.resource} must use the same TP/PP/replica layout"
+            )
 
     for name, hardware in config.hardware.items():
         if min(
@@ -419,6 +491,8 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("prefill_token_budget cannot exceed max_batched_tokens")
     if policy.dispatch_mode != "eager":
         raise ConfigError("only dispatch_mode='eager' is supported in the MVP")
+    if policy.scheduler != "fcfs":
+        raise ConfigError("only scheduler='fcfs' is supported")
 
     workload = config.workload
     if workload.mode == "synthetic":
@@ -450,29 +524,36 @@ def validate_config(config: SimulationConfig) -> None:
 
     # This MVP does not model paging. At minimum, each stage's sharded weights
     # must fit on one participating GPU.
+    weights_by_pipeline_rank: dict[tuple[str, int], float] = {}
     for stage in config.stages:
-        hardware_profile = config.hardware[stage.resource]
-        weight_bytes = (
-            stage.num_layers
-            * config.model.parameters_per_layer
-            * config.model.dtype_bytes
-            / stage.tp_degree
-        )
-        if stage.layer_start == 0:
-            weight_bytes += (
-                config.model.vocab_size
-                * config.model.hidden_size
+        for pipeline_rank in range(stage.pp_degree):
+            layer_start, layer_end = stage.pipeline_layer_range(pipeline_rank)
+            weight_bytes = (
+                (layer_end - layer_start)
+                * config.model.parameters_per_layer
                 * config.model.dtype_bytes
                 / stage.tp_degree
             )
-        if stage.layer_end == config.model.num_layers:
-            weight_bytes += (
-                config.model.vocab_size
-                * config.model.hidden_size
-                * config.model.dtype_bytes
-                / stage.tp_degree
+            if layer_start == 0:
+                weight_bytes += (
+                    config.model.vocab_size
+                    * config.model.hidden_size
+                    * config.model.dtype_bytes
+                    / stage.tp_degree
+                )
+            if layer_end == config.model.num_layers:
+                weight_bytes += (
+                    config.model.vocab_size
+                    * config.model.hidden_size
+                    * config.model.dtype_bytes
+                    / stage.tp_degree
+                )
+            key = (stage.resource, pipeline_rank)
+            weights_by_pipeline_rank[key] = (
+                weights_by_pipeline_rank.get(key, 0.0) + weight_bytes
             )
-        if weight_bytes > hardware_profile.memory_gb * 1e9:
+    for (resource, pipeline_rank), weight_bytes in weights_by_pipeline_rank.items():
+        if weight_bytes > config.hardware[resource].memory_gb * 1e9:
             raise ConfigError(
-                f"stage {stage.name} weights do not fit in per-GPU memory"
+                f"{resource} PP rank {pipeline_rank} weights do not fit in per-GPU memory"
             )

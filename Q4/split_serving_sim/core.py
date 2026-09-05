@@ -32,6 +32,7 @@ class WorkItem:
     context_tokens: int
     chunk_index: int | None = None
     iteration: int | None = None
+    pipeline_rank: int = 0
     produces_logits: bool = False
     dependencies: tuple[int, ...] = ()
     ready_time: float = 0.0
@@ -47,6 +48,7 @@ class WorkItem:
             context_tokens=self.context_tokens,
             chunk_index=self.chunk_index,
             iteration=self.iteration,
+            pipeline_rank=self.pipeline_rank,
             produces_logits=self.produces_logits,
             dependencies=self.dependencies,
             ready_time=ready_time,

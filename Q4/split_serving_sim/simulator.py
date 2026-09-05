@@ -11,7 +11,7 @@ from .core import GPU_STAGES, NETWORK_STAGES, PerformanceEstimate, Phase, Stage,
 from .dag import ExecutionDAG
 from .metrics import RequestRuntime, build_summary
 from .performance import NetworkModel, RooflineModel
-from .scheduler import NaiveScheduler, SchedulerSnapshot
+from .scheduler import FCFSScheduler, SchedulerSnapshot
 
 
 class EventType(str, Enum):
@@ -59,14 +59,23 @@ class SimulationResult:
 class Simulator:
     def __init__(self, config: SimulationConfig):
         self.config = config
-        self.dag = ExecutionDAG()
-        self.scheduler = NaiveScheduler(config.static_policy)
+        self.dag = ExecutionDAG(
+            {Stage(stage.name): stage.pp_degree for stage in config.stages}
+        )
+        self.scheduler = FCFSScheduler(config.static_policy)
         self.roofline = RooflineModel(config)
         self.network = NetworkModel(config)
         resource_names = {
-            self._replica_resource_id(stage.resource, replica, stage.replicas)
+            self._parallel_resource_id(
+                stage.resource,
+                replica,
+                stage.replicas,
+                pipeline_rank,
+                stage.pp_degree,
+            )
             for stage in config.stages
             for replica in range(stage.replicas)
+            for pipeline_rank in range(stage.pp_degree)
         }
         resource_names.update({"wan_up", "wan_down"})
         self.resources = {name: Resource(name) for name in sorted(resource_names)}
@@ -79,6 +88,11 @@ class Simulator:
         self._batch_sequence = 0
         self.outstanding_prefill_chunks: dict[int, int] = {}
         self.total_outstanding_prefill_chunks = 0
+        self.waiting_request_ids: list[int] = []
+        self.active_continuous_requests: set[int] = set()
+        self.active_static_cohort: set[int] = set()
+        self.request_cohorts: dict[int, int] = {}
+        self._cohort_sequence = 0
 
     def run(self) -> SimulationResult:
         request_specs = self._request_specs()
@@ -110,6 +124,7 @@ class Simulator:
                 simultaneous.append(heapq.heappop(self.events))
             for event in simultaneous:
                 self._process_event(event)
+            self._admit_waiting_requests()
             self._schedule_idle_resources()
 
         unfinished = [
@@ -139,7 +154,24 @@ class Simulator:
             "max_batched_tokens": self.config.static_policy.max_batched_tokens,
             "prefill_token_budget": self.config.static_policy.prefill_token_budget,
             "prefill_chunk_size": self.config.static_policy.prefill_chunk_size,
+            "scheduler": self.config.static_policy.scheduler,
+            "continuous_batching": self.config.static_policy.continuous_batching,
         }
+        summary["parallel_plan"] = [
+            {
+                "stage": stage.name,
+                "layer_range": [stage.layer_start, stage.layer_end],
+                "tp_degree": stage.tp_degree,
+                "pp_degree": stage.pp_degree,
+                "pp_layer_ranges": [
+                    list(stage.pipeline_layer_range(rank))
+                    for rank in range(stage.pp_degree)
+                ],
+                "replicas": stage.replicas,
+                "devices": stage.tp_degree * stage.pp_degree * stage.replicas,
+            }
+            for stage in self.config.stages
+        ]
         return SimulationResult(summary=summary, requests=request_metrics, trace=self.trace)
 
     def _request_specs(self) -> list[RequestSpec]:
@@ -174,19 +206,45 @@ class Simulator:
 
     def _process_event(self, event: Event) -> None:
         if event.event_type == EventType.REQUEST_ARRIVAL:
-            request = self.requests[event.payload]
-            ready = self.dag.add_prefill(
-                request.request_id,
-                request.input_tokens,
-                self.config.static_policy.prefill_chunk_size,
-                self.clock,
-            )
-            self._enqueue(ready)
+            self.waiting_request_ids.append(event.payload)
             return
         if event.event_type == EventType.BATCH_FINISH:
             self._finish_batch(event.payload)
             return
         raise RuntimeError(f"unknown event: {event.event_type}")
+
+    def _start_request(self, request_id: int) -> None:
+        request = self.requests[request_id]
+        ready = self.dag.add_prefill(
+            request.request_id,
+            request.input_tokens,
+            self.config.static_policy.prefill_chunk_size,
+            self.clock,
+        )
+        self._enqueue(ready)
+
+    def _admit_waiting_requests(self) -> None:
+        if self.config.static_policy.continuous_batching:
+            available_slots = (
+                self.config.static_policy.max_batch_size
+                - len(self.active_continuous_requests)
+            )
+            admitted = self.waiting_request_ids[:available_slots]
+            del self.waiting_request_ids[: len(admitted)]
+            for request_id in admitted:
+                self.active_continuous_requests.add(request_id)
+                self._start_request(request_id)
+            return
+        if self.active_static_cohort or not self.waiting_request_ids:
+            return
+        cohort = self.waiting_request_ids[: self.config.static_policy.max_batch_size]
+        del self.waiting_request_ids[: len(cohort)]
+        cohort_id = self._cohort_sequence
+        self._cohort_sequence += 1
+        self.active_static_cohort = set(cohort)
+        for request_id in cohort:
+            self.request_cohorts[request_id] = cohort_id
+            self._start_request(request_id)
 
     def _finish_batch(self, batch: BatchExecution) -> None:
         resource = self.resources[batch.resource_id]
@@ -198,10 +256,19 @@ class Simulator:
         for item in batch.items:
             ready = self.dag.mark_complete(item.id, self.clock)
             self._enqueue(ready)
-            if item.phase == Phase.PREFILL and item.stage == Stage.EDGE_TAIL:
+            if (
+                item.phase == Phase.PREFILL
+                and item.stage == Stage.EDGE_TAIL
+                and item.pipeline_rank
+                == self.config.stage(Stage.EDGE_TAIL.value).pp_degree - 1
+            ):
                 self.outstanding_prefill_chunks[item.request_id] -= 1
                 self.total_outstanding_prefill_chunks -= 1
-            if item.stage == Stage.EDGE_TAIL:
+            if (
+                item.stage == Stage.EDGE_TAIL
+                and item.pipeline_rank
+                == self.config.stage(Stage.EDGE_TAIL.value).pp_degree - 1
+            ):
                 if item.phase == Phase.PREFILL and self.dag.is_final_prefill(item):
                     self._token_ready(item.request_id)
                 elif item.phase == Phase.DECODE:
@@ -214,6 +281,17 @@ class Simulator:
             request.first_token_time = self.clock
         if len(request.token_times) >= request.output_tokens:
             request.finish_time = self.clock
+            if self.config.static_policy.continuous_batching:
+                self.active_continuous_requests.remove(request_id)
+            if (
+                not self.config.static_policy.continuous_batching
+                and self.active_static_cohort
+                and all(
+                    self.requests[active_id].finish_time is not None
+                    for active_id in self.active_static_cohort
+                )
+            ):
+                self.active_static_cohort.clear()
             return
         context = request.input_tokens + len(request.token_times)
         ready = self.dag.add_decode(
@@ -229,8 +307,19 @@ class Simulator:
             self.queues[self._resource_for_item(item)].append(item)
 
     @staticmethod
-    def _replica_resource_id(resource: str, replica: int, replicas: int) -> str:
-        return resource if replicas == 1 else f"{resource}/replica_{replica}"
+    def _parallel_resource_id(
+        resource: str,
+        replica: int,
+        replicas: int,
+        pipeline_rank: int,
+        pp_degree: int,
+    ) -> str:
+        parts = [resource]
+        if replicas > 1:
+            parts.append(f"replica_{replica}")
+        if pp_degree > 1:
+            parts.append(f"pp_{pipeline_rank}")
+        return "/".join(parts)
 
     def _resource_for_item(self, item: WorkItem) -> str:
         if item.stage == Stage.WAN_UP:
@@ -240,7 +329,13 @@ class Simulator:
         stage = self.config.stage(item.stage.value)
         # Naive but KV-safe routing: a request remains sticky to one replica.
         replica = item.request_id % stage.replicas
-        return self._replica_resource_id(stage.resource, replica, stage.replicas)
+        return self._parallel_resource_id(
+            stage.resource,
+            replica,
+            stage.replicas,
+            item.pipeline_rank,
+            stage.pp_degree,
+        )
 
     def _schedule_idle_resources(self) -> None:
         for resource_id in sorted(self.resources):
@@ -265,6 +360,8 @@ class Simulator:
         stage = items[0].stage
         if any(item.stage != stage for item in items):
             raise RuntimeError("a batch cannot mix execution stages")
+        if any(item.pipeline_rank != items[0].pipeline_rank for item in items):
+            raise RuntimeError("a batch cannot mix pipeline ranks")
         if stage in GPU_STAGES:
             estimate = self.roofline.estimate(stage.value, items)
         elif stage in NETWORK_STAGES:
@@ -292,7 +389,11 @@ class Simulator:
                 request.prefill_queue_time += queue_time
             else:
                 request.decode_queue_time += queue_time
-            if item.stage == Stage.EDGE_FRONT and item.phase == Phase.PREFILL:
+            if (
+                item.stage == Stage.EDGE_FRONT
+                and item.phase == Phase.PREFILL
+                and item.pipeline_rank == 0
+            ):
                 self.outstanding_prefill_chunks[item.request_id] = (
                     self.outstanding_prefill_chunks.get(item.request_id, 0) + 1
                 )
@@ -322,8 +423,17 @@ class Simulator:
             "batch_id": batch.batch_id,
             "resource": batch.resource_id,
             "stage": batch.stage.value,
+            "pipeline_rank": batch.items[0].pipeline_rank,
+            "layer_range": list(
+                self.config.stage(batch.stage.value).pipeline_layer_range(
+                    batch.items[0].pipeline_rank
+                )
+            ) if batch.stage in GPU_STAGES else None,
             "phases": sorted({item.phase.value for item in batch.items}),
             "request_ids": [item.request_id for item in batch.items],
+            "cohort_ids": [
+                self.request_cohorts.get(item.request_id) for item in batch.items
+            ],
             "work_item_ids": [item.id for item in batch.items],
             "chunk_indices": [item.chunk_index for item in batch.items],
             "decode_iterations": [item.iteration for item in batch.items],

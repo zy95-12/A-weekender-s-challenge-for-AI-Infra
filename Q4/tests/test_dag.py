@@ -27,6 +27,16 @@ class DAGTest(unittest.TestCase):
         self.assertEqual(ready[0].stage, Stage.EDGE_FRONT)
         self.assertEqual(len(dag.items), 5)
 
+    def test_pipeline_parallel_chunks_form_a_diagonal_dag(self) -> None:
+        dag = ExecutionDAG({Stage.EDGE_FRONT: 2})
+        ready = dag.add_prefill(0, input_tokens=32, chunk_size=16, ready_time=0)
+        self.assertEqual([(item.chunk_index, item.pipeline_rank) for item in ready], [(0, 0)])
+        next_ready = dag.mark_complete(ready[0].id, 1.0)
+        self.assertEqual(
+            {(item.chunk_index, item.pipeline_rank) for item in next_ready},
+            {(0, 1), (1, 0)},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

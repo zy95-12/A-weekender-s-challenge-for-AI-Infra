@@ -11,6 +11,7 @@
         "layer_end": 6,
         "resource": "edge_gpu",
         "tp_degree": 1,
+        "pp_degree": 1,
         "replicas": 1
       },
       {
@@ -19,6 +20,8 @@
         "layer_end": 62,
         "resource": "cloud_gpu",
         "tp_degree": 4,
+        "pp_degree": 2,
+        "pp_layer_ranges": [[6, 34], [34, 62]],
         "replicas": 1
       },
       {
@@ -27,6 +30,7 @@
         "layer_end": 64,
         "resource": "edge_gpu",
         "tp_degree": 1,
+        "pp_degree": 1,
         "replicas": 1
       }
     ]
@@ -42,7 +46,7 @@
       "kernel_overhead_us": 10
     },
     "cloud_gpu": {
-      "count": 4,
+      "count": 8,
       "peak_flops_tflops": 148,
       "hbm_bandwidth_gb_s": 4000,
       "memory_gb": 96,
@@ -64,8 +68,8 @@
     "max_batched_tokens": 8192,
     "prefill_token_budget": 512,
     "prefill_chunk_size": 512,
-    "decode_priority": true,
-    "edge_tail_priority": true,
+    "scheduler": "fcfs",
+    "continuous_batching": true,
     "pipeline_depth": 4,
     "max_outstanding_prefill_chunks": 16,
     "dispatch_mode": "eager"

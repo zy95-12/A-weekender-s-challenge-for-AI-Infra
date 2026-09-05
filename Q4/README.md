@@ -1,7 +1,7 @@
 # Q4：Split-LLM Serving 系统建模
 
 本目录是 [Issue #5](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/issues/5)
-的第一阶段实现：使用 analytical Roofline、依赖 DAG、naive continuous batching
+的第一阶段实现：使用 analytical Roofline、依赖 DAG、可切换 continuous batching
 和离散事件资源模型，模拟一个 Split-LLM Serving 实例的端到端行为。
 
 本版本的目标是验证调度、资源竞争和请求间流水逻辑，不进行最大 QPS 搜索。模型结构和
@@ -31,9 +31,9 @@ python -m split_serving_sim \
 
 - 仓内保存的 Hugging Face Qwen3-32B 原始结构配置；
 - Edge 6 层、Cloud 56 层、Edge Tail 2 层；
-- Edge TP=1、Cloud TP=4；
+- Edge TP=1、Cloud TP=4×PP=2；
 - 10 Gbps 上下行和 10 ms RTT；
-- BS=8、prefill chunk=512、每批 prefill budget=512、decode priority；
+- BS=8、prefill chunk=512、每批 prefill budget=512、FCFS continuous batching；
 - 4 个请求，每 100 ms 到达一个，每个输入 512 tokens、输出 4 tokens。
 
 命令输出：
@@ -57,11 +57,12 @@ python -m split_serving_sim \
 ```text
 Requests                 4
 Average batch size       1.60
-Observed throughput      7.23 requests/s
-P99 TTFT                 160.29 ms
-P99 TPOT                 105.27 ms
-Cloud GPU utilization    80.5%
-Edge GPU utilization     37.5%
+Observed throughput      7.33 requests/s
+P99 TTFT                 152.42 ms
+P99 TPOT                 101.64 ms
+Cloud PP0 utilization    40.6%
+Cloud PP1 utilization    40.6%
+Edge GPU utilization     38.0%
 SLO                      Fail
 ```
 
@@ -73,7 +74,7 @@ Observed throughput 只是指定输入流量下的观测结果，不代表最大
 config.py          JSON schema、解析和拓扑/显存校验
 performance.py     Qwen3 逐层算子 workload、Roofline、TP 和 WAN 模型
 dag.py             Prefill chunk DAG 与 lazy decode DAG
-scheduler.py       Naive decode-priority eager scheduler
+scheduler.py       FCFS scheduler 与 batch capacity/backpressure
 simulator.py       Event queue、资源占用和 batch execution
 metrics.py         TTFT、TPOT、E2E 和利用率
 visualization.py   独立 HTML/SVG 甘特图
@@ -86,7 +87,7 @@ cli.py             命令行入口和结果文件输出
 JSON Config
     -> Request Arrival
     -> Lazy Execution DAG
-    -> Naive Scheduler / Batch Formation
+    -> FCFS Scheduler / Batch Formation
     -> Roofline or Network Duration
     -> Resource-aware Event Loop
     -> Metrics + Trace + Gantt
@@ -97,7 +98,7 @@ JSON Config
 - `batch_size` 是上限，eager dispatch 可以执行更小的 batch；
 - `max_batched_tokens` 同时限制一个 batch 的 token 数；
 - `prefill_token_budget` 限制单次调度注入的 prefill token，避免 prefill 洪峰长期阻塞 decode；
-- decode 默认优先，然后按 ready time 和 request ID 排序；
+- Scheduler 严格按 ready time、request ID、work-item ID 做 FCFS，不提供 decode 插队；
 - 一个 GPU batch 只包含同一 stage，但可以混合 ready 的 prefill/decode work；
 - Edge Front 和 Edge Tail 共享 topology 中配置的 Edge GPU；
 - prefill chunk 在每个模型 stage 上保持因果顺序，同时允许跨 stage overlap；
@@ -105,6 +106,29 @@ JSON Config
 - WAN uplink/downlink 是两个独立的单服务器资源；
 - `pipeline_depth` 限制单请求在途 prefill chunk；
 - `max_outstanding_prefill_chunks` 提供全局 backpressure。
+
+### Continuous batching 开关
+
+`static_policy.continuous_batching=true` 时，系统维护最多 `batch_size` 个 active sequence
+slots；请求先进入 FCFS admission queue，有空 slot 时立刻补入。每次资源空闲都根据当前
+ready work items 重新形成 batch，因此 batch 成员可以在 decode iteration 之间变化，完成的
+sequence slot 会由等待请求补入。
+
+关闭时，请求按 FCFS 形成最多 `batch_size` 个请求的静态 cohort。cohort 内所有请求完成前
+不会 admission 后续请求，也不会用后续请求填补提前结束的 slot：
+
+```json
+{
+  "scheduler": "fcfs",
+  "continuous_batching": false
+}
+```
+
+无论开关状态如何，正在执行的 kernel/batch 都不会在中途改变成员；重组发生在资源下一次
+dispatch 时。
+
+配置解析也接受等价的短名称 `continuous_batch`，README 和示例统一使用
+`continuous_batching`。
 
 ## Qwen3 cost model
 
@@ -143,10 +167,15 @@ Prefill attention 使用 causal triangle 的 token pair 数，decode 使用当�
 ### 并行语义
 
 - `tp_degree` 表示单个推理 replica 内的 Tensor Parallel；
+- `pp_degree` 把该模型 stage 的 layer range 均衡切给多个 Pipeline Parallel rank；
+- 可选 `pp_layer_ranges` 可以覆盖默认均分，显式配置每个 PP rank 的连续 layer range；
 - Q/K/V、gate/up 按 column parallel 推导 local shape；
 - O projection、down projection 按 row parallel 推导，并在每一层原位插入 all-reduce；
 - 当 TP 不大于 KV head 数时对 KV heads 分片；TP 大于 KV head 数时复制 KV heads；
-- `replicas` 表示该 stage 的独立推理实例数，设备需求为 `tp_degree * replicas`；
+- 相邻 PP rank 之间建立真实 work-item DAG，并计入 hidden-state P2P 传输；prefill chunks
+  可以在 PP ranks 上形成对角流水；
+- `replicas` 表示该 stage 的独立推理实例数，设备需求为
+  `tp_degree * pp_degree * replicas`；
 - 当前 dynamic routing 使用 `request_id % replicas`，保证请求及其 KV cache 对 replica sticky；
 - 每个 replica 有独立队列和资源占用状态，可以并行处理不同请求。
 
@@ -159,11 +188,13 @@ Prefill attention 使用 causal triangle 的 token pair 数，decode 使用当�
   "layer_end": 62,
   "resource": "cloud_gpu",
   "tp_degree": 4,
+  "pp_degree": 2,
+  "pp_layer_ranges": [[6, 34], [34, 62]],
   "replicas": 2
 }
 ```
 
-需要至少 8 张 `cloud_gpu`。本阶段尚未实现 replica 间动态负载均衡及实例内 PP。
+需要至少 16 张 `cloud_gpu`。本阶段尚未实现 replica 间动态负载均衡。
 
 ## Workload 模式
 
@@ -216,10 +247,10 @@ python -m http.server 8000 --directory outputs/demo
 python -m unittest discover -s tests -v
 ```
 
-当前包含 20 个行为测试，覆盖 Hugging Face profile、Qwen3/GQA shape、逐层 TP collective、
-replica sticky routing、batch-aware Roofline、WAN batching、DAG、调度和甘特图输出。
+当前包含 28 个行为测试，覆盖 Hugging Face profile、Qwen3/GQA shape、逐层 TP collective、
+PP 对角流水、replica sticky routing、continuous/static batching、FCFS、WAN 和甘特图输出。
 
 ## 当前边界
 
-暂未实现 QPS 搜索、GPU profiling 校准、PP/SP/CP、动态 replica 负载均衡、EP/MoE/MLA、
+暂未实现 QPS 搜索、GPU profiling 校准、SP/CP、动态 replica 负载均衡、EP/MoE/MLA、
 PD Separation、speculative decode、KV paging、prefix cache、CUDA stream overlap 和随机 WAN jitter。

@@ -75,6 +75,23 @@ class PerformanceTest(unittest.TestCase):
         self.assertNotIn("lm_head", {op.name for op in no_logits.sub_operations})
         self.assertIn("lm_head", {op.name for op in with_logits.sub_operations})
 
+    def test_pipeline_rank_only_costs_its_layers_and_sends_activation(self) -> None:
+        data = copied_toy_config()
+        data["hardware"]["cloud"]["count"] = 4
+        data["topology"]["stages"][1]["pp_degree"] = 2
+        model = RooflineModel(parse_config(data))
+        first_item = WorkItem(**{**item(0).__dict__, "pipeline_rank": 0})
+        second_item = WorkItem(**{**item(0).__dict__, "pipeline_rank": 1})
+        first = model.estimate("cloud_middle", [first_item])
+        second = model.estimate("cloud_middle", [second_item])
+        first_names = {op.name for op in first.sub_operations}
+        second_names = {op.name for op in second.sub_operations}
+        self.assertIn("layer_01.q_proj", first_names)
+        self.assertNotIn("layer_02.q_proj", first_names)
+        self.assertIn("pp_0_send", first_names)
+        self.assertIn("layer_02.q_proj", second_names)
+        self.assertNotIn("pp_0_send", second_names)
+
 
 if __name__ == "__main__":
     unittest.main()

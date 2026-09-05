@@ -22,30 +22,15 @@ class SchedulerPolicy(Protocol):
     ) -> list[WorkItem]: ...
 
 
-class NaiveScheduler:
-    """Deterministic eager batching with decode and edge-tail priority."""
+class FCFSScheduler:
+    """Deterministic FCFS batching subject to configured capacity limits."""
 
     def __init__(self, config: StaticPolicyConfig):
         self.config = config
 
-    def _priority(self, item: WorkItem) -> tuple[int, int, float, int, int]:
-        phase_priority = (
-            0 if self.config.decode_priority and item.phase == Phase.DECODE else 1
-        )
-        if not self.config.decode_priority:
-            phase_priority = 0 if item.phase == Phase.PREFILL else 1
-        tail_priority = (
-            0
-            if self.config.edge_tail_priority and item.stage == Stage.EDGE_TAIL
-            else 1
-        )
-        return (
-            phase_priority,
-            tail_priority,
-            item.ready_time,
-            item.request_id,
-            item.id,
-        )
+    @staticmethod
+    def _priority(item: WorkItem) -> tuple[float, int, int]:
+        return (item.ready_time, item.request_id, item.id)
 
     def form_batch(
         self,
@@ -81,7 +66,11 @@ class NaiveScheduler:
                     > self.config.prefill_token_budget
                 ):
                     continue
-                if item.stage == Stage.EDGE_FRONT and item.phase == Phase.PREFILL:
+                if (
+                    item.stage == Stage.EDGE_FRONT
+                    and item.phase == Phase.PREFILL
+                    and item.pipeline_rank == 0
+                ):
                     request_outstanding = snapshot.outstanding_prefill_chunks.get(
                         item.request_id, 0
                     )
@@ -101,3 +90,7 @@ class NaiveScheduler:
             if selected:
                 return selected
         return []
+
+
+# Backward-compatible import name for existing users of the first MVP.
+NaiveScheduler = FCFSScheduler
