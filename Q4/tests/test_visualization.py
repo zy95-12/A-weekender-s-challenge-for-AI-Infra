@@ -20,6 +20,17 @@ class VisualizationTest(unittest.TestCase):
                 "end_time_ms": 3.0,
                 "duration_ms": 3.0,
                 "total_tokens": 32,
+                "input_shape": "B=2, tokens=[16, 16], hidden=64",
+                "sub_operations": [
+                    {
+                        "name": "attention",
+                        "category": "compute",
+                        "start_time_ms": 0.0,
+                        "end_time_ms": 2.0,
+                        "duration_ms": 2.0,
+                        "input_shape": "B=2, q=[16, 16], hidden=64",
+                    }
+                ],
             }
         ]
         with tempfile.TemporaryDirectory() as directory:
@@ -27,8 +38,10 @@ class VisualizationTest(unittest.TestCase):
             render_gantt_html(trace, target)
             rendered = target.read_text(encoding="utf-8")
         self.assertIn("Split-serving pipeline", rendered)
-        self.assertIn("requests=[0, 1]", rendered)
+        self.assertIn('"request_ids": [0, 1]', rendered)
         self.assertIn("<svg", rendered)
+        self.assertIn("滚轮缩放", rendered)
+        self.assertIn("attention", rendered)
 
 
 if __name__ == "__main__":

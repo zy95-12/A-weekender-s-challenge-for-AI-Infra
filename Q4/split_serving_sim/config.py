@@ -57,6 +57,7 @@ class NetworkConfig:
 class StaticPolicyConfig:
     max_batch_size: int
     max_batched_tokens: int
+    prefill_token_budget: int
     prefill_chunk_size: int
     decode_priority: bool = True
     edge_tail_priority: bool = True
@@ -195,6 +196,12 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         max_batched_tokens=int(
             _required(policy_data, "max_batched_tokens", "static_policy")
         ),
+        prefill_token_budget=int(
+            policy_data.get(
+                "prefill_token_budget",
+                policy_data.get("max_batched_tokens", 0),
+            )
+        ),
         prefill_chunk_size=int(
             _required(policy_data, "prefill_chunk_size", "static_policy")
         ),
@@ -311,6 +318,7 @@ def validate_config(config: SimulationConfig) -> None:
     if min(
         policy.max_batch_size,
         policy.max_batched_tokens,
+        policy.prefill_token_budget,
         policy.prefill_chunk_size,
         policy.pipeline_depth,
         policy.max_outstanding_prefill_chunks,
@@ -318,6 +326,10 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("static policy limits must be positive")
     if policy.prefill_chunk_size > policy.max_batched_tokens:
         raise ConfigError("prefill_chunk_size cannot exceed max_batched_tokens")
+    if policy.prefill_chunk_size > policy.prefill_token_budget:
+        raise ConfigError("prefill_chunk_size cannot exceed prefill_token_budget")
+    if policy.prefill_token_budget > policy.max_batched_tokens:
+        raise ConfigError("prefill_token_budget cannot exceed max_batched_tokens")
     if policy.dispatch_mode != "eager":
         raise ConfigError("only dispatch_mode='eager' is supported in the MVP")
 

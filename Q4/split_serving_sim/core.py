@@ -59,6 +59,14 @@ class OperatorWorkload:
 
 
 @dataclass(frozen=True)
+class SubOperation:
+    name: str
+    category: str
+    duration_s: float
+    input_shape: str
+
+
+@dataclass(frozen=True)
 class PerformanceEstimate:
     flops: float
     memory_bytes: float
@@ -68,3 +76,5 @@ class PerformanceEstimate:
     collective_time_s: float
     overhead_time_s: float
     total_time_s: float
+    input_shape: str = ""
+    sub_operations: tuple[SubOperation, ...] = ()

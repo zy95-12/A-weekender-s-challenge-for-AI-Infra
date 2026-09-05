@@ -1,42 +1,43 @@
 {
   "num_requests": 16,
   "simulation_start_ms": 0.0,
-  "simulation_end_ms": 7326.641118429959,
-  "simulation_duration_ms": 7326.641118429959,
-  "observed_request_throughput_qps": 2.18381107268274,
-  "observed_output_throughput_tokens_s": 69.88195432584769,
+  "simulation_end_ms": 8534.124865144315,
+  "simulation_duration_ms": 8534.124865144315,
+  "observed_request_throughput_qps": 1.8748260955670273,
+  "observed_output_throughput_tokens_s": 59.99443505814487,
   "ttft_ms": {
-    "p50": 6158.068155609148,
-    "p95": 6442.0902896299385,
-    "p99": 6454.090289629938
+    "p50": 467.98864754428314,
+    "p95": 467.98867548607103,
+    "p99": 467.98874254636195
   },
   "tpot_ms": {
-    "p50": 21.612865828572467,
-    "p95": 24.21313485714313,
-    "p99": 723.8732539209977
+    "p50": 103.21996658580292,
+    "p95": 127.50720496489521,
+    "p99": 127.50721008489563
   },
   "e2e_ms": {
-    "p50": 7162.060799344243,
-    "p95": 7250.568275458528,
-    "p99": 7251.2491886471
+    "p50": 2988.233756572855,
+    "p95": 2988.2337565728562,
+    "p99": 2988.2337565728562
   },
-  "average_batch_size": 7.5,
+  "average_batch_size": 3.183673469387755,
   "resource_utilization": {
-    "cloud_gpu": 0.957392002575715,
-    "edge_gpu": 0.5353008401752954,
-    "wan_down": 0.14824906289838544,
-    "wan_up": 0.15029638577902527
+    "cloud_gpu": 0.8276560779317139,
+    "edge_gpu": 0.459236732351146,
+    "wan_down": 0.19054885013948364,
+    "wan_up": 0.199337097462453
   },
   "slo": {
     "ttft_limit_ms": 3000.0,
     "tpot_limit_ms": 100.0,
-    "ttft_pass": false,
+    "ttft_pass": true,
     "tpot_pass": false,
     "pass": false
   },
   "static_policy": {
     "batch_size": 8,
     "max_batched_tokens": 8192,
+    "prefill_token_budget": 512,
     "prefill_chunk_size": 512
   }
 }

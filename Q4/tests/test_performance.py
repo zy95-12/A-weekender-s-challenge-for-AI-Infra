@@ -36,6 +36,22 @@ class PerformanceTest(unittest.TestCase):
         self.assertEqual(batch.communication_bytes, 2 * single.communication_bytes)
         self.assertLess(batch.total_time_s, 2 * single.total_time_s)
 
+    def test_gpu_trace_has_operator_and_tp_communication_subflows(self) -> None:
+        model = RooflineModel(parse_config(copied_toy_config()))
+        estimate = model.estimate("cloud_middle", [item(0), item(1)])
+        names = {operation.name for operation in estimate.sub_operations}
+        self.assertEqual(
+            names,
+            {
+                "attention_projection",
+                "attention",
+                "mlp",
+                "tp_collective",
+                "kernel_overhead",
+            },
+        )
+        self.assertIn("B=2", estimate.input_shape)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -66,6 +66,7 @@ class NaiveScheduler:
             selected: list[WorkItem] = []
             selected_requests: set[int] = set()
             token_count = 0
+            prefill_token_count = 0
             new_prefill_chunks = 0
             for item in compatible:
                 if item.request_id in selected_requests:
@@ -73,6 +74,12 @@ class NaiveScheduler:
                 if len(selected) >= self.config.max_batch_size:
                     break
                 if token_count + item.token_count > self.config.max_batched_tokens:
+                    continue
+                if (
+                    item.phase == Phase.PREFILL
+                    and prefill_token_count + item.token_count
+                    > self.config.prefill_token_budget
+                ):
                     continue
                 if item.stage == Stage.EDGE_FRONT and item.phase == Phase.PREFILL:
                     request_outstanding = snapshot.outstanding_prefill_chunks.get(
@@ -89,6 +96,8 @@ class NaiveScheduler:
                 selected.append(item)
                 selected_requests.add(item.request_id)
                 token_count += item.token_count
+                if item.phase == Phase.PREFILL:
+                    prefill_token_count += item.token_count
             if selected:
                 return selected
         return []

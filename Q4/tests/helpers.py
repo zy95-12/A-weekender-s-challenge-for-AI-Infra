@@ -59,6 +59,7 @@ def toy_config() -> dict[str, Any]:
         "static_policy": {
             "max_batch_size": 4,
             "max_batched_tokens": 128,
+            "prefill_token_budget": 32,
             "prefill_chunk_size": 16,
             "pipeline_depth": 2,
             "max_outstanding_batches": 8,

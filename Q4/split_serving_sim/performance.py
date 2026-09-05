@@ -3,7 +3,14 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from .config import SimulationConfig, StageConfig
-from .core import OperatorWorkload, PerformanceEstimate, Phase, Stage, WorkItem
+from .core import (
+    OperatorWorkload,
+    PerformanceEstimate,
+    Phase,
+    Stage,
+    SubOperation,
+    WorkItem,
+)
 
 
 class DenseWorkloadModel:
@@ -12,7 +19,9 @@ class DenseWorkloadModel:
     def __init__(self, config: SimulationConfig):
         self.model = config.model
 
-    def build(self, stage: StageConfig, items: Sequence[WorkItem]) -> OperatorWorkload:
+    def build_operators(
+        self, stage: StageConfig, items: Sequence[WorkItem]
+    ) -> list[tuple[str, OperatorWorkload]]:
         if not items:
             raise ValueError("cannot build an empty workload")
         hidden = self.model.hidden_size
@@ -20,13 +29,12 @@ class DenseWorkloadModel:
         layers = stage.num_layers
         total_tokens = sum(item.token_count for item in items)
 
-        # Dense attention projections + MLP. Each parameter contributes roughly
-        # one multiply-add (two FLOPs) per processed token.
-        parameters_per_layer = self.model.params_per_layer_factor * hidden * hidden
-        linear_flops = 2.0 * parameters_per_layer * total_tokens * layers
-
-        # Attention score/value work grows with the visible prefix. This is an
-        # intentionally simple approximation that preserves the right trend.
+        attention_parameters = 4.0 * hidden * hidden
+        mlp_parameters = max(
+            self.model.params_per_layer_factor - 4.0, 0.0
+        ) * hidden * hidden
+        projection_flops = 2.0 * attention_parameters * total_tokens * layers
+        mlp_flops = 2.0 * mlp_parameters * total_tokens * layers
         attention_flops = 0.0
         kv_bytes = 0.0
         for item in items:
@@ -40,15 +48,45 @@ class DenseWorkloadModel:
             if item.phase == Phase.PREFILL:
                 kv_bytes += 2.0 * hidden * item.token_count * dtype_bytes * layers
 
-        # Weights are read once per batch, while activation/KV traffic scales
-        # with the members of the batch.
-        weight_bytes = parameters_per_layer * dtype_bytes * layers
-        activation_bytes = 4.0 * total_tokens * hidden * dtype_bytes * layers
-        communication_bytes = 2.0 * total_tokens * hidden * dtype_bytes * layers
+        projection_memory = (
+            attention_parameters * dtype_bytes * layers
+            + 2.0 * total_tokens * hidden * dtype_bytes * layers
+        )
+        attention_memory = kv_bytes + total_tokens * hidden * dtype_bytes * layers
+        mlp_memory = (
+            mlp_parameters * dtype_bytes * layers
+            + 2.0 * total_tokens * hidden * dtype_bytes * layers
+        )
+        return [
+            (
+                "attention_projection",
+                OperatorWorkload(projection_flops, projection_memory),
+            ),
+            ("attention", OperatorWorkload(attention_flops, attention_memory)),
+            ("mlp", OperatorWorkload(mlp_flops, mlp_memory)),
+        ]
+
+    def build(self, stage: StageConfig, items: Sequence[WorkItem]) -> OperatorWorkload:
+        operators = self.build_operators(stage, items)
+        communication_bytes = (
+            2.0
+            * sum(item.token_count for item in items)
+            * self.model.hidden_size
+            * self.model.dtype_bytes
+            * stage.num_layers
+        )
         return OperatorWorkload(
-            flops=linear_flops + attention_flops,
-            memory_bytes=weight_bytes + activation_bytes + kv_bytes,
+            flops=sum(workload.flops for _, workload in operators),
+            memory_bytes=sum(workload.memory_bytes for _, workload in operators),
             communication_bytes=communication_bytes,
+        )
+
+    def input_shape(self, items: Sequence[WorkItem]) -> str:
+        tokens = [item.token_count for item in items]
+        contexts = [item.context_tokens for item in items]
+        return (
+            f"B={len(items)}, tokens={tokens}, contexts={contexts}, "
+            f"hidden={self.model.hidden_size}"
         )
 
 
@@ -61,6 +99,7 @@ class RooflineModel:
         stage = self.config.stage(stage_name)
         hardware = self.config.hardware[stage.resource]
         workload = self.workloads.build(stage, items)
+        operator_workloads = self.workloads.build_operators(stage, items)
         tp = stage.tp_degree
 
         peak_flops = (
@@ -78,6 +117,22 @@ class RooflineModel:
         compute_time = workload.flops / peak_flops
         memory_time = workload.memory_bytes / memory_bandwidth
 
+        shape = self.workloads.input_shape(items)
+        sub_operations: list[SubOperation] = []
+        for name, operator in operator_workloads:
+            duration = max(
+                operator.flops / peak_flops,
+                operator.memory_bytes / memory_bandwidth,
+            )
+            sub_operations.append(
+                SubOperation(
+                    name=name,
+                    category="compute",
+                    duration_s=duration,
+                    input_shape=shape,
+                )
+            )
+
         collective_time = 0.0
         if tp > 1:
             ring_factor = 2.0 * (tp - 1) / tp
@@ -87,9 +142,29 @@ class RooflineModel:
                 num_collectives * hardware.interconnect_latency_us * 1e-6
                 + bytes_on_link / (hardware.interconnect_bandwidth_gb_s * 1e9)
             )
+            sub_operations.append(
+                SubOperation(
+                    name="tp_collective",
+                    category="node_communication",
+                    duration_s=collective_time,
+                    input_shape=(
+                        f"[{sum(item.token_count for item in items)}, "
+                        f"{self.config.model.hidden_size}], tp={tp}"
+                    ),
+                )
+            )
 
         overhead = hardware.kernel_overhead_us * 1e-6 * stage.num_layers
-        total = max(compute_time, memory_time) + collective_time + overhead
+        if overhead:
+            sub_operations.append(
+                SubOperation(
+                    name="kernel_overhead",
+                    category="overhead",
+                    duration_s=overhead,
+                    input_shape=f"layers={stage.num_layers}",
+                )
+            )
+        total = sum(operation.duration_s for operation in sub_operations)
         return PerformanceEstimate(
             flops=workload.flops,
             memory_bytes=workload.memory_bytes,
@@ -99,6 +174,8 @@ class RooflineModel:
             collective_time_s=collective_time,
             overhead_time_s=overhead,
             total_time_s=total,
+            input_shape=shape,
+            sub_operations=tuple(sub_operations),
         )
 
 
@@ -126,6 +203,10 @@ class NetworkModel:
         serialization = payload / bytes_per_second
         propagation = self.config.network.rtt_ms / 2000.0
         total = serialization + propagation
+        shape = (
+            f"hidden_state=[{sum(item.token_count for item in items)}, "
+            f"{self.config.model.hidden_size}], dtype_bytes={self.config.model.dtype_bytes}"
+        )
         return PerformanceEstimate(
             flops=0.0,
             memory_bytes=0.0,
@@ -135,4 +216,19 @@ class NetworkModel:
             collective_time_s=0.0,
             overhead_time_s=propagation,
             total_time_s=total,
+            input_shape=shape,
+            sub_operations=(
+                SubOperation(
+                    name="wan_serialization",
+                    category="communication",
+                    duration_s=serialization,
+                    input_shape=f"{shape}, bytes={int(payload)}",
+                ),
+                SubOperation(
+                    name="wan_propagation",
+                    category="communication",
+                    duration_s=propagation,
+                    input_shape=f"one_way_rtt={self.config.network.rtt_ms / 2:.3f} ms",
+                ),
+            ),
         )

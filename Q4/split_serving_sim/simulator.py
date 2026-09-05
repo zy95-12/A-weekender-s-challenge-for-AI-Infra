@@ -133,6 +133,7 @@ class Simulator:
         summary["static_policy"] = {
             "batch_size": self.config.static_policy.max_batch_size,
             "max_batched_tokens": self.config.static_policy.max_batched_tokens,
+            "prefill_token_budget": self.config.static_policy.prefill_token_budget,
             "prefill_chunk_size": self.config.static_policy.prefill_chunk_size,
         }
         return SimulationResult(summary=summary, requests=request_metrics, trace=self.trace)
@@ -290,6 +291,21 @@ class Simulator:
         self._push_event(end_time, EventType.BATCH_FINISH, batch)
 
     def _trace_record(self, batch: BatchExecution) -> dict[str, Any]:
+        cursor = batch.start_time
+        sub_operations: list[dict[str, Any]] = []
+        for operation in batch.estimate.sub_operations:
+            operation_end = cursor + operation.duration_s
+            sub_operations.append(
+                {
+                    "name": operation.name,
+                    "category": operation.category,
+                    "start_time_ms": cursor * 1000.0,
+                    "end_time_ms": operation_end * 1000.0,
+                    "duration_ms": operation.duration_s * 1000.0,
+                    "input_shape": operation.input_shape,
+                }
+            )
+            cursor = operation_end
         return {
             "batch_id": batch.batch_id,
             "resource": batch.resource_id,
@@ -309,6 +325,8 @@ class Simulator:
             "duration_ms": (batch.end_time - batch.start_time) * 1000.0,
             "batch_size": len(batch.items),
             "total_tokens": sum(item.token_count for item in batch.items),
+            "input_shape": batch.estimate.input_shape,
+            "sub_operations": sub_operations,
             "flops": batch.estimate.flops,
             "memory_bytes": batch.estimate.memory_bytes,
             "communication_bytes": batch.estimate.communication_bytes,

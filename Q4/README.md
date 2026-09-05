@@ -33,8 +33,8 @@ python -m split_serving_sim \
 - Edge 6 层、Cloud 56 层、Edge Tail 2 层；
 - Edge TP=1、Cloud TP=4；
 - 10 Gbps 上下行和 10 ms RTT；
-- BS=8、prefill chunk=512、decode priority；
-- 16 个请求，每个输入 4096 tokens、输出 32 tokens。
+- BS=8、prefill chunk=512、每批 prefill budget=512、decode priority；
+- 16 个请求，每 500 ms 到达一个，每个输入 4096 tokens、输出 32 tokens。
 
 命令输出：
 
@@ -54,12 +54,12 @@ python -m split_serving_sim \
 
 ```text
 Requests                 16
-Average batch size       7.5
-Observed throughput      2.18 requests/s
-P99 TTFT                 6454.09 ms
-P99 TPOT                 723.87 ms
-Cloud GPU utilization    95.7%
-Edge GPU utilization     53.5%
+Average batch size       3.18
+Observed throughput      1.87 requests/s
+P99 TTFT                 467.99 ms
+P99 TPOT                 127.51 ms
+Cloud GPU utilization    82.8%
+Edge GPU utilization     45.9%
 SLO                      Fail
 ```
 
@@ -94,6 +94,7 @@ JSON Config
 
 - `batch_size` 是上限，eager dispatch 可以执行更小的 batch；
 - `max_batched_tokens` 同时限制一个 batch 的 token 数；
+- `prefill_token_budget` 限制单次调度注入的 prefill token，避免 prefill 洪峰长期阻塞 decode；
 - decode 默认优先，然后按 ready time 和 request ID 排序；
 - 一个 GPU batch 只包含同一 stage，但可以混合 ready 的 prefill/decode work；
 - Edge Front 和 Edge Tail 共享 topology 中配置的 Edge GPU；
@@ -129,11 +130,16 @@ python -m http.server 8000 --directory outputs/demo
 
 然后访问 `http://localhost:8000/gantt.html`。
 
-- 每一行表示 `edge_gpu`、`wan_up`、`cloud_gpu` 或 `wan_down` 资源；
+- 支持鼠标滚轮或按钮缩放，并可按住图表水平拖动；
+- 每一条主流表示 `edge_gpu`、`wan_up`、`cloud_gpu` 或 `wan_down` 资源；
+- 点击资源左侧的 `▶` 可展开 operator、节点内通信或 WAN 通信子流；
 - 同一行的色块不会重叠，表示资源互斥；
 - 不同行同时执行表示请求或 chunk 正在跨 stage 流水；
 - 粗边框表示 batch 包含 decode work；
-- 悬停色块可查看 batch ID、request IDs、phase、起止时间和 token 数。
+- 子流展示 attention projection、attention、MLP、TP collective、kernel overhead、
+  WAN serialization 和 propagation；
+- 子流色块会显示 input shape，悬停或点击可查看完整详情；
+- 点击主流 batch 可查看 request IDs、phase、输入形状、算子耗时和通信耗时。
 
 ## 测试
 
@@ -141,8 +147,8 @@ python -m http.server 8000 --directory outputs/demo
 python -m unittest discover -s tests -v
 ```
 
-当前包含 13 个行为测试，覆盖配置校验、batch-aware Roofline、WAN batching、chunk
-因果关系、lazy decode、共享 Edge GPU、依赖时序、BS batching 和甘特图输出。
+当前包含 15 个行为测试，覆盖配置校验、batch-aware Roofline、WAN batching、chunk
+因果关系、lazy decode、共享 Edge GPU、依赖时序、BS batching、operator/TP 子流和甘特图输出。
 
 ## 当前边界
 

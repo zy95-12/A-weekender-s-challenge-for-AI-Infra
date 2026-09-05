@@ -62,6 +62,7 @@
   "static_policy": {
     "batch_size": 8,
     "max_batched_tokens": 8192,
+    "prefill_token_budget": 512,
     "prefill_chunk_size": 512,
     "decode_priority": true,
     "edge_tail_priority": true,
@@ -73,7 +74,7 @@
     "mode": "synthetic",
     "num_requests": 16,
     "arrival_process": "constant",
-    "arrival_interval_ms": 20,
+    "arrival_interval_ms": 500,
     "input_tokens": 4096,
     "output_tokens": 32,
     "random_seed": 42
