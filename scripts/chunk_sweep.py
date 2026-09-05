@@ -1,4 +1,4 @@
-"""Candidate scan, not the final 32-cell regression or a capacity benchmark.
+"""Representative candidate scan; not a capacity benchmark.
 
 Each candidate must pass unchanged same-TP correctness before timings. Keeps
 serial chunk and scheduler-policy ablations separate; no automatic winner.
@@ -15,10 +15,11 @@ from baseline_matrix import ROOT, PYTHON, run
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output",required=True)
+    parser.add_argument("--reference", help="Existing native reference, useful from an isolated worktree")
     parser.add_argument("--tp",type=int,choices=[1,2],default=2)
     parser.add_argument("--sizes",default="0,256,512,1024,2048")
     parser.add_argument("--policies",default="legacy,decode-first")
-    parser.add_argument("--repeats",type=int,default=1,help="Candidate scan only; retained configuration needs >=3-repeat regression")
+    parser.add_argument("--repeats",type=int,default=1,help="Representative repeats; no full-matrix requirement")
     parser.add_argument("--mixed-repeats",type=int,default=3)
     parser.add_argument("--ipc-mode",choices=["pipe","shm"],default="pipe")
     parser.add_argument("--wire-fast",action="store_true")
@@ -40,7 +41,7 @@ def main():
               "--ipc-mode",args.ipc_mode,"--tcp-buffer-mib",str(args.tcp_buffer_mib)]
     if args.wire_fast:
         common.append("--wire-fast")
-    reference = ROOT/("results/baseline_native_tp1" if args.tp==1 else "results/validation_final/reference")
+    reference = Path(args.reference) if args.reference else ROOT/("results/baseline_native_tp1" if args.tp==1 else "results/validation_final/reference")
     try:
         for size in sizes:
             for policy in policies:
