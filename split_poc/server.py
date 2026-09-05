@@ -158,7 +158,7 @@ class Scheduler:
 
 def optimization_config(args):
     return {key: getattr(args,key) for key in ("ipc_mode","wire_fast","tcp_buffer_mib",
-            "prefill_chunk_size","scheduler_policy","decode_quota")}
+            "prefill_chunk_size","scheduler_policy","decode_quota","pipeline_window")}
 
 
 def create_app(args):
@@ -178,6 +178,8 @@ def create_app(args):
     executor = Executor(vars(args))
     app.state.executor = executor
     lock = threading.Lock()
+    from split_poc.pipeline_state import CausalGate
+    gate = CausalGate(timeout=30) if args.pipeline_window else None
     last_seen = {}
     cloud_metrics = {"kv_used_blocks": 0, "prefill_tokens": 0, "decode_tokens": 0, "forward_steps": 0}
     Path(args.results).mkdir(parents=True, exist_ok=True)
@@ -191,7 +193,11 @@ def create_app(args):
         from transformers import AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=True)
         eos = {tokenizer.eos_token_id, 151643, 151645}
-        scheduler = Scheduler(executor, args, eos)
+        if args.pipeline_window:
+            from split_poc.pipeline import PipelineScheduler
+            scheduler = PipelineScheduler(executor, args, eos)
+        else:
+            scheduler = Scheduler(executor, args, eos)
 
     @app.get("/health")
     def health():
@@ -300,7 +306,7 @@ def create_app(args):
                     result["meta"]["timings"]["cloud_send_ns"] = time.perf_counter_ns()
                     return pack(result["meta"], result["arrays"], fast=args.wire_fast)
             try:
-                result = await asyncio.to_thread(execute)
+                result = await asyncio.to_thread(lambda: gate.run(command["items"], execute)) if gate else await asyncio.to_thread(execute)
             except Exception as exc:
                 raise HTTPException(503, str(exc))
             return Response(result, media_type="application/octet-stream")
@@ -310,12 +316,15 @@ def create_app(args):
             ids = body.get("ids", [])
             if not isinstance(ids, list) or len(ids) > 256 or any(not isinstance(x, str) for x in ids):
                 raise HTTPException(400, "Invalid release")
-            with lock:
-                result = executor.call({"op": "release", "ids": ids})
-                cloud_metrics["kv_used_blocks"] = result["kv_used_blocks"]
-                for rid in ids:
-                    last_seen.pop(rid, None)
-                return result
+            def release_owned():
+                with lock:
+                    result = executor.call({"op": "release", "ids": ids})
+                    cloud_metrics["kv_used_blocks"] = result["kv_used_blocks"]
+                    for rid in ids:
+                        last_seen.pop(rid, None)
+                    return result
+            return gate.release(ids, release_owned) if gate else release_owned()
+
 
         @app.on_event("startup")
         async def cleanup_start():
@@ -330,7 +339,14 @@ def create_app(args):
                                 cloud_metrics["kv_used_blocks"] = result["kv_used_blocks"]
                                 for rid in expired:
                                     last_seen.pop(rid, None)
-                    await asyncio.to_thread(expire)
+                    if gate:
+                        def expire_gated():
+                            with gate.condition:
+                                expire()
+                                gate.positions = {rid:pos for rid,pos in gate.positions.items() if rid in last_seen}
+                        await asyncio.to_thread(expire_gated)
+                    else:
+                        await asyncio.to_thread(expire)
             app.state.cleanup = asyncio.create_task(cleanup())
     else:
         @app.get("/", response_class=HTMLResponse)
@@ -492,7 +508,11 @@ def create_app(args):
             await asyncio.gather(app.state.cleanup, return_exceptions=True)
         if scheduler:
             scheduler.closed = True
-            await asyncio.to_thread(scheduler.thread.join, 5)
+            await asyncio.to_thread(scheduler.thread.join, 180)
+            if scheduler.thread.is_alive():
+                raise RuntimeError("Scheduler did not drain; refusing concurrent executor close")
+            scheduler.http.close()
+            scheduler.trace.close()
         await asyncio.to_thread(executor.close)
     return app
 
@@ -518,11 +538,14 @@ def main():
     parser.add_argument("--scheduler-policy", choices=["legacy","decode-first"], default="legacy")
     parser.add_argument("--decode-quota", type=int, default=1, help="Maximum decode rounds before one waiting prefill chunk")
     parser.add_argument("--tcp-buffer-mib", type=int, default=0, help="0 preserves default sockets; nonzero requires Linux CAP_NET_ADMIN")
+    parser.add_argument("--pipeline-window", type=int, default=0, help="0 disables async front/RPC/back pipeline")
     parser.add_argument("--phase-profile", action="store_true",
                         help="Detailed synchronous GPU stage timings; disable for baseline throughput")
     args = parser.parse_args()
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:
         parser.error("Invalid prefill chunk or decode quota")
+    if not 0 <= args.pipeline_window <= 8:
+        parser.error("Pipeline window must be 0..8")
     if not 0 <= args.tcp_buffer_mib <= 64:
         parser.error("TCP buffer must be 0..64 MiB")
     if args.tp not in {1, 2}:

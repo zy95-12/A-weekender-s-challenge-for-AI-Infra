@@ -153,6 +153,7 @@ class Runner:
         self.model.load_owned_weights(args["model"])
         self.model.eval()
         self.pool = KVPool(args["kv_blocks"])
+        self.front_pool = KVPool(args["kv_blocks"]) if args.get("pipeline_window",0) and args["role"] == "enterprise" else None
         for layer in self.model.model.layers.values():
             attn = layer.self_attn.attn
             shape = attn.attn_backend.get_kv_cache_shape(args["kv_blocks"], 16,
@@ -193,9 +194,9 @@ class Runner:
             timings[name + "_ms"] = start.elapsed_time(end)
             torch.cuda.nvtx.range_pop()
 
-    def metadata(self, items, phase):
+    def metadata(self, items, phase, pool=None):
         from vllm.attention.backends.flash_attn import FlashAttentionMetadata
-        slots, tables = self.pool.prepare(items)
+        slots, tables = (pool if pool is not None else self.pool).prepare(items)
         lengths = [x["position"] + x["query_len"] for x in items]
         queries = [x["query_len"] for x in items]
         max_blocks = max(map(len, tables))
@@ -239,11 +240,16 @@ class Runner:
             return {"ok": True}
         if command["op"] == "release":
             self.pool.release(command["ids"])
+            if self.front_pool is not None:
+                self.front_pool.release(command["ids"])
             return {"ok": True, "kv_used_blocks": self.args["kv_blocks"] - len(self.pool.free)}
         items, phase = command["items"], command["phase"]
         if phase == "decode" and any(item["request_id"] not in self.pool.requests for item in items):
             raise ValueError("Decode without a live prefill cache")
-        meta = self.metadata(items, phase)
+        pool = self.front_pool if command["op"] == "front" else self.pool
+        if pool is None:
+            raise ValueError("Pipeline worker command requires pipeline mode")
+        meta = self.metadata(items, phase, pool)
         positions = torch.tensor([p for x in items for p in range(x["position"], x["position"] + x["query_len"])],
                                  device="cuda", dtype=torch.int64)
         n = len(positions)
@@ -264,44 +270,54 @@ class Runner:
                     timings["cloud_kv_used_blocks"] = self.args["kv_blocks"] - len(self.pool.free)
                     return {"meta": {"batch_id": command["batch_id"], "timings": timings}, "arrays": output}
             else:
-                with self.timed(f"enterprise_front_{phase}", timings):
-                    ids = torch.tensor(command["token_ids"], device="cuda", dtype=torch.int64)
-                    hidden = self.model.model.embed_tokens(ids)
-                    hidden, residual = self.model.layers(positions, hidden, None, range(self.model.front))
-                remote, error = None, None
-                if self.rank == 0:
-                    try:
-                        start = time.perf_counter()
-                        payload = pack({k: command[k] for k in ("op", "items", "phase", "batch_id")},
-                                       [hidden.cpu().numpy(), residual.cpu().numpy()], fast=self.args.get("wire_fast", False))
-                        timings["enterprise_stage_pack_ms"] = (time.perf_counter() - start) * 1000
-                        start = time.perf_counter()
-                        sent_ns = time.perf_counter_ns()
-                        self.rpc_phase = phase
-                        response = self.http.post("/forward", content=payload,
-                            extensions={"trace": self.rpc_trace} if self.args.get("phase_profile") else {},
-                            headers={"content-type": "application/octet-stream"})
-                        response.raise_for_status()
-                        received_ns = time.perf_counter_ns()
-                        timings["rpc_wall_ms"] = (time.perf_counter() - start) * 1000
-                        timings["upload_bytes"], timings["download_bytes"] = len(payload), len(response.content)
-                        remote_meta, remote = unpack(response.content)
-                        if remote_meta["batch_id"] != command["batch_id"]:
-                            raise ValueError("Cloud batch mismatch")
-                        timings.update(remote_meta["timings"])
-                        # Both namespaces use the same host monotonic clock.
-                        # These path intervals include HTTP/CPU overhead; they
-                        # are not estimates of pure WAN propagation delay.
-                        timings["upload_ms"] = (timings["cloud_received_ns"] - sent_ns) / 1e6
-                        timings["download_ms"] = (received_ns - timings["cloud_send_ns"]) / 1e6
-                        timings["enterprise_send_ns"] = sent_ns
-                        timings["enterprise_received_ns"] = received_ns
-                    except Exception as exc:
-                        error = str(exc)
-                # Propagate failure before the next collective to avoid rank-1 deadlock.
-                status = get_tp_group().broadcast_object(error, src=0)
-                if status:
-                    raise RuntimeError(f"Cloud execution failed: {status}")
+                if command["op"] != "back":
+                    with self.timed(f"enterprise_front_{phase}", timings):
+                        ids = torch.tensor(command["token_ids"], device="cuda", dtype=torch.int64)
+                        hidden = self.model.model.embed_tokens(ids)
+                        hidden, residual = self.model.layers(positions, hidden, None, range(self.model.front))
+                    if command["op"] == "front":
+                        pool.commit(items)
+                        if self.rank == 0:
+                            output = [hidden.cpu().numpy(), residual.cpu().numpy()]
+                            return {"arrays":output,"timings":timings,
+                                    "front_kv_used_blocks":self.args["kv_blocks"]-len(pool.free)}
+                        return None
+                    remote, error = None, None
+                    if self.rank == 0:
+                        try:
+                            start = time.perf_counter()
+                            payload = pack({k: command[k] for k in ("op", "items", "phase", "batch_id")},
+                                           [hidden.cpu().numpy(), residual.cpu().numpy()], fast=self.args.get("wire_fast", False))
+                            timings["enterprise_stage_pack_ms"] = (time.perf_counter() - start) * 1000
+                            start = time.perf_counter()
+                            sent_ns = time.perf_counter_ns()
+                            self.rpc_phase = phase
+                            response = self.http.post("/forward", content=payload,
+                                extensions={"trace": self.rpc_trace} if self.args.get("phase_profile") else {},
+                                headers={"content-type": "application/octet-stream"})
+                            response.raise_for_status()
+                            received_ns = time.perf_counter_ns()
+                            timings["rpc_wall_ms"] = (time.perf_counter() - start) * 1000
+                            timings["upload_bytes"], timings["download_bytes"] = len(payload), len(response.content)
+                            remote_meta, remote = unpack(response.content)
+                            if remote_meta["batch_id"] != command["batch_id"]:
+                                raise ValueError("Cloud batch mismatch")
+                            timings.update(remote_meta["timings"])
+                            # Both namespaces use the same host monotonic clock.
+                            # These path intervals include HTTP/CPU overhead; they
+                            # are not estimates of pure WAN propagation delay.
+                            timings["upload_ms"] = (timings["cloud_received_ns"] - sent_ns) / 1e6
+                            timings["download_ms"] = (received_ns - timings["cloud_send_ns"]) / 1e6
+                            timings["enterprise_send_ns"] = sent_ns
+                            timings["enterprise_received_ns"] = received_ns
+                        except Exception as exc:
+                            error = str(exc)
+                    # Propagate failure before the next collective to avoid rank-1 deadlock.
+                    status = get_tp_group().broadcast_object(error, src=0)
+                    if status:
+                        raise RuntimeError(f"Cloud execution failed: {status}")
+                else:
+                    remote = arrays
                 with self.timed("enterprise_receive", timings):
                     hidden, residual = self.broadcast_hidden(remote, n)
                 with self.timed(f"enterprise_back_{phase}", timings):
