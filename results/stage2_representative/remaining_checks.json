@@ -1,0 +1,14 @@
+[
+  {
+    "size": 512,
+    "result": "FAIL",
+    "max_mae": 0.17026588320732117,
+    "max_abs_error": 0.9580078125
+  },
+  {
+    "size": 256,
+    "result": "FAIL",
+    "max_mae": 0.5347470641136169,
+    "max_abs_error": 3.232421875
+  }
+]
