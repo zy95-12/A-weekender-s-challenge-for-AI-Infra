@@ -63,8 +63,12 @@ def main():
             "total_gpus": enterprise_tp + cloud_tp, "isl": isl, "osl": osl,
             "client_concurrency": concurrency, "repeats": len(records), "requests": len(ttft),
             "ttft_mean_ms": statistics.mean(ttft), "ttft_p50_ms": float(np.percentile(ttft, 50)),
-            "ttft_p95_ms": float(np.percentile(ttft, 95)), "tpot_mean_ms": statistics.mean(tpot),
+            "ttft_p95_ms": float(np.percentile(ttft, 95)), "ttft_p99_ms": float(np.percentile(ttft, 99)),
+            "ttft_repeat_mean_std_ms": statistics.stdev(point["mean_ttft_ms"] for _, point, _ in records) if len(records)>1 else 0,
+            "tpot_mean_ms": statistics.mean(tpot),
             "tpot_p50_ms": float(np.percentile(tpot, 50)), "tpot_p95_ms": float(np.percentile(tpot, 95)),
+            "tpot_p99_ms": float(np.percentile(tpot, 99)),
+            "tpot_repeat_mean_std_ms": statistics.stdev(point["mean_tpot_ms"] for _, point, _ in records) if len(records)>1 else 0,
             "qps_repeat_mean": statistics.mean(qps), "qps_repeat_std": statistics.stdev(qps) if len(qps) > 1 else 0,
             "qps_repeat_min": min(qps), "qps_repeat_max": max(qps),
             "success_rate": sum(raw["completed"] for _, _, raw in records) / len(ttft)})
@@ -156,7 +160,7 @@ def main():
         "当前调度器的其他请求 Prefill 可阻塞已有请求的 Decode，因此 TPOT 不等于独立 Decode batch 的 GPU 时长。", "",
         f"每点 {configuration['repeats']} 次独立运行；每次请求数为 max(8, 4×并发)，均另有官方客户端 warmup。", "",
         f"已采集 {len(rows)} 个配置单元、{sum(row['repeats'] for row in rows)} 轮、{sum(row['requests'] for row in rows)} 个请求。", "",
-        "表内 TTFT/TPOT 为全部请求的均值；QPS 为重复测量吞吐的均值。离散度及 P50/P95 见 CSV。", "",
+        "表内 TTFT/TPOT 为全部请求的均值；QPS 为重复测量吞吐的均值。重复间样本标准差及合并样本 P50/P95/P99 见 CSV；小样本 P99 仅作描述。", "",
         "| 端 TP | 云 TP | ISL | OSL | 并发 | 次数 | TTFT ms | TPOT ms | QPS |", "|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
     for row in rows:
         lines.append("| " + " | ".join(str(row[key]) for key in ("enterprise_tp", "cloud_tp", "isl", "osl", "client_concurrency", "repeats")) +
