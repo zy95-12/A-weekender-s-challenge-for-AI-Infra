@@ -99,6 +99,7 @@ svg{display:block;user-select:none;cursor:grab}.lane-main{fill:#f1f5f9}.lane-chi
 .decode{stroke-width:2}.label{font-size:13px;font-weight:600}.child-label{font-size:11px;fill:#475569}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px}.swatch{display:inline-block;width:11px;height:11px;margin-right:4px;border-radius:2px}
 #details{margin-top:12px;padding:12px;background:white;border:1px solid #cbd5e1;border-radius:8px;white-space:pre-wrap;font:12px ui-monospace,monospace;min-height:40px}
+.detail-table{border-collapse:collapse;width:100%;margin-top:10px}.detail-table th,.detail-table td{border:1px solid #cbd5e1;padding:6px;text-align:left}.detail-table th{background:#f1f5f9}
 .hint{color:#475569;font-size:13px}code{background:#e2e8f0;padding:2px 5px;border-radius:4px}
 </style></head><body>
 <h1>Split-serving pipeline</h1>
@@ -119,7 +120,7 @@ svg{display:block;user-select:none;cursor:grab}.lane-main{fill:#f1f5f9}.lane-chi
 </div>
 <div class="viewport"><svg id="chart"></svg></div>
 <div id="details">点击任意主流 batch 或子流色块查看详情。</div>
-<script>const traces="""
+<script>(()=>{const traces="""
     suffix = r""";
 const stageColors={edge_front:'#2563eb',wan_up:'#06b6d4',cloud_middle:'#7c3aed',wan_down:'#14b8a6',edge_tail:'#f59e0b'};
 const categoryColors={compute:'#93c5fd',node_communication:'#fb7185',communication:'#22d3ee',overhead:'#94a3b8'};
@@ -130,7 +131,7 @@ const globalStart=Math.min(...traces.map(x=>x.start_time_ms));
 const globalEnd=Math.max(...traces.map(x=>x.end_time_ms));
 let viewStart=globalStart,viewEnd=globalEnd; const expanded=new Set();
 const svg=document.getElementById('chart'),details=document.getElementById('details');
-const NS='http://www.w3.org/2000/svg',labelWidth=210,plotWidth=1350,mainH=54,childH=36,top=58;
+const NS='http://www.w3.org/2000/svg',labelWidth=210,plotWidth=1350,mainH=54,childH=36,chartTop=58;
 function node(name,attrs,text){const n=document.createElementNS(NS,name);for(const [k,v] of Object.entries(attrs||{}))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;}
 function subNames(resource){const names=[];for(const row of traces.filter(x=>x.resource===resource))for(const op of row.sub_operations||[])if(!names.includes(op.name))names.push(op.name);return names;}
 function rows(){const out=[];for(const resource of resources){out.push({resource,main:true,key:resource});if(expanded.has(resource))for(const name of subNames(resource))out.push({resource,main:false,name,key:resource+'::'+name});}return out;}
@@ -138,18 +139,19 @@ function xAt(t){return labelWidth+(t-viewStart)/(viewEnd-viewStart)*plotWidth;}
 function visible(a,b){return b>=viewStart&&a<=viewEnd;}
 function tooltip(target){const title=node('title',{});title.textContent=target;return title;}
 function select(value){details.textContent=JSON.stringify(value,null,2);}
+function selectBatch(batch){details.replaceChildren();const heading=document.createElement('strong');heading.textContent=`Batch B${batch.batch_id} — ${batch.resource} / ${batch.stage}`;details.append(heading);const summary=document.createElement('div');summary.textContent=`phase=${batch.phases.join('/')} | requests=${JSON.stringify(batch.request_ids)} | duration=${batch.duration_ms.toFixed(3)} ms | input=${batch.input_shape}`;details.append(summary);const table=document.createElement('table');table.className='detail-table';const head=document.createElement('tr');for(const value of ['子操作','类型','耗时 (ms)','Input shape']){const th=document.createElement('th');th.textContent=value;head.append(th);}table.append(head);for(const op of batch.sub_operations||[]){const tr=document.createElement('tr');for(const value of [op.name,op.category,op.duration_ms.toFixed(3),op.input_shape]){const td=document.createElement('td');td.textContent=value;tr.append(td);}table.append(tr);}details.append(table);}
 function render(){
- const rowList=rows(),height=top+rowList.reduce((n,r)=>n+(r.main?mainH:childH),0)+40,width=labelWidth+plotWidth+20;
+ const rowList=rows(),height=chartTop+rowList.reduce((n,r)=>n+(r.main?mainH:childH),0)+40,width=labelWidth+plotWidth+20;
  svg.replaceChildren();svg.setAttribute('width',width);svg.setAttribute('height',height);svg.setAttribute('viewBox',`0 0 ${width} ${height}`);
- let y=top;const positions={};
+ let y=chartTop;const positions={};
  for(const row of rowList){const h=row.main?mainH:childH;positions[row.key]={y,h};svg.append(node('rect',{x:0,y,width,height:h,class:row.main?'lane-main':'lane-child'}));
   if(row.main){const toggle=node('text',{x:12,y:y+30,class:'label',style:'cursor:pointer'},expanded.has(row.resource)?'▼':'▶');toggle.addEventListener('click',()=>{expanded.has(row.resource)?expanded.delete(row.resource):expanded.add(row.resource);render();});svg.append(toggle);svg.append(node('text',{x:34,y:y+30,class:'label'},row.resource));}
   else svg.append(node('text',{x:34,y:y+23,class:'child-label'},'↳ '+row.name)); y+=h;
  }
  for(let i=0;i<=10;i++){const ratio=i/10,x=labelWidth+ratio*plotWidth,t=viewStart+ratio*(viewEnd-viewStart);svg.append(node('line',{x1:x,y1:42,x2:x,y2:height-35,class:'grid'}));svg.append(node('text',{x,y:30,'text-anchor':'middle','font-size':11},t.toFixed(1)+' ms'));}
  for(const batch of traces){if(!visible(batch.start_time_ms,batch.end_time_ms))continue;const pos=positions[batch.resource];const x=Math.max(labelWidth,xAt(batch.start_time_ms)),right=Math.min(labelWidth+plotWidth,xAt(batch.end_time_ms)),w=Math.max(right-x,1);const yb=pos.y+10,h=pos.h-20;
-  const rect=node('rect',{x,y:yb,width:w,height:h,rx:2,fill:stageColors[batch.stage]||'#64748b',class:'bar '+(batch.phases.includes('decode')?'decode':'')});rect.append(tooltip(`B${batch.batch_id} | ${batch.stage} | ${batch.phases.join('/')} | requests=${JSON.stringify(batch.request_ids)} | ${batch.duration_ms.toFixed(3)} ms | ${batch.input_shape||''}`));rect.addEventListener('click',e=>{e.stopPropagation();select(batch);});svg.append(rect);if(w>30)svg.append(node('text',{x:x+4,y:yb+h/2+4,fill:'white','font-size':10,'pointer-events':'none'},'B'+batch.batch_id));
-  if(expanded.has(batch.resource))for(const op of batch.sub_operations||[]){if(!visible(op.start_time_ms,op.end_time_ms))continue;const child=positions[batch.resource+'::'+op.name];if(!child)continue;const ox=Math.max(labelWidth,xAt(op.start_time_ms)),oright=Math.min(labelWidth+plotWidth,xAt(op.end_time_ms)),ow=Math.max(oright-ox,1),oy=child.y+7,oh=child.h-14;const sub=node('rect',{x:ox,y:oy,width:ow,height:oh,rx:2,fill:categoryColors[op.category]||'#a5b4fc',class:'bar'});sub.append(tooltip(`${op.name} | ${op.duration_ms.toFixed(3)} ms | ${op.input_shape}`));sub.addEventListener('click',e=>{e.stopPropagation();select({batch_id:batch.batch_id,resource:batch.resource,stage:batch.stage,...op});});svg.append(sub);if(ow>72)svg.append(node('text',{x:ox+3,y:oy+oh/2+4,'font-size':9,'pointer-events':'none'},op.input_shape));}
+  const rect=node('rect',{x,y:yb,width:w,height:h,rx:2,fill:stageColors[batch.stage]||'#64748b',class:'bar '+(batch.phases.includes('decode')?'decode':'')});rect.append(tooltip(`B${batch.batch_id} | ${batch.stage} | ${batch.phases.join('/')} | requests=${JSON.stringify(batch.request_ids)} | ${batch.duration_ms.toFixed(3)} ms | ${batch.input_shape||''}`));rect.addEventListener('click',e=>{e.stopPropagation();selectBatch(batch);});svg.append(rect);if(w>30)svg.append(node('text',{x:x+4,y:yb+h/2+4,fill:'white','font-size':10,'pointer-events':'none'},'B'+batch.batch_id));
+  if(expanded.has(batch.resource))for(const op of batch.sub_operations||[]){if(!visible(op.start_time_ms,op.end_time_ms))continue;const child=positions[batch.resource+'::'+op.name];if(!child)continue;const ox=Math.max(labelWidth,xAt(op.start_time_ms)),oright=Math.min(labelWidth+plotWidth,xAt(op.end_time_ms)),ow=Math.max(oright-ox,1),oy=child.y+7,oh=child.h-14;const sub=node('rect',{x:ox,y:oy,width:ow,height:oh,rx:2,fill:categoryColors[op.category]||'#a5b4fc',class:'bar'});sub.append(tooltip(`${op.name} | ${op.duration_ms.toFixed(3)} ms | ${op.input_shape}`));sub.addEventListener('click',e=>{e.stopPropagation();select({batch_id:batch.batch_id,resource:batch.resource,stage:batch.stage,...op});});svg.append(sub);if(ow>52){const label=op.duration_ms.toFixed(2)+' ms'+(ow>180?' | '+op.input_shape:'');svg.append(node('text',{x:ox+3,y:oy+oh/2+4,'font-size':9,'pointer-events':'none'},label));}}
  }
  document.getElementById('windowText').textContent=`窗口 ${viewStart.toFixed(2)} – ${viewEnd.toFixed(2)} ms（跨度 ${(viewEnd-viewStart).toFixed(2)} ms）`;
 }
@@ -159,7 +161,7 @@ function pan(ratio){const delta=(viewEnd-viewStart)*ratio;setWindow(viewStart+de
 document.getElementById('zoomIn').onclick=()=>zoom(.5);document.getElementById('zoomOut').onclick=()=>zoom(2);document.getElementById('panLeft').onclick=()=>pan(-.25);document.getElementById('panRight').onclick=()=>pan(.25);document.getElementById('reset').onclick=()=>{viewStart=globalStart;viewEnd=globalEnd;render();};
 svg.addEventListener('wheel',e=>{e.preventDefault();const rect=svg.getBoundingClientRect(),ratio=Math.max(0,Math.min(1,(e.clientX-rect.left-labelWidth)/(plotWidth)));zoom(e.deltaY<0?.75:1.33,viewStart+ratio*(viewEnd-viewStart));},{passive:false});
 let drag=null;svg.addEventListener('mousedown',e=>{if(e.clientX<svg.getBoundingClientRect().left+labelWidth)return;drag={x:e.clientX,start:viewStart,end:viewEnd};svg.style.cursor='grabbing';});window.addEventListener('mousemove',e=>{if(!drag)return;const delta=-(e.clientX-drag.x)/plotWidth*(drag.end-drag.start);setWindow(drag.start+delta,drag.end+delta);});window.addEventListener('mouseup',()=>{drag=null;svg.style.cursor='grab';});
-render();</script></body></html>
+render();})();</script></body></html>
 """
     prefix = prefix.replace(
         '<svg id="chart"></svg>', _static_svg_markup(traces, svg_id="chart")
