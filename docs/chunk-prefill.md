@@ -76,3 +76,24 @@ CPU 元数据、位置、异常失败关闭测试通过，但不抵消数值门�
 精简证据在 results/stage2_representative/，完整 logits NPZ 仅留本机。
 
 后续补测 256/512 仍均失败；没有以增加性能采样替代数值问题处理。
+
+## 逐层诊断（非性能运行）
+
+另用 8192 个 apple token、6 个输出，比较完整 prefill 与 chunk1024。
+在 36 层选取固定全局位置采样 hidden/residual；两个运行的 greedy token 一致。
+首个分块的 position=0、layer=0 已有 hidden 最大差 0.00146484、
+residual 最大差 0.00195313；到 layer35 的 position0，最大差分别为 0.25/0.296875。
+这说明执行形状变化的数值差异在非零位置 KV 续接之前就存在，不能只归因于
+续接游标。它尚未定位到具体 GEMM/attention kernel，也不能排除其他问题。
+
+临时诊断还尝试了 prefill 线性层 FP32 计算（权重来源不变、输出回到 FP16、
+decode 保持原 q=1 路径），固定原生参考仍 FAIL：最大 MAE 0.304121、
+max-abs 1.734375，greedy 一致。该方案增加了临时显存，未进入正式实现，
+没有测量或宣称性能收益，也没有修改参考或放宽门槛。
+
+插桩补丁和采样入口在 docs/diagnostics/，仅供隔离诊断工作树使用。
+补丁用 `git apply --unidiff-zero docs/diagnostics/chunk-numerics.patch` 应用。
+插桩同步 GPU 并复制样本，耗时不能作为 benchmark。精简比较、失败报告和
+本地完整样本校验清单在 results/stage2_representative/layer_diagnostic/。
+阶段2仍需要找到能满足既定数值门槛的分块执行路径；当前全部候选不予保留为
+已验收优化。阶段3的异步长 prompt 分块也因此仍未验收。
