@@ -1,0 +1,2252 @@
+{
+  "result": "PASS",
+  "command": [
+    "/root/A-weekender-s-challenge-for-AI-Infra/scripts/transport_microbench.py",
+    "client",
+    "--repeats",
+    "10",
+    "--output",
+    "/root/A-weekender-s-challenge-for-AI-Infra/results/optimization_stage1/micro_both_tcp16/measurement.json",
+    "--ipc-mode",
+    "shm",
+    "--tcp-buffer-mib",
+    "16",
+    "--wire-fast"
+  ],
+  "rows": [
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 0,
+      "pack_ms": 0.03256399941165,
+      "http_wall_ms": 10.89524400049413,
+      "unpack_ms": 0.035291999665787444,
+      "total_ms": 10.963099999571568,
+      "server": {
+        "body_receive_ms": 0.034624999898369424,
+        "unpack_ms": 0.042381000639579725,
+        "queue_ms": 0.0021440000637085177,
+        "ipc_roundtrip_ms": 0.00027599980967352167,
+        "pack_ms": 0.030313000024762005
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 1,
+      "pack_ms": 0.036485000237007625,
+      "http_wall_ms": 10.682852999707393,
+      "unpack_ms": 0.030703000447829254,
+      "total_ms": 10.75004100039223,
+      "server": {
+        "body_receive_ms": 0.025487999664619565,
+        "unpack_ms": 0.03057000049011549,
+        "queue_ms": 0.0012059999789926223,
+        "ipc_roundtrip_ms": 0.00014499983080895618,
+        "pack_ms": 0.023215000510390382
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 2,
+      "pack_ms": 0.024728000425966457,
+      "http_wall_ms": 10.652934000063397,
+      "unpack_ms": 0.029050999728497118,
+      "total_ms": 10.70671300021786,
+      "server": {
+        "body_receive_ms": 0.023722000150883105,
+        "unpack_ms": 0.029459999495884404,
+        "queue_ms": 0.0010230005500488915,
+        "ipc_roundtrip_ms": 0.00017499951354693621,
+        "pack_ms": 0.022260999685386196
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 3,
+      "pack_ms": 0.02741699972830247,
+      "http_wall_ms": 10.66378999985318,
+      "unpack_ms": 0.031239000236382708,
+      "total_ms": 10.722445999817865,
+      "server": {
+        "body_receive_ms": 0.02360300004511373,
+        "unpack_ms": 0.031107000722840894,
+        "queue_ms": 0.0009809991752263159,
+        "ipc_roundtrip_ms": 0.00018600076145958155,
+        "pack_ms": 0.02074799976981012
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 4,
+      "pack_ms": 0.02560699977038894,
+      "http_wall_ms": 10.656219999873429,
+      "unpack_ms": 0.030316000447783154,
+      "total_ms": 10.7121430000916,
+      "server": {
+        "body_receive_ms": 0.023199000679596793,
+        "unpack_ms": 0.02655299977050163,
+        "queue_ms": 0.003651000042736996,
+        "ipc_roundtrip_ms": 0.00017099955584853888,
+        "pack_ms": 0.021593000383290928
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 5,
+      "pack_ms": 0.024203000066336244,
+      "http_wall_ms": 10.628711999743246,
+      "unpack_ms": 0.03801599996222649,
+      "total_ms": 10.690930999771808,
+      "server": {
+        "body_receive_ms": 0.022385999727703165,
+        "unpack_ms": 0.024574000235588755,
+        "queue_ms": 0.0009880004654405639,
+        "ipc_roundtrip_ms": 0.0001660000634728931,
+        "pack_ms": 0.019965999854321126
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 6,
+      "pack_ms": 0.026629999410943128,
+      "http_wall_ms": 10.742771000877838,
+      "unpack_ms": 0.03116899915767135,
+      "total_ms": 10.800569999446452,
+      "server": {
+        "body_receive_ms": 0.022664000425720587,
+        "unpack_ms": 0.027522999516804703,
+        "queue_ms": 0.0010080002539325505,
+        "ipc_roundtrip_ms": 0.00017299953469773754,
+        "pack_ms": 0.021877000108361244
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 7,
+      "pack_ms": 0.024377000045205932,
+      "http_wall_ms": 10.73818900022161,
+      "unpack_ms": 0.030205999792087823,
+      "total_ms": 10.792772000058903,
+      "server": {
+        "body_receive_ms": 0.02190200029872358,
+        "unpack_ms": 0.02487399979145266,
+        "queue_ms": 0.0009949999366654083,
+        "ipc_roundtrip_ms": 0.00014200031728250906,
+        "pack_ms": 0.13938200027041603
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 8,
+      "pack_ms": 0.025456999537709635,
+      "http_wall_ms": 10.630853999828105,
+      "unpack_ms": 0.029069000447634608,
+      "total_ms": 10.685379999813449,
+      "server": {
+        "body_receive_ms": 0.025165999431919772,
+        "unpack_ms": 0.027441999918664806,
+        "queue_ms": 0.0010840003596968018,
+        "ipc_roundtrip_ms": 0.0001720000000204891,
+        "pack_ms": 0.020702000256278552
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "repeat": 9,
+      "pack_ms": 0.024477999431837816,
+      "http_wall_ms": 10.932177000540833,
+      "unpack_ms": 0.028997999834246002,
+      "total_ms": 10.985652999806916,
+      "server": {
+        "body_receive_ms": 0.022680000256514177,
+        "unpack_ms": 0.024371000108658336,
+        "queue_ms": 0.0008950000847107731,
+        "ipc_roundtrip_ms": 0.0001429998519597575,
+        "pack_ms": 0.01921600050991401
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 0,
+      "pack_ms": 0.02456599941069726,
+      "http_wall_ms": 10.83899700006441,
+      "unpack_ms": 0.028882000151497778,
+      "total_ms": 10.892444999626605,
+      "server": {
+        "body_receive_ms": 0.02673800008778926,
+        "unpack_ms": 0.03158999970764853,
+        "queue_ms": 0.0017950005712918937,
+        "ipc_roundtrip_ms": 0.169191999702889,
+        "pack_ms": 0.026269000045431312
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 1,
+      "pack_ms": 0.025354000172228552,
+      "http_wall_ms": 10.785374000079173,
+      "unpack_ms": 0.030512999728671275,
+      "total_ms": 10.841240999980073,
+      "server": {
+        "body_receive_ms": 0.024017000214371365,
+        "unpack_ms": 0.03619800008891616,
+        "queue_ms": 0.0014389997886610217,
+        "ipc_roundtrip_ms": 0.1292590004595695,
+        "pack_ms": 0.02318399947398575
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 2,
+      "pack_ms": 0.02489600046828855,
+      "http_wall_ms": 10.780336999232532,
+      "unpack_ms": 0.03064700013055699,
+      "total_ms": 10.835879999831377,
+      "server": {
+        "body_receive_ms": 0.023657000383536797,
+        "unpack_ms": 0.03410099998291116,
+        "queue_ms": 0.0011269994502072223,
+        "ipc_roundtrip_ms": 0.12324600083957193,
+        "pack_ms": 0.02220799979113508
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 3,
+      "pack_ms": 0.0240399995163898,
+      "http_wall_ms": 10.757269000350789,
+      "unpack_ms": 0.02842399953806307,
+      "total_ms": 10.809732999405242,
+      "server": {
+        "body_receive_ms": 0.02300100004504202,
+        "unpack_ms": 0.026045000595331658,
+        "queue_ms": 0.0009890000001178123,
+        "ipc_roundtrip_ms": 0.13201399997342378,
+        "pack_ms": 0.02151099943148438
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 4,
+      "pack_ms": 0.023562000023957808,
+      "http_wall_ms": 10.768795999865688,
+      "unpack_ms": 0.0298570002996712,
+      "total_ms": 10.822215000189317,
+      "server": {
+        "body_receive_ms": 0.024459999622195028,
+        "unpack_ms": 0.027880000743607525,
+        "queue_ms": 0.0011399997674743645,
+        "ipc_roundtrip_ms": 0.13879499965696596,
+        "pack_ms": 0.02369499998167157
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 5,
+      "pack_ms": 0.02490399947419064,
+      "http_wall_ms": 10.76501100033056,
+      "unpack_ms": 0.02895699981309008,
+      "total_ms": 10.81887199961784,
+      "server": {
+        "body_receive_ms": 0.027981999664916657,
+        "unpack_ms": 0.0263660003838595,
+        "queue_ms": 0.0010639996617101133,
+        "ipc_roundtrip_ms": 0.12771000001521315,
+        "pack_ms": 0.022623999939241912
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 6,
+      "pack_ms": 0.024035000024014153,
+      "http_wall_ms": 10.744229999545496,
+      "unpack_ms": 0.027585000680119265,
+      "total_ms": 10.79585000024963,
+      "server": {
+        "body_receive_ms": 0.021861999812244903,
+        "unpack_ms": 0.03138800002489006,
+        "queue_ms": 0.0009550003596814349,
+        "ipc_roundtrip_ms": 0.11808799990831176,
+        "pack_ms": 0.029040000299573876
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 7,
+      "pack_ms": 0.025897000341501553,
+      "http_wall_ms": 10.759126999801083,
+      "unpack_ms": 0.029212999834271614,
+      "total_ms": 10.814236999976856,
+      "server": {
+        "body_receive_ms": 0.02242699974885909,
+        "unpack_ms": 0.02501499966456322,
+        "queue_ms": 0.0009430004865862429,
+        "ipc_roundtrip_ms": 0.12687900016317144,
+        "pack_ms": 0.02085999949485995
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 8,
+      "pack_ms": 0.024639000002935063,
+      "http_wall_ms": 10.75732900062576,
+      "unpack_ms": 0.029381999411270954,
+      "total_ms": 10.811350000039965,
+      "server": {
+        "body_receive_ms": 0.022308000552584417,
+        "unpack_ms": 0.024453000150970183,
+        "queue_ms": 0.0008489996616845019,
+        "ipc_roundtrip_ms": 0.12108899954910157,
+        "pack_ms": 0.020407000192790292
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "repeat": 9,
+      "pack_ms": 0.026237999918521382,
+      "http_wall_ms": 10.748797999440285,
+      "unpack_ms": 0.028780000320693944,
+      "total_ms": 10.8038159996795,
+      "server": {
+        "body_receive_ms": 0.02192800002376316,
+        "unpack_ms": 0.025086999812629074,
+        "queue_ms": 0.0009430004865862429,
+        "ipc_roundtrip_ms": 0.11763000020437175,
+        "pack_ms": 0.03555599960236577
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 0,
+      "pack_ms": 0.029058999643893912,
+      "http_wall_ms": 10.753903000477294,
+      "unpack_ms": 0.032870999348233454,
+      "total_ms": 10.815832999469421,
+      "server": {
+        "body_receive_ms": 0.032160000046133064,
+        "unpack_ms": 0.02726299953792477,
+        "queue_ms": 0.0009260002116207033,
+        "ipc_roundtrip_ms": 0.00012400050763972104,
+        "pack_ms": 0.021394999748736154
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 1,
+      "pack_ms": 0.02592900000308873,
+      "http_wall_ms": 10.649940999428509,
+      "unpack_ms": 0.03277300038462272,
+      "total_ms": 10.70864299981622,
+      "server": {
+        "body_receive_ms": 0.030020999474800192,
+        "unpack_ms": 0.02583900004538009,
+        "queue_ms": 0.000934000127017498,
+        "ipc_roundtrip_ms": 0.00012100008461857215,
+        "pack_ms": 0.02082599985442357
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 2,
+      "pack_ms": 0.025130000722128898,
+      "http_wall_ms": 10.631209999701241,
+      "unpack_ms": 0.03050699979212368,
+      "total_ms": 10.686847000215494,
+      "server": {
+        "body_receive_ms": 0.026966999939759262,
+        "unpack_ms": 0.02515600044716848,
+        "queue_ms": 0.0009929999578162096,
+        "ipc_roundtrip_ms": 0.00016800004232209176,
+        "pack_ms": 0.025177999305014964
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 3,
+      "pack_ms": 0.025426999854971655,
+      "http_wall_ms": 10.675700999854598,
+      "unpack_ms": 0.030938000236346852,
+      "total_ms": 10.732065999945917,
+      "server": {
+        "body_receive_ms": 0.028419000045687426,
+        "unpack_ms": 0.026337999770476017,
+        "queue_ms": 0.0009619998309062794,
+        "ipc_roundtrip_ms": 0.00014899978850735351,
+        "pack_ms": 0.020157000108156353
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 4,
+      "pack_ms": 0.025235999601136427,
+      "http_wall_ms": 10.654038000211585,
+      "unpack_ms": 0.03237000055378303,
+      "total_ms": 10.711644000366505,
+      "server": {
+        "body_receive_ms": 0.026310999601264484,
+        "unpack_ms": 0.024339999981748406,
+        "queue_ms": 0.0009420000424142927,
+        "ipc_roundtrip_ms": 0.00013600038073491305,
+        "pack_ms": 0.019303999579278752
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 5,
+      "pack_ms": 0.026386000172351487,
+      "http_wall_ms": 10.694069000237505,
+      "unpack_ms": 0.03231000027881237,
+      "total_ms": 10.752765000688669,
+      "server": {
+        "body_receive_ms": 0.029070999516989104,
+        "unpack_ms": 0.027384000532038044,
+        "queue_ms": 0.0010879994079004973,
+        "ipc_roundtrip_ms": 0.00013700082490686327,
+        "pack_ms": 0.02215799941041041
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 6,
+      "pack_ms": 0.0260540000454057,
+      "http_wall_ms": 10.655015000338608,
+      "unpack_ms": 0.030535000405507162,
+      "total_ms": 10.71160400078952,
+      "server": {
+        "body_receive_ms": 0.027632000637822784,
+        "unpack_ms": 0.0258189993473934,
+        "queue_ms": 0.0009590003173798323,
+        "ipc_roundtrip_ms": 0.0001219996192958206,
+        "pack_ms": 0.020342999960121233
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 7,
+      "pack_ms": 0.025353000637551304,
+      "http_wall_ms": 10.64402500014694,
+      "unpack_ms": 0.03149799977109069,
+      "total_ms": 10.700876000555581,
+      "server": {
+        "body_receive_ms": 0.026869000066653825,
+        "unpack_ms": 0.024525999833713286,
+        "queue_ms": 0.0009429995770915411,
+        "ipc_roundtrip_ms": 0.00012200052879052237,
+        "pack_ms": 0.01916699966386659
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 8,
+      "pack_ms": 0.025848000404948834,
+      "http_wall_ms": 10.669375999896147,
+      "unpack_ms": 0.029875000109313987,
+      "total_ms": 10.72509900041041,
+      "server": {
+        "body_receive_ms": 0.027188999411009718,
+        "unpack_ms": 0.025102000108745415,
+        "queue_ms": 0.0009670002327766269,
+        "ipc_roundtrip_ms": 0.00017899947124533355,
+        "pack_ms": 0.0189200000022538
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "repeat": 9,
+      "pack_ms": 0.025471999833825976,
+      "http_wall_ms": 10.65519699932338,
+      "unpack_ms": 0.02950100042653503,
+      "total_ms": 10.71016999958374,
+      "server": {
+        "body_receive_ms": 0.02892199972848175,
+        "unpack_ms": 0.025970999558921903,
+        "queue_ms": 0.0009380000847158954,
+        "ipc_roundtrip_ms": 0.00011900010576937348,
+        "pack_ms": 0.02678300006664358
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 0,
+      "pack_ms": 0.02554300044721458,
+      "http_wall_ms": 10.793454000122438,
+      "unpack_ms": 0.03160999949614052,
+      "total_ms": 10.850607000065793,
+      "server": {
+        "body_receive_ms": 0.03547300002537668,
+        "unpack_ms": 0.026417999833938666,
+        "queue_ms": 0.0010330004442948848,
+        "ipc_roundtrip_ms": 0.12613999933819287,
+        "pack_ms": 0.02227200002380414
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 1,
+      "pack_ms": 0.02644399955897825,
+      "http_wall_ms": 10.80465799986996,
+      "unpack_ms": 0.03276100051152753,
+      "total_ms": 10.863862999940466,
+      "server": {
+        "body_receive_ms": 0.0297010001304443,
+        "unpack_ms": 0.026851000257011037,
+        "queue_ms": 0.0010670000847312622,
+        "ipc_roundtrip_ms": 0.12399799925333355,
+        "pack_ms": 0.02194600074290065
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 2,
+      "pack_ms": 0.029859999813197646,
+      "http_wall_ms": 10.781508999571088,
+      "unpack_ms": 0.03022600049007451,
+      "total_ms": 10.84159499987436,
+      "server": {
+        "body_receive_ms": 0.028137999834143557,
+        "unpack_ms": 0.025911999728123192,
+        "queue_ms": 0.0010200001270277426,
+        "ipc_roundtrip_ms": 0.11935200018342584,
+        "pack_ms": 0.021345999812183436
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 3,
+      "pack_ms": 0.030981999771029223,
+      "http_wall_ms": 10.77257599990844,
+      "unpack_ms": 0.030504000278597232,
+      "total_ms": 10.834061999958067,
+      "server": {
+        "body_receive_ms": 0.02774599943222711,
+        "unpack_ms": 0.025524000193399843,
+        "queue_ms": 0.0010069998097606003,
+        "ipc_roundtrip_ms": 0.11698599973897217,
+        "pack_ms": 0.02084700008708751
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 4,
+      "pack_ms": 0.026431000151205808,
+      "http_wall_ms": 10.81240199982858,
+      "unpack_ms": 0.032310999813489616,
+      "total_ms": 10.871143999793276,
+      "server": {
+        "body_receive_ms": 0.026976999834005255,
+        "unpack_ms": 0.027168000087840483,
+        "queue_ms": 0.000951999936660286,
+        "ipc_roundtrip_ms": 0.11651900058495812,
+        "pack_ms": 0.020846999177592807
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 5,
+      "pack_ms": 0.024748000214458443,
+      "http_wall_ms": 10.81196799987083,
+      "unpack_ms": 0.030316999982460402,
+      "total_ms": 10.86703300006775,
+      "server": {
+        "body_receive_ms": 0.027894999220734462,
+        "unpack_ms": 0.02816300002450589,
+        "queue_ms": 0.0010200001270277426,
+        "ipc_roundtrip_ms": 0.12892999984615017,
+        "pack_ms": 0.02312700053153094
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 6,
+      "pack_ms": 0.02422700072202133,
+      "http_wall_ms": 10.798455999974976,
+      "unpack_ms": 0.03152899989800062,
+      "total_ms": 10.854212000594998,
+      "server": {
+        "body_receive_ms": 0.029154000003472902,
+        "unpack_ms": 0.026802999855135567,
+        "queue_ms": 0.0011050005923607387,
+        "ipc_roundtrip_ms": 0.12876199980382808,
+        "pack_ms": 0.021640999875671696
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 7,
+      "pack_ms": 0.02647500059538288,
+      "http_wall_ms": 10.796910999488318,
+      "unpack_ms": 0.030900000638212077,
+      "total_ms": 10.854286000721913,
+      "server": {
+        "body_receive_ms": 0.02746500013017794,
+        "unpack_ms": 0.025970000024244655,
+        "queue_ms": 0.0010559997463133186,
+        "ipc_roundtrip_ms": 0.11759100016206503,
+        "pack_ms": 0.02106099964294117
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 8,
+      "pack_ms": 0.02572900029917946,
+      "http_wall_ms": 10.78525799948693,
+      "unpack_ms": 0.032317000659531914,
+      "total_ms": 10.843304000445642,
+      "server": {
+        "body_receive_ms": 0.02763399970717728,
+        "unpack_ms": 0.025257000743295066,
+        "queue_ms": 0.0010309995559509844,
+        "ipc_roundtrip_ms": 0.12265199984540232,
+        "pack_ms": 0.020166000467725098
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "repeat": 9,
+      "pack_ms": 0.025921000087691937,
+      "http_wall_ms": 10.897420000219427,
+      "unpack_ms": 0.03159700008836808,
+      "total_ms": 10.954938000395487,
+      "server": {
+        "body_receive_ms": 0.028886999643873423,
+        "unpack_ms": 0.02681400019355351,
+        "queue_ms": 0.0011359998097759672,
+        "ipc_roundtrip_ms": 0.12185100058559328,
+        "pack_ms": 0.02200599919888191
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 0,
+      "pack_ms": 1.4197860000422224,
+      "http_wall_ms": 21.920930000305816,
+      "unpack_ms": 1.1750269995900453,
+      "total_ms": 24.515742999938084,
+      "server": {
+        "body_receive_ms": 3.305655000076513,
+        "unpack_ms": 1.8603230000735493,
+        "queue_ms": 0.0025529998310958035,
+        "ipc_roundtrip_ms": 0.00024100063455989584,
+        "pack_ms": 1.8652789995030616
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 1,
+      "pack_ms": 1.4032529998075916,
+      "http_wall_ms": 21.240406000288203,
+      "unpack_ms": 1.080371999705676,
+      "total_ms": 23.72403099980147,
+      "server": {
+        "body_receive_ms": 2.953678999801923,
+        "unpack_ms": 1.583207000294351,
+        "queue_ms": 0.0028960002964595333,
+        "ipc_roundtrip_ms": 0.0002599999788799323,
+        "pack_ms": 1.6995589994621696
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 2,
+      "pack_ms": 1.765386000442959,
+      "http_wall_ms": 21.05306700013898,
+      "unpack_ms": 0.3655259997685789,
+      "total_ms": 23.18397900035052,
+      "server": {
+        "body_receive_ms": 3.06926699977339,
+        "unpack_ms": 1.8068819999825791,
+        "queue_ms": 0.003156999810016714,
+        "ipc_roundtrip_ms": 0.0002879996827687137,
+        "pack_ms": 1.8359440000494942
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 3,
+      "pack_ms": 1.4406940008484526,
+      "http_wall_ms": 20.37458599988895,
+      "unpack_ms": 1.0703219995775726,
+      "total_ms": 22.885602000314975,
+      "server": {
+        "body_receive_ms": 2.9850600003555883,
+        "unpack_ms": 1.5635499994459678,
+        "queue_ms": 0.002955000127258245,
+        "ipc_roundtrip_ms": 0.0002819997462211177,
+        "pack_ms": 1.716592000775563
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 4,
+      "pack_ms": 1.575635000335751,
+      "http_wall_ms": 20.840786999542615,
+      "unpack_ms": 0.3866580000249087,
+      "total_ms": 22.803079999903275,
+      "server": {
+        "body_receive_ms": 3.198478000740579,
+        "unpack_ms": 1.6469009997308603,
+        "queue_ms": 0.0032099997042678297,
+        "ipc_roundtrip_ms": 0.00026700035959947854,
+        "pack_ms": 1.8247529997097445
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 5,
+      "pack_ms": 1.4391800004887045,
+      "http_wall_ms": 20.277812000131235,
+      "unpack_ms": 1.0633959991537267,
+      "total_ms": 22.780387999773666,
+      "server": {
+        "body_receive_ms": 2.9357529992921627,
+        "unpack_ms": 1.5167760002441355,
+        "queue_ms": 0.002892000338761136,
+        "ipc_roundtrip_ms": 0.0003269997250754386,
+        "pack_ms": 1.6569110002819798
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 6,
+      "pack_ms": 1.82829599998513,
+      "http_wall_ms": 20.525074000033783,
+      "unpack_ms": 0.3957980006816797,
+      "total_ms": 22.749168000700593,
+      "server": {
+        "body_receive_ms": 2.932330000476213,
+        "unpack_ms": 1.5483919996768236,
+        "queue_ms": 0.0026190000426140614,
+        "ipc_roundtrip_ms": 0.0002800006768666208,
+        "pack_ms": 1.8227359996672021
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 7,
+      "pack_ms": 1.4237799996408285,
+      "http_wall_ms": 20.358097000098496,
+      "unpack_ms": 1.0860460006369976,
+      "total_ms": 22.867923000376322,
+      "server": {
+        "body_receive_ms": 2.9198270003689686,
+        "unpack_ms": 1.5180749996943632,
+        "queue_ms": 0.00305499997921288,
+        "ipc_roundtrip_ms": 0.0002510005288058892,
+        "pack_ms": 1.7638119998082402
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 8,
+      "pack_ms": 1.827742999921611,
+      "http_wall_ms": 20.644853000703733,
+      "unpack_ms": 0.37069499921926763,
+      "total_ms": 22.843290999844612,
+      "server": {
+        "body_receive_ms": 2.9914979995737667,
+        "unpack_ms": 1.5521300001637428,
+        "queue_ms": 0.0031279996619559824,
+        "ipc_roundtrip_ms": 0.0002920005499618128,
+        "pack_ms": 1.832707999710692
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "repeat": 9,
+      "pack_ms": 1.3987809998070588,
+      "http_wall_ms": 20.37750399995275,
+      "unpack_ms": 1.102600999729475,
+      "total_ms": 22.878885999489285,
+      "server": {
+        "body_receive_ms": 2.9036129999440163,
+        "unpack_ms": 1.5040689995657885,
+        "queue_ms": 0.0029790007829433307,
+        "ipc_roundtrip_ms": 0.00025800000003073364,
+        "pack_ms": 1.8094299994118046
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 0,
+      "pack_ms": 1.4626969996243133,
+      "http_wall_ms": 23.230644000250322,
+      "unpack_ms": 1.1058589998356183,
+      "total_ms": 25.799199999710254,
+      "server": {
+        "body_receive_ms": 2.958248000140884,
+        "unpack_ms": 1.5193930003079004,
+        "queue_ms": 0.003526999535097275,
+        "ipc_roundtrip_ms": 2.7531920004548738,
+        "pack_ms": 1.7962129995794385
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 1,
+      "pack_ms": 1.7560380001668818,
+      "http_wall_ms": 23.42588200008322,
+      "unpack_ms": 0.4192710002826061,
+      "total_ms": 25.601191000532708,
+      "server": {
+        "body_receive_ms": 2.9952310005683103,
+        "unpack_ms": 1.5437289994224557,
+        "queue_ms": 0.0029810007617925294,
+        "ipc_roundtrip_ms": 2.7844789992741426,
+        "pack_ms": 1.8189780003012856
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 2,
+      "pack_ms": 1.4452519999395008,
+      "http_wall_ms": 23.054037999827415,
+      "unpack_ms": 1.0602570000628475,
+      "total_ms": 25.559546999829763,
+      "server": {
+        "body_receive_ms": 2.911405000304512,
+        "unpack_ms": 1.5184200001385761,
+        "queue_ms": 0.003252999704272952,
+        "ipc_roundtrip_ms": 2.712341999540513,
+        "pack_ms": 1.7364690002068528
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 3,
+      "pack_ms": 1.81355499989877,
+      "http_wall_ms": 23.513729999649513,
+      "unpack_ms": 0.3939930002161418,
+      "total_ms": 25.721277999764425,
+      "server": {
+        "body_receive_ms": 3.021713000634918,
+        "unpack_ms": 1.5710560001025442,
+        "queue_ms": 0.0031699992177891545,
+        "ipc_roundtrip_ms": 2.880266000829579,
+        "pack_ms": 1.7731519992594258
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 4,
+      "pack_ms": 1.4241360004234593,
+      "http_wall_ms": 23.20711399988795,
+      "unpack_ms": 1.0864059995583375,
+      "total_ms": 25.71765599986975,
+      "server": {
+        "body_receive_ms": 2.9531959999076207,
+        "unpack_ms": 1.5317750003305264,
+        "queue_ms": 0.00280699987342814,
+        "ipc_roundtrip_ms": 2.7527269994607195,
+        "pack_ms": 1.7589170001883758
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 5,
+      "pack_ms": 1.809976999538776,
+      "http_wall_ms": 23.559692000162613,
+      "unpack_ms": 0.39872500019555446,
+      "total_ms": 25.768393999896944,
+      "server": {
+        "body_receive_ms": 3.0013670002517756,
+        "unpack_ms": 1.5684909994888585,
+        "queue_ms": 0.0032890002330532297,
+        "ipc_roundtrip_ms": 2.938850000646198,
+        "pack_ms": 1.7636089996813098
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 6,
+      "pack_ms": 1.4065180002944544,
+      "http_wall_ms": 23.151821000283235,
+      "unpack_ms": 1.142103999882238,
+      "total_ms": 25.700443000459927,
+      "server": {
+        "body_receive_ms": 2.9694859995288425,
+        "unpack_ms": 1.507130999925721,
+        "queue_ms": 0.0036550000004353933,
+        "ipc_roundtrip_ms": 2.724674000091909,
+        "pack_ms": 1.7465410001022974
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 7,
+      "pack_ms": 1.7519959992569056,
+      "http_wall_ms": 23.513533000368625,
+      "unpack_ms": 0.3827150003417046,
+      "total_ms": 25.648243999967235,
+      "server": {
+        "body_receive_ms": 2.9980689996591536,
+        "unpack_ms": 1.5696720001869835,
+        "queue_ms": 0.0029149996407795697,
+        "ipc_roundtrip_ms": 2.8494240004874882,
+        "pack_ms": 1.7929759997059591
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 8,
+      "pack_ms": 1.4203709997673286,
+      "http_wall_ms": 30.166634999659436,
+      "unpack_ms": 1.1145140006192378,
+      "total_ms": 32.701520000046,
+      "server": {
+        "body_receive_ms": 2.963981999528187,
+        "unpack_ms": 1.5425490000779973,
+        "queue_ms": 0.003094000021519605,
+        "ipc_roundtrip_ms": 2.748888000496663,
+        "pack_ms": 1.7584349998287507
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "repeat": 9,
+      "pack_ms": 0.7283320001079119,
+      "http_wall_ms": 26.360791999650246,
+      "unpack_ms": 0.8278029999928549,
+      "total_ms": 27.916926999751013,
+      "server": {
+        "body_receive_ms": 3.066035000301781,
+        "unpack_ms": 1.5711459991507581,
+        "queue_ms": 0.0030210003387765028,
+        "ipc_roundtrip_ms": 3.0225830005292664,
+        "pack_ms": 1.8397079993519583
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 0,
+      "pack_ms": 6.736322000506334,
+      "http_wall_ms": 54.897713999707776,
+      "unpack_ms": 3.916012999980012,
+      "total_ms": 65.55004900019412,
+      "server": {
+        "body_receive_ms": 12.577618000250368,
+        "unpack_ms": 5.013280000639497,
+        "queue_ms": 0.0039599999581696466,
+        "ipc_roundtrip_ms": 0.0003269997250754386,
+        "pack_ms": 7.146504999582248
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 1,
+      "pack_ms": 6.857798000055482,
+      "http_wall_ms": 60.477507000541664,
+      "unpack_ms": 3.8275379993137904,
+      "total_ms": 71.16284299991094,
+      "server": {
+        "body_receive_ms": 20.63120799994067,
+        "unpack_ms": 1.7043280004145345,
+        "queue_ms": 0.003911000021616928,
+        "ipc_roundtrip_ms": 0.000559999534743838,
+        "pack_ms": 6.832320999819785
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 2,
+      "pack_ms": 7.276151000041864,
+      "http_wall_ms": 52.98536000009335,
+      "unpack_ms": 1.7489940000814386,
+      "total_ms": 62.010505000216654,
+      "server": {
+        "body_receive_ms": 12.226974999975937,
+        "unpack_ms": 3.267065000727598,
+        "queue_ms": 0.004286999683245085,
+        "ipc_roundtrip_ms": 0.000285999703919515,
+        "pack_ms": 7.499010000174167
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 3,
+      "pack_ms": 6.655150000369758,
+      "http_wall_ms": 55.94713699974818,
+      "unpack_ms": 3.7878069997532293,
+      "total_ms": 66.39009399987117,
+      "server": {
+        "body_receive_ms": 13.252354000542255,
+        "unpack_ms": 5.047356999966723,
+        "queue_ms": 0.0038179996408871375,
+        "ipc_roundtrip_ms": 0.00034300046536372975,
+        "pack_ms": 7.123915999727615
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 4,
+      "pack_ms": 7.27154500054894,
+      "http_wall_ms": 55.975160999878426,
+      "unpack_ms": 1.8611059995237156,
+      "total_ms": 65.10781199995108,
+      "server": {
+        "body_receive_ms": 13.167131000045629,
+        "unpack_ms": 5.056631000115885,
+        "queue_ms": 0.0039180004023364745,
+        "ipc_roundtrip_ms": 0.0002659999154275283,
+        "pack_ms": 7.070687999657821
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 5,
+      "pack_ms": 6.784207000237075,
+      "http_wall_ms": 55.27147899920237,
+      "unpack_ms": 3.723896000337845,
+      "total_ms": 65.77958199977729,
+      "server": {
+        "body_receive_ms": 13.201747000493924,
+        "unpack_ms": 5.023256999265868,
+        "queue_ms": 0.004041000465804245,
+        "ipc_roundtrip_ms": 0.0003089999154326506,
+        "pack_ms": 7.005411000136519
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 6,
+      "pack_ms": 7.20540499969502,
+      "http_wall_ms": 55.39496799974586,
+      "unpack_ms": 1.8315269999220618,
+      "total_ms": 64.43189999936294,
+      "server": {
+        "body_receive_ms": 12.970407000466366,
+        "unpack_ms": 5.19120499939163,
+        "queue_ms": 0.004074000571563374,
+        "ipc_roundtrip_ms": 0.0006069994924473576,
+        "pack_ms": 7.039207000161696
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 7,
+      "pack_ms": 6.799130000217701,
+      "http_wall_ms": 56.215894000160915,
+      "unpack_ms": 3.657446999568492,
+      "total_ms": 66.67247099994711,
+      "server": {
+        "body_receive_ms": 13.041879000411427,
+        "unpack_ms": 5.524821000108204,
+        "queue_ms": 0.004018999788968358,
+        "ipc_roundtrip_ms": 0.00027900023269467056,
+        "pack_ms": 7.076438999320089
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 8,
+      "pack_ms": 7.296906999727071,
+      "http_wall_ms": 55.835078000200156,
+      "unpack_ms": 1.8766290004350594,
+      "total_ms": 65.00861400036229,
+      "server": {
+        "body_receive_ms": 13.037850999353395,
+        "unpack_ms": 5.078636000689585,
+        "queue_ms": 0.004038999577460345,
+        "ipc_roundtrip_ms": 0.0007010003173490986,
+        "pack_ms": 6.999336000262701
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "repeat": 9,
+      "pack_ms": 6.847604000540741,
+      "http_wall_ms": 55.996514999606006,
+      "unpack_ms": 3.765638000004401,
+      "total_ms": 66.60975700015115,
+      "server": {
+        "body_receive_ms": 13.232646999313147,
+        "unpack_ms": 5.048879000241868,
+        "queue_ms": 0.00443499993707519,
+        "ipc_roundtrip_ms": 0.0003510003807605244,
+        "pack_ms": 7.0120410000527045
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 0,
+      "pack_ms": 6.613276000280166,
+      "http_wall_ms": 67.4822029995994,
+      "unpack_ms": 3.767215000152646,
+      "total_ms": 77.8626940000322,
+      "server": {
+        "body_receive_ms": 14.654685000095924,
+        "unpack_ms": 5.666101999850071,
+        "queue_ms": 0.013321000551513862,
+        "ipc_roundtrip_ms": 9.302953999394958,
+        "pack_ms": 7.096987000295485
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 1,
+      "pack_ms": 7.2058919995470205,
+      "http_wall_ms": 65.17844199970568,
+      "unpack_ms": 1.8148020008084131,
+      "total_ms": 74.19913600006112,
+      "server": {
+        "body_receive_ms": 13.467261999721813,
+        "unpack_ms": 4.94493699989107,
+        "queue_ms": 0.0046020004447200336,
+        "ipc_roundtrip_ms": 9.058371999344672,
+        "pack_ms": 7.049297000776278
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 2,
+      "pack_ms": 6.8183869998392765,
+      "http_wall_ms": 65.08521500018105,
+      "unpack_ms": 3.7396990001070662,
+      "total_ms": 75.6433010001274,
+      "server": {
+        "body_receive_ms": 13.007247000132338,
+        "unpack_ms": 5.232699999396573,
+        "queue_ms": 0.004051000360050239,
+        "ipc_roundtrip_ms": 9.086050999940198,
+        "pack_ms": 7.0979199999783305
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 3,
+      "pack_ms": 7.258656999511004,
+      "http_wall_ms": 65.01723099972878,
+      "unpack_ms": 1.8884910004999256,
+      "total_ms": 74.16437899973971,
+      "server": {
+        "body_receive_ms": 12.994409999919299,
+        "unpack_ms": 5.139452000548772,
+        "queue_ms": 0.004083999556314666,
+        "ipc_roundtrip_ms": 9.189262999825587,
+        "pack_ms": 7.078139000441297
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 4,
+      "pack_ms": 6.9032949995744275,
+      "http_wall_ms": 66.54239999988931,
+      "unpack_ms": 3.7978270001985948,
+      "total_ms": 77.24352199966233,
+      "server": {
+        "body_receive_ms": 14.470036999227887,
+        "unpack_ms": 5.064936000053422,
+        "queue_ms": 0.0043970003389404155,
+        "ipc_roundtrip_ms": 9.151182000096014,
+        "pack_ms": 7.177382000008947
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 5,
+      "pack_ms": 7.304410000870121,
+      "http_wall_ms": 64.96739899921522,
+      "unpack_ms": 1.8507770000724122,
+      "total_ms": 74.12258600015775,
+      "server": {
+        "body_receive_ms": 13.032914000177698,
+        "unpack_ms": 5.095192999760911,
+        "queue_ms": 0.004121000529266894,
+        "ipc_roundtrip_ms": 9.069681999790191,
+        "pack_ms": 7.11268699978973
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 6,
+      "pack_ms": 6.664303999968979,
+      "http_wall_ms": 64.91381500018178,
+      "unpack_ms": 3.589433999877656,
+      "total_ms": 75.16755300002842,
+      "server": {
+        "body_receive_ms": 13.057105999905616,
+        "unpack_ms": 5.0680450003710575,
+        "queue_ms": 0.0037680001696571708,
+        "ipc_roundtrip_ms": 9.104019000005792,
+        "pack_ms": 7.048980999570631
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 7,
+      "pack_ms": 7.188297000539023,
+      "http_wall_ms": 82.32028399925184,
+      "unpack_ms": 1.9213109999327571,
+      "total_ms": 91.42989199972362,
+      "server": {
+        "body_receive_ms": 12.894087999484327,
+        "unpack_ms": 5.189797000639373,
+        "queue_ms": 0.0036649998946813866,
+        "ipc_roundtrip_ms": 9.052768999936234,
+        "pack_ms": 7.0745739994890755
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 8,
+      "pack_ms": 1.4838649994999287,
+      "http_wall_ms": 65.30839200058836,
+      "unpack_ms": 3.298949000054563,
+      "total_ms": 70.09120600014285,
+      "server": {
+        "body_receive_ms": 13.391858000431967,
+        "unpack_ms": 5.051997999544255,
+        "queue_ms": 0.003930999810108915,
+        "ipc_roundtrip_ms": 9.086791999834531,
+        "pack_ms": 7.140704999983427
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "repeat": 9,
+      "pack_ms": 6.043092000254546,
+      "http_wall_ms": 64.68318199949863,
+      "unpack_ms": 2.0894119998047245,
+      "total_ms": 72.8156859995579,
+      "server": {
+        "body_receive_ms": 12.784917000317364,
+        "unpack_ms": 5.008590999750595,
+        "queue_ms": 0.004415999683260452,
+        "ipc_roundtrip_ms": 9.059406000233139,
+        "pack_ms": 7.132515999728639
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 0,
+      "pack_ms": 32.86467199995968,
+      "http_wall_ms": 250.05707800028176,
+      "unpack_ms": 19.969506000052206,
+      "total_ms": 302.89125600029365,
+      "server": {
+        "body_receive_ms": 86.47878900046635,
+        "unpack_ms": 12.967585999831499,
+        "queue_ms": 0.004176999937044457,
+        "ipc_roundtrip_ms": 0.0004949997673975304,
+        "pack_ms": 33.0773349996889
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 1,
+      "pack_ms": 32.849809999788704,
+      "http_wall_ms": 247.2553780007729,
+      "unpack_ms": 19.959409999501077,
+      "total_ms": 300.0645980000627,
+      "server": {
+        "body_receive_ms": 83.88859300066542,
+        "unpack_ms": 12.615745999937644,
+        "queue_ms": 0.00415700014855247,
+        "ipc_roundtrip_ms": 0.00023399934434564784,
+        "pack_ms": 33.158814000671555
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 2,
+      "pack_ms": 32.9058890001761,
+      "http_wall_ms": 246.0838289998719,
+      "unpack_ms": 19.96376699935354,
+      "total_ms": 298.95348499940155,
+      "server": {
+        "body_receive_ms": 82.90948900048534,
+        "unpack_ms": 12.633649000235891,
+        "queue_ms": 0.004586999239108991,
+        "ipc_roundtrip_ms": 0.00027400074031902477,
+        "pack_ms": 33.166580999932194
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 3,
+      "pack_ms": 32.68219900019176,
+      "http_wall_ms": 247.5893349992475,
+      "unpack_ms": 19.997860000330547,
+      "total_ms": 300.2693939997698,
+      "server": {
+        "body_receive_ms": 84.10713199918973,
+        "unpack_ms": 12.721209000119416,
+        "queue_ms": 0.004386000000522472,
+        "ipc_roundtrip_ms": 0.0002430006134090945,
+        "pack_ms": 33.15940899938141
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 4,
+      "pack_ms": 32.984229999783565,
+      "http_wall_ms": 248.22663600025408,
+      "unpack_ms": 20.334492000074533,
+      "total_ms": 301.5453580001122,
+      "server": {
+        "body_receive_ms": 84.54234900000301,
+        "unpack_ms": 12.838712000302621,
+        "queue_ms": 0.003995999577455223,
+        "ipc_roundtrip_ms": 0.00023499978851759806,
+        "pack_ms": 33.189512000717514
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 5,
+      "pack_ms": 32.868766999854415,
+      "http_wall_ms": 247.103376999803,
+      "unpack_ms": 19.863674000589526,
+      "total_ms": 299.83581800024695,
+      "server": {
+        "body_receive_ms": 83.8022429998091,
+        "unpack_ms": 12.640259000363585,
+        "queue_ms": 0.004088999958185013,
+        "ipc_roundtrip_ms": 0.0002830001903930679,
+        "pack_ms": 33.209821000127704
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 6,
+      "pack_ms": 32.8467939998518,
+      "http_wall_ms": 247.40362200009258,
+      "unpack_ms": 19.92330800021591,
+      "total_ms": 300.1737240001603,
+      "server": {
+        "body_receive_ms": 83.88424199984001,
+        "unpack_ms": 12.656237000555848,
+        "queue_ms": 0.004120999619772192,
+        "ipc_roundtrip_ms": 0.0002420001692371443,
+        "pack_ms": 33.2185910001499
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 7,
+      "pack_ms": 32.858472999578225,
+      "http_wall_ms": 247.0105020001938,
+      "unpack_ms": 20.040786000208755,
+      "total_ms": 299.9097609999808,
+      "server": {
+        "body_receive_ms": 83.391104999464,
+        "unpack_ms": 12.864910000644159,
+        "queue_ms": 0.004312999408284668,
+        "ipc_roundtrip_ms": 0.000478999936603941,
+        "pack_ms": 33.287570000538835
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 8,
+      "pack_ms": 32.85539799981052,
+      "http_wall_ms": 244.8343650003153,
+      "unpack_ms": 19.9502149998807,
+      "total_ms": 297.6399780000065,
+      "server": {
+        "body_receive_ms": 81.64864500031399,
+        "unpack_ms": 12.705670000286773,
+        "queue_ms": 0.004773999535245821,
+        "ipc_roundtrip_ms": 0.0005640004019369371,
+        "pack_ms": 33.17065899955196
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "repeat": 9,
+      "pack_ms": 32.352172000173596,
+      "http_wall_ms": 241.63176899946848,
+      "unpack_ms": 19.873160000315693,
+      "total_ms": 293.85710099995777,
+      "server": {
+        "body_receive_ms": 80.6318539998756,
+        "unpack_ms": 12.433812000381295,
+        "queue_ms": 0.004535999323707074,
+        "ipc_roundtrip_ms": 0.0002780006980174221,
+        "pack_ms": 32.96950799995102
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 0,
+      "pack_ms": 33.017697999639495,
+      "http_wall_ms": 271.1557830007223,
+      "unpack_ms": 19.854326999848126,
+      "total_ms": 324.0278080002099,
+      "server": {
+        "body_receive_ms": 80.47697200072434,
+        "unpack_ms": 12.305010999625665,
+        "queue_ms": 0.015173000065260567,
+        "ipc_roundtrip_ms": 29.522150999582664,
+        "pack_ms": 32.63917100048275
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 1,
+      "pack_ms": 32.907474000239745,
+      "http_wall_ms": 271.03749199977756,
+      "unpack_ms": 19.96840400079236,
+      "total_ms": 323.91337000080966,
+      "server": {
+        "body_receive_ms": 81.38407499973255,
+        "unpack_ms": 12.345748000370804,
+        "queue_ms": 0.003964999450545292,
+        "ipc_roundtrip_ms": 29.806102000293322,
+        "pack_ms": 32.653803000357584
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 2,
+      "pack_ms": 32.85612399940874,
+      "http_wall_ms": 271.2636719998045,
+      "unpack_ms": 19.957260999944992,
+      "total_ms": 324.07705699915823,
+      "server": {
+        "body_receive_ms": 82.10850699924777,
+        "unpack_ms": 12.523389000307361,
+        "queue_ms": 0.004239999725541566,
+        "ipc_roundtrip_ms": 29.392356000244035,
+        "pack_ms": 32.5589169997329
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 3,
+      "pack_ms": 32.7541509996081,
+      "http_wall_ms": 270.7453130005888,
+      "unpack_ms": 19.737974999770813,
+      "total_ms": 323.2374389999677,
+      "server": {
+        "body_receive_ms": 81.07020300030854,
+        "unpack_ms": 12.209350999910384,
+        "queue_ms": 0.004143000296608079,
+        "ipc_roundtrip_ms": 29.199269999480748,
+        "pack_ms": 32.64179500001774
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 4,
+      "pack_ms": 32.73859000000812,
+      "http_wall_ms": 270.9437670000625,
+      "unpack_ms": 19.986090999736916,
+      "total_ms": 323.66844799980754,
+      "server": {
+        "body_receive_ms": 81.53772400055459,
+        "unpack_ms": 12.333136999586714,
+        "queue_ms": 0.004063999767822679,
+        "ipc_roundtrip_ms": 29.808273000526242,
+        "pack_ms": 32.53253399998357
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 5,
+      "pack_ms": 32.889608000004955,
+      "http_wall_ms": 270.12572300009197,
+      "unpack_ms": 19.993979999526346,
+      "total_ms": 323.00931099962327,
+      "server": {
+        "body_receive_ms": 81.38598099958472,
+        "unpack_ms": 12.272644000404398,
+        "queue_ms": 0.004423999598657247,
+        "ipc_roundtrip_ms": 29.312717000721022,
+        "pack_ms": 32.518469999558874
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 6,
+      "pack_ms": 32.85433900055068,
+      "http_wall_ms": 271.75854300003266,
+      "unpack_ms": 21.518524999919464,
+      "total_ms": 326.1314070005028,
+      "server": {
+        "body_receive_ms": 81.41149099992617,
+        "unpack_ms": 12.249313999745937,
+        "queue_ms": 0.004579000233206898,
+        "ipc_roundtrip_ms": 29.558025000369526,
+        "pack_ms": 32.501619999493414
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 7,
+      "pack_ms": 32.87844199985557,
+      "http_wall_ms": 350.09896400060825,
+      "unpack_ms": 11.36226499966142,
+      "total_ms": 394.33967100012524,
+      "server": {
+        "body_receive_ms": 82.17939699989074,
+        "unpack_ms": 12.213910999889777,
+        "queue_ms": 0.004014999831269961,
+        "ipc_roundtrip_ms": 29.176302999985637,
+        "pack_ms": 32.8223930000604
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 8,
+      "pack_ms": 33.19438500057004,
+      "http_wall_ms": 270.9990919993288,
+      "unpack_ms": 19.722889000149735,
+      "total_ms": 323.9163660000486,
+      "server": {
+        "body_receive_ms": 81.29816800010303,
+        "unpack_ms": 12.17332299984264,
+        "queue_ms": 0.004472999535209965,
+        "ipc_roundtrip_ms": 29.197810000368918,
+        "pack_ms": 32.58881100009603
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "repeat": 9,
+      "pack_ms": 33.07210799994209,
+      "http_wall_ms": 269.5572459997493,
+      "unpack_ms": 12.789391000296746,
+      "total_ms": 315.4187449999881,
+      "server": {
+        "body_receive_ms": 80.87583700034884,
+        "unpack_ms": 12.265290999494027,
+        "queue_ms": 0.0043280006138957106,
+        "ipc_roundtrip_ms": 29.307777999747486,
+        "pack_ms": 32.53777400004765
+      }
+    }
+  ],
+  "summary": [
+    {
+      "bytes_each_direction": 8192,
+      "ipc": false,
+      "n": 10,
+      "pack_ms": 0.027194599806534825,
+      "http_wall_ms": 10.722374400120316,
+      "unpack_ms": 0.031405899972014595,
+      "total_ms": 10.780974899898865,
+      "server": {
+        "body_receive_ms": 0.02454350005791639,
+        "unpack_ms": 0.02888550006900914,
+        "queue_ms": 0.001397500091115944,
+        "ipc_roundtrip_ms": 0.00017489992387709208,
+        "pack_ms": 0.03392730013729306
+      }
+    },
+    {
+      "bytes_each_direction": 8192,
+      "ipc": true,
+      "n": 10,
+      "pack_ms": 0.024813099935272476,
+      "http_wall_ms": 10.770526799933577,
+      "unpack_ms": 0.029223999990790617,
+      "total_ms": 10.82456389985964,
+      "server": {
+        "body_receive_ms": 0.02383800001553027,
+        "unpack_ms": 0.028812300115532707,
+        "queue_ms": 0.001124400023400085,
+        "ipc_roundtrip_ms": 0.130390200047259,
+        "pack_ms": 0.02453539982525399
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": false,
+      "n": 10,
+      "pack_ms": 0.025989400091930293,
+      "http_wall_ms": 10.66824749996158,
+      "unpack_ms": 0.0313178001306369,
+      "total_ms": 10.725554700184148,
+      "server": {
+        "body_receive_ms": 0.02835609984686016,
+        "unpack_ms": 0.02577379991635098,
+        "queue_ms": 0.0009651999789639376,
+        "ipc_roundtrip_ms": 0.00013770013538305648,
+        "pack_ms": 0.02142309976989054
+      }
+    },
+    {
+      "bytes_each_direction": 32768,
+      "ipc": true,
+      "n": 10,
+      "pack_ms": 0.026636000166035956,
+      "http_wall_ms": 10.805461199834099,
+      "unpack_ms": 0.03140720018564025,
+      "total_ms": 10.863504400185775,
+      "server": {
+        "body_receive_ms": 0.02890699979616329,
+        "unpack_ms": 0.02648800009410479,
+        "queue_ms": 0.0010427000233903527,
+        "ipc_roundtrip_ms": 0.12227809993419214,
+        "pack_ms": 0.021525899956031935
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": false,
+      "n": 10,
+      "pack_ms": 1.552253400132031,
+      "http_wall_ms": 20.761311600108456,
+      "unpack_ms": 0.8096440998087928,
+      "total_ms": 23.12320910004928,
+      "server": {
+        "body_receive_ms": 3.019516000040312,
+        "unpack_ms": 1.6100304998872161,
+        "queue_ms": 0.0029444000574585516,
+        "ipc_roundtrip_ms": 0.0002746001882769633,
+        "pack_ms": 1.7827723998379952
+      }
+    },
+    {
+      "bytes_each_direction": 4194304,
+      "ipc": true,
+      "n": 10,
+      "pack_ms": 1.5018871999018302,
+      "http_wall_ms": 24.318388099982258,
+      "unpack_ms": 0.7931647000987141,
+      "total_ms": 26.613439999982802,
+      "server": {
+        "body_receive_ms": 2.9838732000825985,
+        "unpack_ms": 1.5443361999132321,
+        "queue_ms": 0.003171199932694435,
+        "ipc_roundtrip_ms": 2.8167425001811353,
+        "pack_ms": 1.7784997998205654
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": false,
+      "n": 10,
+      "pack_ms": 6.973021900193999,
+      "http_wall_ms": 55.89968129988847,
+      "unpack_ms": 2.9996594998920045,
+      "total_ms": 65.87236269997447,
+      "server": {
+        "body_receive_ms": 13.733981700079312,
+        "unpack_ms": 4.595545900156139,
+        "queue_ms": 0.0040502000047126785,
+        "ipc_roundtrip_ms": 0.00040289996832143515,
+        "pack_ms": 7.080487399889535
+      }
+    },
+    {
+      "bytes_each_direction": 16777216,
+      "ipc": true,
+      "n": 10,
+      "pack_ms": 6.348347499988449,
+      "http_wall_ms": 67.149856299784,
+      "unpack_ms": 2.775791700150876,
+      "total_ms": 76.27399549992333,
+      "server": {
+        "body_receive_ms": 13.375452399941423,
+        "unpack_ms": 5.14617509998061,
+        "queue_ms": 0.005035600133851403,
+        "ipc_roundtrip_ms": 9.116048999840132,
+        "pack_ms": 7.100918800006184
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": false,
+      "n": 10,
+      "pack_ms": 32.80684039991684,
+      "http_wall_ms": 246.71958910003013,
+      "unpack_ms": 19.98761780005225,
+      "total_ms": 299.5140472999992,
+      "server": {
+        "body_receive_ms": 83.52844410001126,
+        "unpack_ms": 12.707779000265873,
+        "queue_ms": 0.004313599674787838,
+        "ipc_roundtrip_ms": 0.0003327001650177408,
+        "pack_ms": 33.1607800000711
+      }
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "ipc": true,
+      "n": 10,
+      "pack_ms": 32.91629189998275,
+      "http_wall_ms": 278.76855950007666,
+      "unpack_ms": 18.489110799964692,
+      "total_ms": 330.1739622000241,
+      "server": {
+        "body_receive_ms": 81.37283550004213,
+        "unpack_ms": 12.28911189991777,
+        "queue_ms": 0.005340399911801796,
+        "ipc_roundtrip_ms": 29.42807850013196,
+        "pack_ms": 32.59952879998309
+      }
+    }
+  ],
+  "scope": "CPU tensor echo; no GPU compute. Server phases nest inside client HTTP wall. One unmeasured warmup per size/mode.",
+  "concurrent_rows": [
+    {
+      "bytes_each_direction": 8192,
+      "inflight": 2,
+      "repeat": 0,
+      "requests": [
+        {
+          "http_wall_ms": 11.642677000054391,
+          "server": {
+            "body_receive_ms": 0.3719059996001306,
+            "unpack_ms": 0.029806000384269282,
+            "queue_ms": 0.26103899926965823,
+            "ipc_roundtrip_ms": 0.16318000052706338,
+            "pack_ms": 0.02203699932579184
+          }
+        },
+        {
+          "http_wall_ms": 11.041311000553833,
+          "server": {
+            "body_receive_ms": 0.03246199958084617,
+            "unpack_ms": 0.03378099972906057,
+            "queue_ms": 0.0011520005500642583,
+            "ipc_roundtrip_ms": 0.24537399986002129,
+            "pack_ms": 0.031216000024869572
+          }
+        }
+      ],
+      "group_wall_ms": 12.135204000514932,
+      "aggregate_payload_gbps": 0.021601944226802984
+    },
+    {
+      "bytes_each_direction": 8192,
+      "inflight": 2,
+      "repeat": 1,
+      "requests": [
+        {
+          "http_wall_ms": 11.514462000377534,
+          "server": {
+            "body_receive_ms": 0.33847400027298136,
+            "unpack_ms": 0.025538000045344234,
+            "queue_ms": 0.2369679996263585,
+            "ipc_roundtrip_ms": 0.15605699991283473,
+            "pack_ms": 0.022479000108432956
+          }
+        },
+        {
+          "http_wall_ms": 10.94053500037262,
+          "server": {
+            "body_receive_ms": 0.03220899998268578,
+            "unpack_ms": 0.032159000511455815,
+            "queue_ms": 0.007308999556698836,
+            "ipc_roundtrip_ms": 0.21206299970799591,
+            "pack_ms": 0.027419000616646372
+          }
+        }
+      ],
+      "group_wall_ms": 12.00829400022485,
+      "aggregate_payload_gbps": 0.0218302449952584
+    },
+    {
+      "bytes_each_direction": 8192,
+      "inflight": 2,
+      "repeat": 2,
+      "requests": [
+        {
+          "http_wall_ms": 11.451349999333615,
+          "server": {
+            "body_receive_ms": 0.32522499986953335,
+            "unpack_ms": 0.06909600051585585,
+            "queue_ms": 0.19225999949412653,
+            "ipc_roundtrip_ms": 0.15791199984960258,
+            "pack_ms": 0.023041000531520694
+          }
+        },
+        {
+          "http_wall_ms": 10.897089000536653,
+          "server": {
+            "body_receive_ms": 0.029534999157476705,
+            "unpack_ms": 0.03183900025760522,
+            "queue_ms": 0.0027880005291081034,
+            "ipc_roundtrip_ms": 0.2099899993481813,
+            "pack_ms": 0.026747999982035253
+          }
+        }
+      ],
+      "group_wall_ms": 11.911579999832611,
+      "aggregate_payload_gbps": 0.022007491869565902
+    },
+    {
+      "bytes_each_direction": 8192,
+      "inflight": 4,
+      "repeat": 0,
+      "requests": [
+        {
+          "http_wall_ms": 12.136861999351822,
+          "server": {
+            "body_receive_ms": 0.7707380000283592,
+            "unpack_ms": 0.027797000257123727,
+            "queue_ms": 0.2941169996120152,
+            "ipc_roundtrip_ms": 0.1625949998924625,
+            "pack_ms": 0.025098000151047017
+          }
+        },
+        {
+          "http_wall_ms": 12.67260599979636,
+          "server": {
+            "body_receive_ms": 0.4929939996145549,
+            "unpack_ms": 0.02146800034097396,
+            "queue_ms": 0.6581889992958168,
+            "ipc_roundtrip_ms": 0.1398720005454379,
+            "pack_ms": 0.019828999938908964
+          }
+        },
+        {
+          "http_wall_ms": 11.31243399959203,
+          "server": {
+            "body_receive_ms": 0.21468599970830837,
+            "unpack_ms": 0.03148900032101665,
+            "queue_ms": 0.0020380002752062865,
+            "ipc_roundtrip_ms": 0.3971480000473093,
+            "pack_ms": 0.02603699977044016
+          }
+        },
+        {
+          "http_wall_ms": 11.74990399977105,
+          "server": {
+            "body_receive_ms": 0.006551999831572175,
+            "unpack_ms": 0.01924800017150119,
+            "queue_ms": 0.46286399992823135,
+            "ipc_roundtrip_ms": 0.14553599976352416,
+            "pack_ms": 0.021847999960300513
+          }
+        }
+      ],
+      "group_wall_ms": 13.84084100027394,
+      "aggregate_payload_gbps": 0.03787977912538864
+    },
+    {
+      "bytes_each_direction": 8192,
+      "inflight": 4,
+      "repeat": 1,
+      "requests": [
+        {
+          "http_wall_ms": 11.375580999811064,
+          "server": {
+            "body_receive_ms": 0.4940270000588498,
+            "unpack_ms": 0.029867000193917193,
+            "queue_ms": 0.0019419994714553468,
+            "ipc_roundtrip_ms": 0.21283100068103522,
+            "pack_ms": 0.025871999241644517
+          }
+        },
+        {
+          "http_wall_ms": 11.60334700034582,
+          "server": {
+            "body_receive_ms": 0.3636419996837503,
+            "unpack_ms": 0.04806600009032991,
+            "queue_ms": 0.23161799981608056,
+            "ipc_roundtrip_ms": 0.2925930002675159,
+            "pack_ms": 0.02544899962231284
+          }
+        },
+        {
+          "http_wall_ms": 12.040421000165225,
+          "server": {
+            "body_receive_ms": 0.5222930003583315,
+            "unpack_ms": 0.019221999536966905,
+            "queue_ms": 0.4636920002667466,
+            "ipc_roundtrip_ms": 0.14697400001750793,
+            "pack_ms": 0.02017600036197109
+          }
+        },
+        {
+          "http_wall_ms": 11.375367999789887,
+          "server": {
+            "body_receive_ms": 0.007886999810580164,
+            "unpack_ms": 0.02765600038401317,
+            "queue_ms": 0.2694240001801518,
+            "ipc_roundtrip_ms": 0.14769399967917707,
+            "pack_ms": 0.022246999833441805
+          }
+        }
+      ],
+      "group_wall_ms": 13.270439999359951,
+      "aggregate_payload_gbps": 0.039507959044710425
+    },
+    {
+      "bytes_each_direction": 8192,
+      "inflight": 4,
+      "repeat": 2,
+      "requests": [
+        {
+          "http_wall_ms": 11.14208199942368,
+          "server": {
+            "body_receive_ms": 0.02776099972834345,
+            "unpack_ms": 0.028424999982235022,
+            "queue_ms": 0.0019379995137569495,
+            "ipc_roundtrip_ms": 0.15351900037785526,
+            "pack_ms": 0.024232000214396976
+          }
+        },
+        {
+          "http_wall_ms": 11.902438999641163,
+          "server": {
+            "body_receive_ms": 0.2748850001808023,
+            "unpack_ms": 0.02208600017183926,
+            "queue_ms": 0.2562529998613172,
+            "ipc_roundtrip_ms": 0.16024199976527598,
+            "pack_ms": 0.02180600040446734
+          }
+        },
+        {
+          "http_wall_ms": 11.37397599995893,
+          "server": {
+            "body_receive_ms": 0.05155400049261516,
+            "unpack_ms": 0.026789999537868425,
+            "queue_ms": 0.0019440003597992472,
+            "ipc_roundtrip_ms": 0.2705119995880523,
+            "pack_ms": 0.023522999981651083
+          }
+        },
+        {
+          "http_wall_ms": 11.740560000362166,
+          "server": {
+            "body_receive_ms": 0.10176799969485728,
+            "unpack_ms": 0.018929000361822546,
+            "queue_ms": 0.4038219994981773,
+            "ipc_roundtrip_ms": 0.14072100020712242,
+            "pack_ms": 0.019455999790807255
+          }
+        }
+      ],
+      "group_wall_ms": 13.130611000633508,
+      "aggregate_payload_gbps": 0.039928682677044115
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "inflight": 2,
+      "repeat": 0,
+      "requests": [
+        {
+          "http_wall_ms": 442.56315500024357,
+          "server": {
+            "body_receive_ms": 222.00705599971116,
+            "unpack_ms": 19.501945999763848,
+            "queue_ms": 0.006832000508438796,
+            "ipc_roundtrip_ms": 33.073978000174975,
+            "pack_ms": 32.857094000064535
+          }
+        },
+        {
+          "http_wall_ms": 362.02597500050615,
+          "server": {
+            "body_receive_ms": 124.645789999704,
+            "unpack_ms": 18.72403099969233,
+            "queue_ms": 0.008239000635512639,
+            "ipc_roundtrip_ms": 30.553786999917065,
+            "pack_ms": 32.81890400012344
+          }
+        }
+      ],
+      "group_wall_ms": 958.8723329998174,
+      "aggregate_payload_gbps": 2.2395928781067553
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "inflight": 2,
+      "repeat": 1,
+      "requests": [
+        {
+          "http_wall_ms": 414.5779249993211,
+          "server": {
+            "body_receive_ms": 157.65947900035826,
+            "unpack_ms": 18.550477999269788,
+            "queue_ms": 0.007060000825731549,
+            "ipc_roundtrip_ms": 45.449405999534065,
+            "pack_ms": 32.697444000405085
+          }
+        },
+        {
+          "http_wall_ms": 461.4475680000396,
+          "server": {
+            "body_receive_ms": 183.4421490002569,
+            "unpack_ms": 18.900035999649845,
+            "queue_ms": 60.79688500085467,
+            "ipc_roundtrip_ms": 30.163806999553344,
+            "pack_ms": 32.8543659998104
+          }
+        }
+      ],
+      "group_wall_ms": 978.4377639998638,
+      "aggregate_payload_gbps": 2.194808629647597
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "inflight": 2,
+      "repeat": 2,
+      "requests": [
+        {
+          "http_wall_ms": 419.4785839999895,
+          "server": {
+            "body_receive_ms": 165.54209600053582,
+            "unpack_ms": 18.726635999883,
+            "queue_ms": 0.021900999854551628,
+            "ipc_roundtrip_ms": 45.134697999856144,
+            "pack_ms": 32.73990599973331
+          }
+        },
+        {
+          "http_wall_ms": 469.68612399996346,
+          "server": {
+            "body_receive_ms": 190.90750600025785,
+            "unpack_ms": 19.163438999385107,
+            "queue_ms": 60.78356700072618,
+            "ipc_roundtrip_ms": 30.203660999177373,
+            "pack_ms": 33.268488999965484
+          }
+        }
+      ],
+      "group_wall_ms": 988.4508889999779,
+      "aggregate_payload_gbps": 2.1725749573381665
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "inflight": 4,
+      "repeat": 0,
+      "requests": [
+        {
+          "http_wall_ms": 614.8978270002772,
+          "server": {
+            "body_receive_ms": 330.0599459998921,
+            "unpack_ms": 18.50029699926381,
+            "queue_ms": 0.007317000381590333,
+            "ipc_roundtrip_ms": 66.4048990001902,
+            "pack_ms": 32.420863999504945
+          }
+        },
+        {
+          "http_wall_ms": 706.8618759994933,
+          "server": {
+            "body_receive_ms": 357.7164019998236,
+            "unpack_ms": 18.716363999374153,
+            "queue_ms": 80.57757799997489,
+            "ipc_roundtrip_ms": 45.89317400041182,
+            "pack_ms": 32.71249899989925
+          }
+        },
+        {
+          "http_wall_ms": 852.7560810007344,
+          "server": {
+            "body_receive_ms": 464.30539100038004,
+            "unpack_ms": 18.687308999687957,
+            "queue_ms": 149.9663889999283,
+            "ipc_roundtrip_ms": 32.45357500054524,
+            "pack_ms": 33.54633799972362
+          }
+        },
+        {
+          "http_wall_ms": 778.6402150004506,
+          "server": {
+            "body_receive_ms": 376.4599320002162,
+            "unpack_ms": 19.0802100005385,
+            "queue_ms": 155.19440799926087,
+            "ipc_roundtrip_ms": 33.175012999890896,
+            "pack_ms": 33.53895600048418
+          }
+        }
+      ],
+      "group_wall_ms": 1382.5623859993357,
+      "aggregate_payload_gbps": 3.1065269383092153
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "inflight": 4,
+      "repeat": 1,
+      "requests": [
+        {
+          "http_wall_ms": 574.9540540000453,
+          "server": {
+            "body_receive_ms": 309.91373599954386,
+            "unpack_ms": 19.104097000308684,
+            "queue_ms": 0.006939999366295524,
+            "ipc_roundtrip_ms": 45.78960600065329,
+            "pack_ms": 32.43017899967526
+          }
+        },
+        {
+          "http_wall_ms": 668.9044169997942,
+          "server": {
+            "body_receive_ms": 335.2491599998757,
+            "unpack_ms": 19.24482899994473,
+            "queue_ms": 61.817286999939824,
+            "ipc_roundtrip_ms": 31.27708200008783,
+            "pack_ms": 32.89808099998481
+          }
+        },
+        {
+          "http_wall_ms": 841.0544190001019,
+          "server": {
+            "body_receive_ms": 536.6122160003215,
+            "unpack_ms": 19.159374999617285,
+            "queue_ms": 72.56400500045856,
+            "ipc_roundtrip_ms": 32.097309999699064,
+            "pack_ms": 36.13204900011624
+          }
+        },
+        {
+          "http_wall_ms": 777.9857090008591,
+          "server": {
+            "body_receive_ms": 505.20932899962645,
+            "unpack_ms": 21.219068000391417,
+            "queue_ms": 0.007731999176030513,
+            "ipc_roundtrip_ms": 56.5836150008181,
+            "pack_ms": 32.61278999980277
+          }
+        }
+      ],
+      "group_wall_ms": 1386.421825999605,
+      "aggregate_payload_gbps": 3.097879170290286
+    },
+    {
+      "bytes_each_direction": 67108864,
+      "inflight": 4,
+      "repeat": 2,
+      "requests": [
+        {
+          "http_wall_ms": 586.7922279994673,
+          "server": {
+            "body_receive_ms": 297.80428599951847,
+            "unpack_ms": 18.855297000300197,
+            "queue_ms": 0.007681999704800546,
+            "ipc_roundtrip_ms": 47.727776000101585,
+            "pack_ms": 32.61721299986675
+          }
+        },
+        {
+          "http_wall_ms": 660.2226049999445,
+          "server": {
+            "body_receive_ms": 325.06027599993104,
+            "unpack_ms": 19.304058999296103,
+            "queue_ms": 61.70844999996916,
+            "ipc_roundtrip_ms": 32.03414800009341,
+            "pack_ms": 33.095077000325546
+          }
+        },
+        {
+          "http_wall_ms": 823.6360229993807,
+          "server": {
+            "body_receive_ms": 520.2823520003221,
+            "unpack_ms": 19.664497000121628,
+            "queue_ms": 73.97153199963213,
+            "ipc_roundtrip_ms": 32.21855500032689,
+            "pack_ms": 33.4558989998186
+          }
+        },
+        {
+          "http_wall_ms": 761.0623029995622,
+          "server": {
+            "body_receive_ms": 492.079024999839,
+            "unpack_ms": 22.38158199997997,
+            "queue_ms": 0.007044000085443258,
+            "ipc_roundtrip_ms": 52.61208499996428,
+            "pack_ms": 33.312399000351434
+          }
+        }
+      ],
+      "group_wall_ms": 1355.2619369993408,
+      "aggregate_payload_gbps": 3.169104937389007
+    }
+  ],
+  "tcp": "State      Recv-Q Send-Q      Local Address:Port        Peer Address:Port Process                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     \nESTAB      0      0               127.0.0.1:51405          127.0.0.1:55856\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.009/0.004 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:960 bytes_acked:960 bytes_received:564 segs_out:56 segs_in:89 data_segs_out:24 data_segs_in:74 send 291271111111bps lastsnd:1118779 lastrcv:1118781 lastack:1118779 pacing_rate 530924556960bps delivery_rate 87381333328bps delivered:25 app_limited busy:1ms rcv_space:65483 rcv_ssthresh:65483 minrtt:0.003 snd_wnd:65536                                                                                                                                            \nESTAB      0      0               127.0.0.1:60606          127.0.0.1:49177\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.365/0.532 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:15 bytes_sent:380 bytes_acked:381 bytes_received:640 segs_out:61 segs_in:37 data_segs_out:50 data_segs_in:16 send 10773041096bps lastsnd:1126178 lastrcv:1126177 lastack:1126177 pacing_rate 21494554144bps delivery_rate 98304000000bps delivered:51 app_limited busy:7ms rcv_space:65495 rcv_ssthresh:65495 minrtt:0.003 snd_wnd:65536                                                                                                                                              \nESTAB      0      0               127.0.0.1:39417          127.0.0.1:38664\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.004/0.002 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:32 bytes_acked:32 bytes_received:60 segs_out:10 segs_in:12 data_segs_out:2 data_segs_in:8 send 655360000000bps lastsnd:1118805 lastrcv:1118805 lastack:1118805 pacing_rate 1198372571424bps delivery_rate 74898285712bps delivered:3 app_limited rcv_space:65483 rcv_ssthresh:65483 minrtt:0.004 snd_wnd:65536                                                                                                                                                          \nESTAB      0      0               127.0.0.1:46849          127.0.0.1:49374\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:200 rtt:0.009/0.004 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_received:8 segs_out:1 segs_in:3 data_segs_in:1 send 291271111111bps lastsnd:1126153 lastrcv:1126153 lastack:1126153 pacing_rate 582542222216bps delivered:1 app_limited rcv_space:65483 rcv_ssthresh:65483 minrtt:0.009 snd_wnd:65536                                                                                                                                                                                                                                        \nESTAB      0      0               127.0.0.1:56070          127.0.0.1:44907\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.011/0.004 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:544 bytes_acked:545 bytes_received:667 segs_out:19 segs_in:18 data_segs_out:12 data_segs_in:13 send 238312727273bps lastsnd:1126336 lastrcv:1126336 lastack:1126336 pacing_rate 455902608688bps delivery_rate 47662545448bps delivered:13 app_limited rcv_space:65495 rcv_ssthresh:65495 minrtt:0.004 snd_wnd:65536                                                                                                                                                     \nESTAB      0      0               127.0.0.1:38652          127.0.0.1:39417\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.599/0.986 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:15 bytes_sent:564 bytes_acked:565 bytes_received:960 segs_out:89 segs_in:52 data_segs_out:74 data_segs_in:24 send 6564540902bps lastsnd:1118782 lastrcv:1118780 lastack:1118780 pacing_rate 13120867568bps delivery_rate 131072000000bps delivered:75 app_limited busy:11ms rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:65536                                                                                                                                             \nESTAB      0      0               127.0.0.1:60447          127.0.0.1:42914\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.009/0.003 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:640 bytes_acked:640 bytes_received:380 segs_out:37 segs_in:61 data_segs_out:16 data_segs_in:50 send 291271111111bps lastsnd:1126177 lastrcv:1126178 lastack:1126177 pacing_rate 566797837832bps delivery_rate 87381333328bps delivered:17 app_limited rcv_space:65483 rcv_ssthresh:65483 minrtt:0.003 snd_wnd:65536                                                                                                                                                     \nESTAB      0      0               127.0.0.1:49177          127.0.0.1:60608\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.004/0.002 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:32 bytes_acked:32 bytes_received:60 segs_out:10 segs_in:12 data_segs_out:2 data_segs_in:8 send 655360000000bps lastsnd:1126178 lastrcv:1126178 lastack:1126178 pacing_rate 1198372571424bps delivery_rate 74898285712bps delivered:3 app_limited rcv_space:65483 rcv_ssthresh:65483 minrtt:0.004 snd_wnd:65536                                                                                                                                                          \nESTAB      0      0               127.0.0.1:55856          127.0.0.1:51405\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.537/0.915 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:14 bytes_sent:564 bytes_acked:565 bytes_received:960 segs_out:89 segs_in:57 data_segs_out:74 data_segs_in:24 send 6834294227bps lastsnd:1118783 lastrcv:1118781 lastack:1118781 pacing_rate 13649524872bps delivery_rate 131072000000bps delivered:75 app_limited busy:11ms rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:65536                                                                                                                                             \nESTAB      0      0               127.0.0.1:50153          127.0.0.1:38494\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:200 rtt:0.005/0.002 ato:44 mss:32768 pmtu:65535 rcvmss:2288 advmss:65483 cwnd:10 bytes_received:2558 segs_out:10 segs_in:12 data_segs_in:10 send 524288000000bps lastsnd:1118848 lastrcv:1118793 lastack:1118793 pacing_rate 1048576000000bps delivered:1 app_limited rcv_space:65483 rcv_ssthresh:89876 minrtt:0.005 snd_wnd:65536                                                                                                                                                                                                                                \nESTAB      0      0               127.0.0.1:42916          127.0.0.1:60447\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.003/0.001 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:60 bytes_acked:61 bytes_received:32 segs_out:12 segs_in:11 data_segs_out:8 data_segs_in:2 send 873813333333bps lastsnd:1126178 lastrcv:1126178 lastack:1126178 pacing_rate 1353001290320bps delivery_rate 131072000000bps delivered:9 app_limited rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:65536                                                                                                                                                         \nESTAB      0      0               127.0.0.1:44907          127.0.0.1:56070\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.057/0.082 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:667 bytes_acked:667 bytes_received:544 segs_out:17 segs_in:19 data_segs_out:13 data_segs_in:12 send 45990175439bps lastsnd:1126337 lastrcv:1126337 lastack:1126337 pacing_rate 91379172112bps delivery_rate 87381333328bps delivered:14 app_limited busy:1ms rcv_space:65483 rcv_ssthresh:65483 minrtt:0.003 snd_wnd:65536                                                                                                                                              \nESTAB      0      0               127.0.0.1:60608          127.0.0.1:49177\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.003/0 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:60 bytes_acked:61 bytes_received:32 segs_out:12 segs_in:11 data_segs_out:8 data_segs_in:2 send 873813333333bps lastsnd:1126179 lastrcv:1126179 lastack:1126179 pacing_rate 1553445925920bps delivery_rate 131072000000bps delivered:9 app_limited rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:65536                                                                                                                                                             \nCLOSE-WAIT 1      0              10.205.0.1:59068         10.205.0.2:8001 \n\t skmem:(r960,rb131072,t0,tb2619904,f3136,w0,o0,bl0,d0) cubic wscale:7,7 rto:211 rtt:10.014/2.818 ato:40 mss:1448 pmtu:1500 rcvmss:536 advmss:1448 cwnd:10 bytes_sent:353 bytes_acked:354 bytes_received:156 segs_out:6 segs_in:5 data_segs_out:2 data_segs_in:1 send 11567805bps lastsnd:159179 lastrcv:159169 lastack:154169 pacing_rate 23133872bps delivery_rate 2308712bps delivered:3 app_limited busy:10ms reordering:300 rcv_space:14480 rcv_ssthresh:64088 minrtt:10.01 snd_wnd:64896                                                                                                                                             \nESTAB      0      0               127.0.0.1:39905          127.0.0.1:38562\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.131/0.235 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:680 bytes_acked:680 bytes_received:1371 segs_out:22 segs_in:25 data_segs_out:14 data_segs_in:20 send 20010992366bps lastsnd:1126160 lastrcv:1126160 lastack:1126160 pacing_rate 39945752376bps delivery_rate 60494769224bps delivered:15 app_limited busy:1ms rcv_space:65483 rcv_ssthresh:65483 minrtt:0.005 snd_wnd:65536                                                                                                                                             \nESTAB      0      0               127.0.0.1:39417          127.0.0.1:38652\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.009/0.003 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:960 bytes_acked:960 bytes_received:564 segs_out:51 segs_in:89 data_segs_out:24 data_segs_in:74 send 291271111111bps lastsnd:1118783 lastrcv:1118785 lastack:1118783 pacing_rate 530924556960bps delivery_rate 131072000000bps delivered:25 app_limited rcv_space:65483 rcv_ssthresh:65483 minrtt:0.002 snd_wnd:65536                                                                                                                                                    \nESTAB      0      0               127.0.0.1:51405          127.0.0.1:55862\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.003/0.001 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:32 bytes_acked:32 bytes_received:60 segs_out:10 segs_in:12 data_segs_out:2 data_segs_in:8 send 873813333333bps lastsnd:1118808 lastrcv:1118808 lastack:1118808 pacing_rate 1353001290320bps delivery_rate 87381333328bps delivered:3 app_limited rcv_space:65483 rcv_ssthresh:65483 minrtt:0.003 snd_wnd:65536                                                                                                                                                          \nESTAB      0      0               127.0.0.1:51601          127.0.0.1:46070\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:200 rtt:0.005/0.002 ato:45 mss:32768 pmtu:65535 rcvmss:2288 advmss:65483 cwnd:10 bytes_received:2558 segs_out:10 segs_in:12 data_segs_in:10 send 524288000000bps lastsnd:1126209 lastrcv:1126168 lastack:1126168 pacing_rate 1048576000000bps delivered:1 app_limited rcv_space:65483 rcv_ssthresh:89876 minrtt:0.005 snd_wnd:65536                                                                                                                                                                                                                                \nESTAB      0      0               127.0.0.1:38653          127.0.0.1:59442\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:200 rtt:0.006/0.003 ato:44 mss:32768 pmtu:65535 rcvmss:2288 advmss:65483 cwnd:10 bytes_received:2558 segs_out:10 segs_in:12 data_segs_in:10 send 436906666667bps lastsnd:1126210 lastrcv:1126169 lastack:1126169 pacing_rate 873813333328bps delivered:1 app_limited rcv_rtt:3 rcv_space:65483 rcv_ssthresh:89876 minrtt:0.006 snd_wnd:65536                                                                                                                                                                                                                       \nESTAB      0      0               127.0.0.1:38562          127.0.0.1:39905\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:206 rtt:5.062/10.078 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:1371 bytes_acked:1372 bytes_received:680 segs_out:25 segs_in:23 data_segs_out:20 data_segs_in:14 send 517866456bps lastsnd:1126161 lastrcv:1126161 lastack:1126120 pacing_rate 1035605040bps delivery_rate 47662545448bps delivered:21 app_limited busy:42ms rcv_space:65495 rcv_ssthresh:65495 minrtt:0.004 snd_wnd:65536                                                                                                                                             \nESTAB      0      0               127.0.0.1:38494          127.0.0.1:50153\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.004/0.001 mss:44992 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:2558 bytes_acked:2559 segs_out:12 segs_in:11 data_segs_out:10 send 899840000000bps lastsnd:1118797 lastrcv:1118852 lastack:1118797 pacing_rate 1745144242424bps delivery_rate 179968000000bps delivered:11 app_limited rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:89984                                                                                                                                                                                           \nESTAB      0      0               127.0.0.1:55862          127.0.0.1:51405\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.003/0.001 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:60 bytes_acked:61 bytes_received:32 segs_out:12 segs_in:11 data_segs_out:8 data_segs_in:2 send 873813333333bps lastsnd:1118810 lastrcv:1118810 lastack:1118810 pacing_rate 1398101333328bps delivery_rate 131072000000bps delivered:9 app_limited rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:65536                                                                                                                                                         \nESTAB      0      0              10.205.0.1:45334         10.205.0.2:8099 \n\t skmem:(r0,rb33554432,t0,tb33554432,f0,w0,o0,bl0,d0) cubic wscale:8,8 rto:214 rtt:13.806/0.184 ato:40 mss:1448 pmtu:1500 rcvmss:1448 advmss:1448 cwnd:6046 ssthresh:3916 bytes_sent:268470688 bytes_acked:268470689 bytes_received:268471844 segs_out:189030 segs_in:186421 data_segs_out:185416 data_segs_in:185445 send 5072929451bps lastsnd:1132 lastrcv:639 lastack:639 pacing_rate 6087294880bps delivery_rate 4428828048bps delivered:185417 busy:1660ms reordering:300 rcv_rtt:14.987 rcv_space:16776960 rcv_ssthresh:25155330 minrtt:10.005 snd_wnd:16776960                                                                     \nESTAB      0      0               127.0.0.1:35308          127.0.0.1:50053\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:202 rtt:1.353/2.669 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:67572 bytes_acked:67573 bytes_received:67516 segs_out:3387 segs_in:3431 data_segs_out:2254 data_segs_in:2252 send 1937501848bps lastsnd:143 lastrcv:143 lastack:143 pacing_rate 3873929984bps delivery_rate 131072000000bps delivered:2255 app_limited busy:4211ms rcv_rtt:20294.5 rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:65536                                                                                                                        \nESTAB      0      0               127.0.0.1:34592          127.0.0.1:42003\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.004/0.002 mss:44992 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:2558 bytes_acked:2559 segs_out:12 segs_in:11 data_segs_out:10 send 899840000000bps lastsnd:1118798 lastrcv:1118853 lastack:1118798 pacing_rate 1645421714280bps delivery_rate 179968000000bps delivered:11 app_limited rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:89984                                                                                                                                                                                           \nCLOSE-WAIT 1      0              10.205.0.1:47500         10.205.0.2:8001 \n\t skmem:(r960,rb6291456,t0,tb4194304,f3136,w0,o0,bl0,d0) cubic wscale:7,7 rto:211 rtt:10.146/0.005 ato:40 mss:1448 pmtu:1500 rcvmss:1448 advmss:1448 cwnd:362 bytes_sent:1177255899 bytes_acked:1177255900 bytes_received:1177035868 segs_out:824216 segs_in:818232 data_segs_out:814381 data_segs_in:813367 send 413306525bps lastsnd:159225 lastrcv:159200 lastack:154200 pacing_rate 826582496bps delivery_rate 3292901992bps delivered:814382 app_limited busy:16922ms rwnd_limited:1456ms(8.6%) sndbuf_limited:604ms(3.6%) reordering:300 reord_seen:2 rcv_rtt:10 rcv_space:4197144 rcv_ssthresh:4714476 minrtt:10.007 snd_wnd:4717824\nESTAB      0      0               127.0.0.1:46070          127.0.0.1:51601\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.004/0.002 mss:44992 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:2558 bytes_acked:2559 segs_out:12 segs_in:11 data_segs_out:10 send 899840000000bps lastsnd:1126171 lastrcv:1126212 lastack:1126171 pacing_rate 1515520000000bps delivery_rate 179968000000bps delivered:11 app_limited rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:89984                                                                                                                                                                                           \nESTAB      0      0               127.0.0.1:38664          127.0.0.1:39417\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.003/0.001 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:60 bytes_acked:61 bytes_received:32 segs_out:12 segs_in:11 data_segs_out:8 data_segs_in:2 send 873813333333bps lastsnd:1118811 lastrcv:1118811 lastack:1118811 pacing_rate 1446311724136bps delivery_rate 131072000000bps delivered:9 app_limited rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:65536                                                                                                                                                         \nESTAB      0      0               127.0.0.1:50053          127.0.0.1:35308\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.023/0.018 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:67516 bytes_acked:67516 bytes_received:67572 segs_out:3430 segs_in:3387 data_segs_out:2252 data_segs_in:2254 send 113975652174bps lastsnd:143 lastrcv:143 lastack:143 pacing_rate 224294331544bps delivery_rate 131072000000bps delivered:2253 app_limited busy:4035ms rcv_rtt:18292.6 rcv_space:65483 rcv_ssthresh:65483 minrtt:0.002 snd_wnd:65536                                                                                                                    \nESTAB      0      0              10.205.0.1:45330         10.205.0.2:8099 \n\t skmem:(r0,rb33554432,t0,tb33554432,f0,w0,o0,bl0,d0) cubic wscale:8,8 rto:214 rtt:13.035/0.682 ato:40 mss:1448 pmtu:1500 rcvmss:1448 advmss:1448 cwnd:6074 ssthresh:3946 bytes_sent:268470688 bytes_acked:268470689 bytes_received:268471834 segs_out:189160 segs_in:186345 data_segs_out:185416 data_segs_in:185462 send 5397868508bps lastsnd:1127 lastrcv:577 lastack:577 pacing_rate 6477255864bps delivery_rate 4711897552bps delivered:185417 busy:1539ms reordering:300 reord_seen:8 rcv_rtt:13.866 rcv_space:16982576 rcv_ssthresh:25159164 minrtt:10.005 snd_wnd:16776960                                                        \nESTAB      0      0               127.0.0.1:49177          127.0.0.1:60606\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.009/0.003 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:640 bytes_acked:640 bytes_received:380 segs_out:36 segs_in:61 data_segs_out:16 data_segs_in:50 send 291271111111bps lastsnd:1126184 lastrcv:1126185 lastack:1126184 pacing_rate 582542222216bps delivery_rate 104857600000bps delivered:17 app_limited rcv_space:65483 rcv_ssthresh:65483 minrtt:0.003 snd_wnd:65536                                                                                                                                                    \nESTAB      0      0               127.0.0.1:59442          127.0.0.1:38653\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.114/0.222 mss:44992 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:2558 bytes_acked:2559 segs_out:12 segs_in:11 data_segs_out:10 send 31573333333bps lastsnd:1126173 lastrcv:1126214 lastack:1126173 pacing_rate 62665680080bps delivery_rate 179968000000bps delivered:11 app_limited busy:2ms rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:89984                                                                                                                                                                                     \nESTAB      0      0              10.205.0.1:45326         10.205.0.2:8099 \n\t skmem:(r0,rb33554432,t0,tb33554432,f0,w0,o0,bl0,d0) cubic wscale:8,8 rto:220 rtt:19.933/2.033 ato:40 mss:1448 pmtu:1500 rcvmss:1448 advmss:1448 cwnd:11124 ssthresh:10072 bytes_sent:536941376 bytes_acked:536941377 bytes_received:536943674 segs_out:378206 segs_in:372230 data_segs_out:371026 data_segs_in:370867 send 6464677470bps lastsnd:1174 lastrcv:743 lastack:743 pacing_rate 7757612960bps delivery_rate 2106635512bps delivered:371027 busy:1535ms rwnd_limited:597ms(38.9%) reordering:300 rcv_rtt:17.771 rcv_space:16707024 rcv_ssthresh:25161522 minrtt:10.006 snd_wnd:16776960                                         \nESTAB      0      0              10.205.0.1:49096         10.205.0.2:8099 \n\t skmem:(r0,rb33554432,t0,tb33554432,f0,w0,o0,bl0,d0) cubic wscale:8,8 rto:220 rtt:19.38/2.278 ato:40 mss:1448 pmtu:1500 rcvmss:1448 advmss:1448 cwnd:17209 ssthresh:17066 bytes_sent:2475644989 bytes_acked:2475644990 bytes_received:2475663443 segs_out:1742662 segs_in:1720503 data_segs_out:1710323 data_segs_in:1709981 send 10286328999bps lastsnd:1175 lastrcv:817 lastack:817 pacing_rate 12343515176bps delivery_rate 2200643392bps delivered:1710324 busy:4622ms rwnd_limited:1852ms(40.1%) reordering:300 rcv_rtt:17.261 rcv_space:16907280 rcv_ssthresh:25162932 minrtt:10.005 snd_wnd:16776960                               \nESTAB      0      0               127.0.0.1:49374          127.0.0.1:46849\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.007/0.004 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:8 bytes_acked:9 segs_out:3 segs_in:2 data_segs_out:1 send 374491428571bps lastsnd:1126161 lastrcv:1126161 lastack:1126161 pacing_rate 676500645160bps delivery_rate 20164923072bps delivered:2 app_limited rcv_space:65495 rcv_ssthresh:65495 minrtt:0.007 snd_wnd:65536                                                                                                                                                                                                       \nESTAB      0      0               127.0.0.1:42914          127.0.0.1:60447\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.363/0.529 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:15 bytes_sent:380 bytes_acked:381 bytes_received:640 segs_out:61 segs_in:38 data_segs_out:50 data_segs_in:16 send 10832396694bps lastsnd:1126186 lastrcv:1126185 lastack:1126185 pacing_rate 21657335624bps delivery_rate 131072000000bps delivered:51 app_limited busy:7ms rcv_space:65495 rcv_ssthresh:65495 minrtt:0.002 snd_wnd:65536                                                                                                                                             \nESTAB      0      0               127.0.0.1:60447          127.0.0.1:42916\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.003/0.001 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:32 bytes_acked:32 bytes_received:60 segs_out:10 segs_in:12 data_segs_out:2 data_segs_in:8 send 873813333333bps lastsnd:1126185 lastrcv:1126185 lastack:1126185 pacing_rate 1398101333328bps delivery_rate 131072000000bps delivered:3 app_limited rcv_space:65483 rcv_ssthresh:65483 minrtt:0.002 snd_wnd:65536                                                                                                                                                         \nESTAB      0      0               127.0.0.1:42003          127.0.0.1:34592\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:200 rtt:0.005/0.002 ato:44 mss:32768 pmtu:65535 rcvmss:2288 advmss:65483 cwnd:10 bytes_received:2558 segs_out:10 segs_in:12 data_segs_in:10 send 524288000000bps lastsnd:1118856 lastrcv:1118801 lastack:1118801 pacing_rate 1048576000000bps delivered:1 app_limited rcv_space:65483 rcv_ssthresh:89873 minrtt:0.005 snd_wnd:65536                                                                                                                                                                                                                                \nESTAB      0      0      [::ffff:127.0.0.1]:34040 [::ffff:127.0.0.1]:29501\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.022/0.009 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:38624 bytes_acked:38625 bytes_received:3060 segs_out:2298 segs_in:1166 data_segs_out:1164 data_segs_in:1157 send 119156363636bps lastsnd:247 lastrcv:247 lastack:247 pacing_rate 234318659216bps delivery_rate 87381333328bps delivered:1165 app_limited busy:41ms rcv_space:65495 rcv_ssthresh:65495 minrtt:0.003 snd_wnd:65536                                                                                                                                        \nESTAB      0      0      [::ffff:127.0.0.1]:29501 [::ffff:127.0.0.1]:34030\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.004/0 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:3443 bytes_acked:3443 bytes_received:40590 segs_out:1269 segs_in:2399 data_segs_out:1259 data_segs_in:1267 send 655360000000bps lastsnd:248 lastrcv:248 lastack:248 pacing_rate 1310720000000bps delivery_rate 87381333328bps delivered:1260 app_limited busy:610ms rcv_space:65483 rcv_ssthresh:65483 minrtt:0.003 snd_wnd:65536                                                                                                                                           \nESTAB      0      0      [::ffff:127.0.0.1]:34030 [::ffff:127.0.0.1]:29501\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.013/0.002 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:40590 bytes_acked:40591 bytes_received:3443 segs_out:2399 segs_in:1270 data_segs_out:1267 data_segs_in:1259 send 201649230769bps lastsnd:249 lastrcv:249 lastack:249 pacing_rate 395689056600bps delivery_rate 65536000000bps delivered:1268 app_limited busy:77ms rcv_space:65495 rcv_ssthresh:65495 minrtt:0.004 snd_wnd:65536                                                                                                                                        \nESTAB      0      0      [::ffff:127.0.0.1]:29501 [::ffff:127.0.0.1]:34040\n\t skmem:(r0,rb131072,t0,tb2626560,f0,w0,o0,bl0,d0) cubic wscale:7,7 rto:201 rtt:0.008/0.003 ato:40 mss:32768 pmtu:65535 rcvmss:536 advmss:65483 cwnd:10 bytes_sent:3060 bytes_acked:3060 bytes_received:38624 segs_out:1165 segs_in:2298 data_segs_out:1157 data_segs_in:1164 send 327680000000bps lastsnd:254 lastrcv:254 lastack:254 pacing_rate 645277538456bps delivery_rate 87381333328bps delivered:1158 app_limited busy:143ms rcv_space:65483 rcv_ssthresh:65483 minrtt:0.003 snd_wnd:65536                                                                                                                                        \n"
+}

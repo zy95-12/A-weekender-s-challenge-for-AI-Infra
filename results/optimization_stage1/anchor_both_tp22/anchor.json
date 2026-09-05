@@ -1,0 +1,26 @@
+{
+  "result": "PASS",
+  "launch": {
+    "action": "up",
+    "split": "1:3",
+    "tp": 2,
+    "enterprise_tp": null,
+    "cloud_tp": null,
+    "wan": true,
+    "delay": 5,
+    "bandwidth_gbps": 10,
+    "profile": false,
+    "ipc_mode": "shm",
+    "wire_fast": true,
+    "phase_profile": false
+  },
+  "started_unix": 1788607053.1310644,
+  "command": [
+    "scripts/optimization_anchor.py",
+    "--output",
+    "results/optimization_stage1/anchor_both_tp22",
+    "--repeats",
+    "3"
+  ],
+  "finished_unix": 1788607943.7860045
+}
