@@ -1,0 +1,42 @@
+Checked split=3:1 length=1024 steps=257
+Checked split=3:1 length=128 steps=257
+Checked split=3:1 length=4096 steps=257
+Checked split=3:1 length=8192 steps=257
+{
+  "result": "PASS",
+  "comparisons": 1028,
+  "max_mae": 0.0,
+  "max_abs_error": 0.0,
+  "min_cosine": 0.9999998807907104,
+  "top5_agreement": 1.0,
+  "top5_definition": "mean unordered top-5 intersection / 5",
+  "configuration": {
+    "reference": "/root/A-weekender-s-challenge-for-AI-Infra/results/validation_final/reference",
+    "output": "/root/A-weekender-s-challenge-for-AI-Infra/results/validation_final/correctness_3_1",
+    "url": "http://127.0.0.1:8000",
+    "steps": 257
+  },
+  "server": {
+    "status": "ready",
+    "role": "enterprise",
+    "split": "3:1",
+    "tp": 2,
+    "cloud_tp": 2,
+    "model_id": "Qwen/Qwen2.5-3B-Instruct",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "protocol": 1,
+    "layer_split": [
+      13,
+      9,
+      14
+    ],
+    "gpu_pids": [
+      23006,
+      23007
+    ],
+    "active": 0,
+    "waiting": 0,
+    "completed": 1,
+    "kv_used_blocks": 0
+  }
+}

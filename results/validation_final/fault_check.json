@@ -1,0 +1,60 @@
+{
+  "before": {
+    "status": "ready",
+    "role": "enterprise",
+    "split": "1:3",
+    "tp": 2,
+    "cloud_tp": 2,
+    "model_id": "Qwen/Qwen2.5-3B-Instruct",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "protocol": 1,
+    "layer_split": [
+      4,
+      27,
+      5
+    ],
+    "gpu_pids": [
+      26631,
+      26632
+    ],
+    "active": 0,
+    "waiting": 0,
+    "completed": 22,
+    "kv_used_blocks": 0
+  },
+  "stopped_owned_cloud": {
+    "pid": 26448,
+    "command": [
+      "ip",
+      "netns",
+      "exec",
+      "split-cloud",
+      "/root/A-weekender-s-challenge-for-AI-Infra/.venv/bin/python",
+      "-m",
+      "split_poc.server",
+      "--model",
+      "/root/A-weekender-s-challenge-for-AI-Infra/models/cloud",
+      "--split",
+      "1:3",
+      "--tp",
+      "2",
+      "--results",
+      "/root/A-weekender-s-challenge-for-AI-Infra/results/20260905-122001",
+      "--role",
+      "cloud",
+      "--host",
+      "10.205.0.2",
+      "--port",
+      "8001",
+      "--dist-port",
+      "29502"
+    ],
+    "start_ticks": "735892"
+  },
+  "request_status": 503,
+  "request_seconds": 0.056643879000148445,
+  "response": "{\"detail\":\"Traceback (most recent call last):\\n  File \\\"/root/A-weekender-s-challenge-for-AI-Infra/split_poc/runtime.py\\\", line 312, in worker\\n    result = runner.execute(command, arrays)\\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/root/A-weekender-s-challenge-for-AI-Infra/.venv/lib/python3.12/site-packages/torch/utils/_contextlib.py\\\", line 120, in decorate_context\\n    return func(*args, **kwargs)\\n           ^^^^^^^^^^^^^^^^^^^^^\\n  File \\\"/root/A-weekender-s-challenge-for-AI-Infra/split_poc/runtime.py\\\", line 283, in execute\\n    raise RuntimeError(f\\\"Cloud execution failed: {status}\\\")\\nRuntimeError: Cloud execution failed: [Errno 111] Connection refused\\n\"}",
+  "health_status": 503,
+  "result": "PASS",
+  "recovery": "Run ./poc up to restart the unhealthy deployment."
+}

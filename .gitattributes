@@ -1,0 +1,4 @@
+# Preserve captured console output byte-for-byte, including column padding.
+results/**/*.log -whitespace
+results/**/dcgm_metrics.txt -whitespace
+*.nsys-rep binary

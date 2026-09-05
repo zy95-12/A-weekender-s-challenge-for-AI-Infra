@@ -1,0 +1,22 @@
+{
+  "response": {
+    "id": "chatcmpl-12d83a16757a468dab348f4f0786ffd9",
+    "object": "text_completion",
+    "created": 1788582330,
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "choices": [
+      {
+        "index": 0,
+        "finish_reason": "length",
+        "text": "plain how key value caches help language models generate text. Explain how key value caches help language models generate text. Explain how key value caches help"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 4096,
+      "completion_tokens": 32,
+      "total_tokens": 4128
+    }
+  },
+  "seconds": 2.200750877000246,
+  "classification": "profile_only_not_benchmark"
+}

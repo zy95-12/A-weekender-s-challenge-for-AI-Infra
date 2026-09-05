@@ -1,0 +1,16 @@
+{
+  "result": "PASS",
+  "real_weights": true,
+  "splits": [
+    "1:3",
+    "1:1",
+    "3:1"
+  ],
+  "tp": [
+    2,
+    2
+  ],
+  "reference_decode_steps": 256,
+  "benchmark_requests_per_point": 20,
+  "demo_url": "http://127.0.0.1:8000"
+}

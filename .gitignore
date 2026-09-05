@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+models/
+*.safetensors
+*.safetensors.part*
+*.npz
+*.sqlite
+run/
+# Historical acceptance snapshots are explicitly added for PR review;
+# newly generated experiment output remains ignored by default.
+results/
+.pytest_cache/

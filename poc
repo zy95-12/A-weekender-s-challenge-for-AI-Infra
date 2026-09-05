@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+POC_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$POC_ROOT"
+action="${1:-up}"
+if (( $# )); then shift; fi
+case "$action" in
+setup)
+  if ! python3 -m venv .venv; then
+    DEBIAN_FRONTEND=noninteractive apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv
+    python3 -m venv .venv
+  fi
+  requirement_file=requirements.txt
+  if [[ -f requirements.lock.txt ]]; then requirement_file=requirements.lock.txt; fi
+  .venv/bin/pip install --index-url "${POC_PYPI_INDEX:-https://pypi.org/simple}" -r "$requirement_file"
+  python3 scripts/download_model.py
+  ;;
+up)
+  if [[ ! -x .venv/bin/python || ! -f models/qwen/revision.txt ]] || ! .venv/bin/python -c 'import importlib.metadata; assert importlib.metadata.version("vllm") == "0.10.2"' 2>/dev/null; then
+    bash ./poc setup
+  fi
+  exec .venv/bin/python scripts/manage.py up "$@"
+  ;;
+down|status) exec python3 scripts/manage.py "$action" "$@";;
+demo) exec .venv/bin/python scripts/smoke.py;;
+wan|local) exec bash scripts/network.sh "$action" "$@";;
+network-check) exec bash scripts/network.sh check;;
+*) echo 'Usage: ./poc setup|up [--split 1:3|1:1|3:1] [--wan]|down|status|demo|wan [5]|local|network-check'; exit 1;;
+esac

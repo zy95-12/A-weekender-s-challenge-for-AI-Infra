@@ -1,0 +1,78 @@
+{
+  "server": {
+    "status": "ready",
+    "role": "enterprise",
+    "split": "1:1",
+    "tp": 2,
+    "cloud_tp": 2,
+    "model_id": "Qwen/Qwen2.5-3B-Instruct",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "protocol": 1,
+    "layer_split": [
+      9,
+      18,
+      9
+    ],
+    "gpu_pids": [
+      22122,
+      22123
+    ],
+    "active": 0,
+    "waiting": 0,
+    "completed": 13,
+    "kv_used_blocks": 0
+  },
+  "cases": [
+    {
+      "case": "kv_length",
+      "input_tokens": 1024,
+      "output_tokens": 256,
+      "wall_seconds": 5.922053661000064,
+      "result": "PASS"
+    },
+    {
+      "case": "kv_length",
+      "input_tokens": 4096,
+      "output_tokens": 256,
+      "wall_seconds": 6.333121538000341,
+      "result": "PASS"
+    },
+    {
+      "case": "kv_length",
+      "input_tokens": 8192,
+      "output_tokens": 256,
+      "wall_seconds": 7.067683277000469,
+      "result": "PASS"
+    },
+    {
+      "case": "concurrent_4_vs_isolated",
+      "max_steps": 32,
+      "comparison": "exact IDs through first EOS inclusive, or 32 steps",
+      "forced_after_eos_identical": false,
+      "result": "PASS"
+    },
+    {
+      "case": "needle_qa",
+      "target_tokens": 4096,
+      "input_tokens": 4096,
+      "answer": "WILLOW-7319",
+      "result": "PASS"
+    },
+    {
+      "case": "needle_qa",
+      "target_tokens": 8192,
+      "input_tokens": 8192,
+      "answer": "WILLOW-7319",
+      "result": "PASS"
+    },
+    {
+      "case": "streaming_usage",
+      "result": "PASS"
+    },
+    {
+      "case": "cancel_and_release",
+      "result": "PASS"
+    }
+  ],
+  "result": "PASS"
+}
