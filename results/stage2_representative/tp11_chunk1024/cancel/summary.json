@@ -1,0 +1,265 @@
+{
+  "result": "PASS",
+  "config": {
+    "output": "results/stage2_representative/tp11_chunk1024/cancel",
+    "isl": 8192
+  },
+  "deployment": {
+    "action": "up",
+    "split": "1:3",
+    "tp": 1,
+    "enterprise_tp": null,
+    "cloud_tp": null,
+    "wan": true,
+    "delay": 5,
+    "bandwidth_gbps": 10,
+    "profile": false,
+    "ipc_mode": "shm",
+    "wire_fast": true,
+    "prefill_chunk_size": 1024,
+    "scheduler_policy": "decode-first",
+    "decode_quota": 1,
+    "tcp_buffer_mib": 16,
+    "phase_profile": false
+  },
+  "client_request_id": "cancel-chunk-1788621167434312942",
+  "before": {
+    "status": "ready",
+    "role": "enterprise",
+    "split": "1:3",
+    "tp": 1,
+    "cloud_tp": 1,
+    "model_id": "Qwen/Qwen2.5-3B-Instruct",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "protocol": 1,
+    "layer_split": [
+      4,
+      27,
+      5
+    ],
+    "optimizations": {
+      "ipc_mode": "shm",
+      "wire_fast": true,
+      "tcp_buffer_mib": 16,
+      "prefill_chunk_size": 1024,
+      "scheduler_policy": "decode-first",
+      "decode_quota": 1
+    },
+    "gpu_pids": [
+      14029
+    ],
+    "worker_audits": [
+      {
+        "rank": 0,
+        "pid": 14029,
+        "role": "enterprise",
+        "tp": 1,
+        "owned_layers": [
+          0,
+          1,
+          2,
+          3,
+          31,
+          32,
+          33,
+          34,
+          35
+        ],
+        "has_embedding": true,
+        "has_final_norm": true,
+        "has_logits_processor": true,
+        "local_parameter_elements": 1004859904,
+        "device": 0,
+        "gpu_name": "NVIDIA A10",
+        "vllm_nccl_version": null,
+        "torch_nccl_version": [
+          2,
+          27,
+          3
+        ],
+        "vllm_nccl_so_path": "/root/issue6-stage2-worktree/.venv/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "phase_profile": false
+      }
+    ],
+    "active": 0,
+    "waiting": 0,
+    "completed": 13,
+    "kv_used_blocks": 0
+  },
+  "first_chunk": {
+    "request_id": "237dfa56d17d488983752090d2ff1e28",
+    "client_request_id": "cancel-chunk-1788621167434312942",
+    "time_ns": 1788621167826226126,
+    "batch_id": "ca99243a9fb14934894715e8eac53e4d",
+    "batch_size": 1,
+    "phase": "prefill",
+    "token_idx": -1,
+    "emits_token": false,
+    "query_len": 1024,
+    "position_start": 0,
+    "context_len": 1024,
+    "queue_ms": 0.6608670000787242,
+    "step_wall_ms": 293.83563700002924,
+    "timings_scope": "batch",
+    "enterprise_stage_pack_ms": 8.595213999797124,
+    "rpc_wall_ms": 276.9173330002559,
+    "upload_bytes": 8388907,
+    "download_bytes": 8388998,
+    "cloud_d2h_ms": 54.06822400027522,
+    "cloud_kv_used_blocks": 64,
+    "cloud_queue_ms": 0.09929399993779953,
+    "cloud_body_receive_ms": 91.68445400018754,
+    "cloud_received_ns": 2636597969166,
+    "cloud_send_ns": 2636669153661,
+    "upload_ms": 107.43971,
+    "download_ms": 98.29216,
+    "enterprise_send_ns": 2636490529456,
+    "enterprise_received_ns": 2636767445821
+  },
+  "cancel_time_ns": 1788621167827530178,
+  "after_enterprise": {
+    "status": "ready",
+    "role": "enterprise",
+    "split": "1:3",
+    "tp": 1,
+    "cloud_tp": 1,
+    "model_id": "Qwen/Qwen2.5-3B-Instruct",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "protocol": 1,
+    "layer_split": [
+      4,
+      27,
+      5
+    ],
+    "optimizations": {
+      "ipc_mode": "shm",
+      "wire_fast": true,
+      "tcp_buffer_mib": 16,
+      "prefill_chunk_size": 1024,
+      "scheduler_policy": "decode-first",
+      "decode_quota": 1
+    },
+    "gpu_pids": [
+      14029
+    ],
+    "worker_audits": [
+      {
+        "rank": 0,
+        "pid": 14029,
+        "role": "enterprise",
+        "tp": 1,
+        "owned_layers": [
+          0,
+          1,
+          2,
+          3,
+          31,
+          32,
+          33,
+          34,
+          35
+        ],
+        "has_embedding": true,
+        "has_final_norm": true,
+        "has_logits_processor": true,
+        "local_parameter_elements": 1004859904,
+        "device": 0,
+        "gpu_name": "NVIDIA A10",
+        "vllm_nccl_version": null,
+        "torch_nccl_version": [
+          2,
+          27,
+          3
+        ],
+        "vllm_nccl_so_path": "/root/issue6-stage2-worktree/.venv/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "phase_profile": false
+      }
+    ],
+    "active": 0,
+    "waiting": 0,
+    "completed": 13,
+    "kv_used_blocks": 0
+  },
+  "after_cloud": {
+    "status": "ready",
+    "role": "cloud",
+    "split": "1:3",
+    "tp": 1,
+    "cloud_tp": null,
+    "model_id": "Qwen/Qwen2.5-3B-Instruct",
+    "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+    "protocol": 1,
+    "layer_split": [
+      4,
+      27,
+      5
+    ],
+    "optimizations": {
+      "ipc_mode": "shm",
+      "wire_fast": true,
+      "tcp_buffer_mib": 16,
+      "prefill_chunk_size": 1024,
+      "scheduler_policy": "decode-first",
+      "decode_quota": 1
+    },
+    "gpu_pids": [
+      13935
+    ],
+    "worker_audits": [
+      {
+        "rank": 0,
+        "pid": 13935,
+        "role": "cloud",
+        "tp": 1,
+        "owned_layers": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "has_embedding": false,
+        "has_final_norm": false,
+        "has_logits_processor": false,
+        "local_parameter_elements": 2081078784,
+        "device": 0,
+        "gpu_name": "NVIDIA A10",
+        "vllm_nccl_version": null,
+        "torch_nccl_version": [
+          2,
+          27,
+          3
+        ],
+        "vllm_nccl_so_path": "/root/issue6-stage2-worktree/.venv/lib/python3.12/site-packages/nvidia/nccl/lib/libnccl.so.2",
+        "phase_profile": false
+      }
+    ],
+    "active": 0,
+    "waiting": 0,
+    "completed": null,
+    "kv_used_blocks": 0
+  },
+  "observed_chunks": 2
+}

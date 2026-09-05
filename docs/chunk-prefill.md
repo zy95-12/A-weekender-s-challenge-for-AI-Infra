@@ -1,6 +1,6 @@
 # 阶段 2 草案：串行 chunk 与基础调度
 
-当前仅 CPU 单元测试通过，尚未真实 GPU 验收，不作为已完成优化发布。
+已做真实 GPU 验证：greedy 一致，但长输入 logits 超过既定门槛。当前不能作为通过正确性验收的优化发布。
 
 ## 开关
 
@@ -31,7 +31,7 @@ decode batch 仍受 max_active 限制。它不是基于成本模型的自适应�
 
 候选大小为 0/256/512/1024/2048，分别 legacy/decode-first；每个候选先执行同 TP、
 预先固定标准的 logits/greedy 正确性验证。默认每候选扫描 8k/256 C1/C4 各一轮，
-用于筛选，不替代保留变体所需的三次重复完整矩阵。
+用于代表场景验收；按用户更新要求不再强制完整矩阵。
 
 另以 `mixed_arrival.py` 先启动 512-token 输入的 decode，请求输出 8 个 token 后注入 8k prefill。
 记录两请求的 TTFT/TPOT 与逐 SSE 内容事件 P50/P95/P99、最大间隔；当前协议每 token 一个事件，
@@ -39,9 +39,36 @@ decode batch 仍受 max_active 限制。它不是基于成本模型的自适应�
 样本较少，尾分位数只作描述；pair completion QPS 不是稳定系统容量。
 
 后续仍需：真实数值、取消/异常回归，各 chunk 上下文位置的独立 profiling，
-候选消融、代表工况三次重复、保留配置的完整 TP/长度/并发矩阵。
+候选消融及代表工况重复，不再要求完整 TP/长度/并发矩阵。
 
 trace 新增 `position_start`、`query_len`、`emits_token`，中间 chunk 的 token_idx=-1。
 校验器兼容历史单 prefill，检查分块 query 总和=ISL、输出总数=OSL、位置连续及激活字节。
 TTFT 拆解必须对同请求的所有 prefill chunk 累加等待/执行，不能把一个 chunk 当成完整 prefill。
 普通 trace 与详细 GPU profiling 始终分开统计。
+
+## 代表场景验收结果
+
+按用户更新要求，以代表场景验收，不要求 96 轮矩阵。固定 Qwen revision、
+4/27/5 切分、10 Gbps / 10 ms RTT、shm+wire+TCP16，33 个 full-vocabulary
+位置 × 128/1024/4096/8192 输入，另每长度 32-token greedy：
+
+| TP | chunk | logits | 最大逐位置 MAE | 最大绝对误差 | greedy |
+|---|---:|---|---:|---:|---|
+| 2+2 | 1024 | FAIL | 0.468083 | 2.714844 | 四组一致 |
+| 2+2 | 2048 | FAIL | 0.184347 | 1.059570 | 四组一致 |
+| 1+1 | 1024 | FAIL | 0.405327 | 2.998047 | 四组一致 |
+
+原标准保持 MAE≤0.01、RMSE≤0.02、max-abs≤0.1、cosine≥0.9999、
+top1 一致及平均 top5≥0.99。不能仅凭 greedy 一致替代 logits 验收。
+128/1024 不实际切块时 TP2+2 与原生逐值一致，较长输入出现超限；
+执行形状改变可能涉及数值路径，但目前尚未用逐层比较确认根因。
+另一个使用较早 reference 的失败尝试仅留本地；正式表使用固定的
+validation_final/reference（TP2）和 baseline_native_tp1（TP1）。
+
+TP1+1 chunk1024 的真实中途取消 PASS：观察到首个非最终 chunk 后断开，
+共完成两个 chunk，两侧 active/KV 均归零，取消前没有输出 token。
+CPU 元数据、位置、异常失败关闭测试通过，但不抵消数值门槛失败。
+
+因此未继续对这些失败配置跑收益测试，也不默认启用。阶段2仍有明确
+数值阻塞；阶段3先验证不切块的跨请求流水，不能声称通过串行 chunk 验收。
+精简证据在 results/stage2_representative/，完整 logits NPZ 仅留本机。
