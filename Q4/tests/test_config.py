@@ -23,6 +23,32 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.model.name, "toy")
         self.assertEqual([stage.num_layers for stage in config.stages], [1, 2, 1])
 
+    def test_parses_qwen2_synchronous_rpc_and_dual_tensor_network(self) -> None:
+        data = copied_toy_config()
+        data["model"].update(
+            {"model_type": "qwen2", "attention_bias": True}
+        )
+        data["execution"] = {"mode": "synchronous_rpc"}
+        data["network"].update(
+            {
+                "activation_tensor_count": 2,
+                "protocol_overhead_bytes": 256,
+                "sender_overhead_ms": 0.2,
+                "receiver_overhead_ms": 0.3,
+            }
+        )
+        data["scheduler"] = {
+            "policy": "split_poc_naive",
+            "enable_chunked_prefill": False,
+        }
+
+        config = parse_config(data)
+        self.assertEqual(config.model.architecture, "qwen2")
+        self.assertTrue(config.model.attention_bias)
+        self.assertEqual(config.execution.mode, "synchronous_rpc")
+        self.assertTrue(config.execution.preserve_batch_across_stages)
+        self.assertEqual(config.network.activation_tensor_count, 2)
+
     def test_rejects_non_contiguous_split(self) -> None:
         data = copied_toy_config()
         data["topology"]["stages"][1]["layer_start"] = 2

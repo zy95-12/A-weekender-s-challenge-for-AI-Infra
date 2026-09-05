@@ -10,6 +10,85 @@ from tests.helpers import copied_toy_config
 
 
 class SimulatorTest(unittest.TestCase):
+    def test_on_demand_kv_grows_at_prefill_and_decode_boundaries(self) -> None:
+        data = copied_toy_config()
+        data["scheduler"] = {
+            "kv_cache": {
+                "enabled": True,
+                "allocation_mode": "on_demand",
+                "block_size_tokens": 16,
+                "num_blocks": 8,
+            }
+        }
+        data["workload"] = {
+            "mode": "trace",
+            "requests": [
+                {
+                    "request_id": 0,
+                    "arrival_time_ms": 0,
+                    "input_tokens": 16,
+                    "output_tokens": 2,
+                }
+            ],
+        }
+
+        result = Simulator(parse_config(data)).run()
+        events = result.summary["kv_cache"]["events"]
+        self.assertEqual(events[0]["event"], "allocate")
+        self.assertEqual(events[0]["blocks"], 0)
+        grows = [event for event in events if event["event"] == "grow"]
+        self.assertEqual([event["target_tokens"] for event in grows], [16, 17])
+        self.assertEqual([event["blocks"] for event in grows], [1, 1])
+        self.assertEqual(result.summary["kv_cache"]["used_blocks_at_end"], 0)
+
+    def test_split_poc_naive_runs_one_synchronous_end_to_end_transaction(self) -> None:
+        data = copied_toy_config()
+        data["execution"] = {"mode": "synchronous_rpc"}
+        data["scheduler"] = {
+            "policy": "split_poc_naive",
+            "max_num_seqs": 2,
+            "enable_chunked_prefill": False,
+        }
+        data["workload"] = {
+            "mode": "trace",
+            "requests": [
+                {
+                    "request_id": request_id,
+                    "arrival_time_ms": 0,
+                    "input_tokens": 32,
+                    "output_tokens": 3,
+                }
+                for request_id in range(3)
+            ],
+        }
+
+        result = Simulator(parse_config(data)).run()
+        ordered = sorted(result.trace, key=lambda row: row["start_time_ms"])
+        for previous, current in zip(ordered, ordered[1:]):
+            self.assertLessEqual(previous["end_time_ms"], current["start_time_ms"])
+        transactions: dict[int, list[dict]] = {}
+        for row in ordered:
+            transactions.setdefault(row["transaction_id"], []).append(row)
+        expected_stages = [
+            "edge_front", "wan_up", "cloud_middle", "wan_down", "edge_tail"
+        ]
+        self.assertTrue(transactions)
+        for rows in transactions.values():
+            self.assertEqual([row["stage"] for row in rows], expected_stages)
+            self.assertEqual(
+                {tuple(row["request_ids"]) for row in rows},
+                {tuple(rows[0]["request_ids"])},
+            )
+            self.assertEqual(len({tuple(row["phases"]) for row in rows}), 1)
+        prefill_transactions = [
+            rows for rows in transactions.values() if rows[0]["phases"] == ["prefill"]
+        ]
+        decode_transactions = [
+            rows for rows in transactions.values() if rows[0]["phases"] == ["decode"]
+        ]
+        self.assertTrue(all(rows[0]["batch_size"] == 1 for rows in prefill_transactions))
+        self.assertTrue(any(rows[0]["batch_size"] == 2 for rows in decode_transactions))
+
     def test_pd_disaggregation_routes_phases_and_transfers_kv(self) -> None:
         data = copied_toy_config()
         for stage in data["topology"]["stages"]:

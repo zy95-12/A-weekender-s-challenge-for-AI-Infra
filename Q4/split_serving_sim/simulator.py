@@ -48,6 +48,7 @@ class BatchExecution:
     estimate: PerformanceEstimate
     start_time: float
     end_time: float
+    transaction_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,10 @@ class Simulator:
         self.running_batches: dict[int, BatchExecution] = {}
         self.preempted_request_ids: set[int] = set()
         self.recompute_pending_stages: dict[int, set[Stage]] = {}
+        self.sync_signature: dict[int, tuple[Phase, int | None, int | None]] | None = None
+        self.sync_expected: tuple[Stage, int] | None = None
+        self.sync_transaction_id: int | None = None
+        self._sync_transaction_sequence = 0
 
     def run(self) -> SimulationResult:
         request_specs = self._request_specs()
@@ -176,9 +181,29 @@ class Simulator:
             "scheduler_policy": self.config.scheduler.policy,
             "max_num_seqs": self.config.scheduler.max_num_seqs,
         }
+        summary["model"] = {
+            "name": self.config.model.name,
+            "architecture": self.config.model.architecture,
+            "num_layers": self.config.model.num_layers,
+            "dtype": self.config.model.dtype,
+        }
+        summary["execution"] = {
+            "mode": self.config.execution.mode,
+            "preserve_batch_across_stages": (
+                self.config.execution.preserve_batch_across_stages
+            ),
+        }
+        summary["network"] = {
+            "uplink_gbps": self.config.network.uplink_gbps,
+            "downlink_gbps": self.config.network.downlink_gbps,
+            "rtt_ms": self.config.network.rtt_ms,
+            "activation_tensor_count": self.config.network.activation_tensor_count,
+            "protocol_overhead_bytes": self.config.network.protocol_overhead_bytes,
+        }
         if self.kv_cache is not None:
             summary["kv_cache"] = {
                 "capacity_blocks": self.kv_cache.config.num_blocks,
+                "allocation_mode": self.kv_cache.config.allocation_mode,
                 "used_blocks_at_end": self.kv_cache.used_blocks,
                 "events": self.kv_events,
             }
@@ -253,6 +278,8 @@ class Simulator:
         self._enqueue(ready)
 
     def _admit_waiting_requests(self) -> None:
+        if self.config.execution.mode == "synchronous_rpc" and self.sync_signature:
+            return
         if self.config.static_policy.continuous_batching:
             available_slots = (
                 self.config.scheduler.max_num_seqs
@@ -275,7 +302,12 @@ class Simulator:
                 ordered = self._ordered_waiting_requests()
             admitted = []
             for request_id in ordered:
-                if len(admitted) >= available_slots:
+                admission_limit = (
+                    min(1, available_slots)
+                    if self.config.scheduler.policy == "split_poc_naive"
+                    else available_slots
+                )
+                if len(admitted) >= admission_limit:
                     break
                 if self._reserve_kv(request_id):
                     admitted.append(request_id)
@@ -314,9 +346,14 @@ class Simulator:
         if self.kv_cache is None or request_id in self.kv_cache.allocations:
             return True
         spec = self.request_specs[request_id]
-        admission = self.kv_cache.reserve(request_id, spec.input_tokens + spec.output_tokens, prefix_id=spec.prefix_id, prefix_tokens=spec.prefix_tokens)
+        reserved_tokens = (
+            0
+            if self.config.scheduler.kv_cache.allocation_mode == "on_demand"
+            else spec.input_tokens + spec.output_tokens
+        )
+        admission = self.kv_cache.reserve(request_id, reserved_tokens, prefix_id=spec.prefix_id, prefix_tokens=spec.prefix_tokens)
         while admission is None and self._preempt_for(request_id):
-            admission = self.kv_cache.reserve(request_id, spec.input_tokens + spec.output_tokens, prefix_id=spec.prefix_id, prefix_tokens=spec.prefix_tokens)
+            admission = self.kv_cache.reserve(request_id, reserved_tokens, prefix_id=spec.prefix_id, prefix_tokens=spec.prefix_tokens)
         if admission is None:
             return False
         self.kv_events.append({"time_ms": self.clock * 1000.0, "event": "allocate", "request_id": request_id, "blocks": admission.allocated_blocks, "prefix_hit_blocks": admission.prefix_hit_blocks, "evicted_prefix_blocks": admission.evicted_prefix_blocks})
@@ -382,6 +419,7 @@ class Simulator:
                     self._token_ready(item.request_id)
             elif item.stage == Stage.PD_KV_TRANSFER:
                 self._token_ready(item.request_id)
+        self._advance_sync_transaction(batch)
 
     def _token_ready(self, request_id: int) -> None:
         request = self.requests[request_id]
@@ -452,9 +490,21 @@ class Simulator:
         )
 
     def _schedule_idle_resources(self) -> None:
+        if self.config.execution.mode == "synchronous_rpc" and self.running_batches:
+            return
         for resource_id in sorted(self.resources):
             resource = self.resources[resource_id]
-            if not resource.idle or not self.queues[resource_id]:
+            candidates = self.queues[resource_id]
+            if self.sync_signature is not None:
+                expected = self.sync_expected
+                candidates = [
+                    item
+                    for item in candidates
+                    if expected == (item.stage, item.pipeline_rank)
+                    and self.sync_signature.get(item.request_id)
+                    == (item.phase, item.chunk_index, item.iteration)
+                ]
+            if not resource.idle or not candidates:
                 continue
             snapshot = SchedulerSnapshot(
                 current_time=self.clock,
@@ -465,14 +515,47 @@ class Simulator:
                 request_arrival_times=self.request_arrival_times,
                 request_input_tokens={request_id: spec.input_tokens for request_id, spec in self.request_specs.items()},
             )
-            items = self.scheduler.form_batch(self.queues[resource_id], snapshot)
+            items = self.scheduler.form_batch(candidates, snapshot)
             if not items:
+                continue
+            if not self._grow_kv_for_batch(items):
                 continue
             selected_ids = {item.id for item in items}
             self.queues[resource_id] = [
                 item for item in self.queues[resource_id] if item.id not in selected_ids
             ]
             self._start_batch(resource, items)
+            if self.config.execution.mode == "synchronous_rpc":
+                break
+
+    def _grow_kv_for_batch(self, items: list[WorkItem]) -> bool:
+        if (
+            self.kv_cache is None
+            or self.config.scheduler.kv_cache.allocation_mode != "on_demand"
+            or items[0].stage != Stage.EDGE_FRONT
+            or items[0].pipeline_rank != 0
+        ):
+            return True
+        targets: dict[int, int] = {}
+        for item in items:
+            targets[item.request_id] = max(
+                targets.get(item.request_id, 0), item.context_tokens
+            )
+        deltas = self.kv_cache.grow_batch(targets)
+        if deltas is None:
+            return False
+        for request_id, blocks in deltas.items():
+            if blocks:
+                self.kv_events.append(
+                    {
+                        "time_ms": self.clock * 1000.0,
+                        "event": "grow",
+                        "request_id": request_id,
+                        "blocks": blocks,
+                        "target_tokens": targets[request_id],
+                    }
+                )
+        return True
 
     def _start_batch(self, resource: Resource, items: list[WorkItem]) -> None:
         adjusted = []
@@ -490,6 +573,16 @@ class Simulator:
             raise RuntimeError("a batch cannot mix execution stages")
         if any(item.pipeline_rank != items[0].pipeline_rank for item in items):
             raise RuntimeError("a batch cannot mix pipeline ranks")
+        if self.config.execution.mode == "synchronous_rpc" and self.sync_signature is None:
+            if stage != Stage.EDGE_FRONT or items[0].pipeline_rank != 0:
+                raise RuntimeError("synchronous RPC transaction must start at edge_front")
+            self.sync_signature = {
+                item.request_id: (item.phase, item.chunk_index, item.iteration)
+                for item in items
+            }
+            self.sync_expected = (stage, items[0].pipeline_rank)
+            self.sync_transaction_id = self._sync_transaction_sequence
+            self._sync_transaction_sequence += 1
         if stage in GPU_STAGES:
             estimate = self.roofline.estimate(stage.value, items)
         elif stage in NETWORK_STAGES:
@@ -508,6 +601,7 @@ class Simulator:
             estimate=estimate,
             start_time=self.clock,
             end_time=end_time,
+            transaction_id=self.sync_transaction_id,
         )
         resource.running_batch_id = batch_id
         self.running_batches[batch_id] = batch
@@ -531,6 +625,46 @@ class Simulator:
             self.trace.append(self._trace_record(batch))
         self._push_event(end_time, EventType.BATCH_FINISH, batch)
 
+    def _advance_sync_transaction(self, batch: BatchExecution) -> None:
+        if self.config.execution.mode != "synchronous_rpc":
+            return
+        rank = batch.items[0].pipeline_rank
+        if batch.stage in GPU_STAGES:
+            degree = self.config.stage(batch.stage.value).pp_degree
+            if rank + 1 < degree:
+                self.sync_expected = (batch.stage, rank + 1)
+                return
+        next_stage = {
+            Stage.EDGE_FRONT: Stage.WAN_UP,
+            Stage.WAN_UP: Stage.CLOUD_MIDDLE,
+            Stage.CLOUD_MIDDLE: Stage.WAN_DOWN,
+            Stage.WAN_DOWN: Stage.EDGE_TAIL,
+        }.get(batch.stage)
+        if next_stage is not None:
+            self.sync_expected = (next_stage, 0)
+            return
+        if batch.stage == Stage.EDGE_TAIL:
+            pd_requests = {
+                item.request_id
+                for item in batch.items
+                if item.phase == Phase.PREFILL and self.dag.is_final_prefill(item)
+            }
+            if self.config.scheduler.pd_disaggregation.enabled and pd_requests:
+                self.sync_signature = {
+                    request_id: (Phase.PREFILL, None, None)
+                    for request_id in pd_requests
+                }
+                self.sync_expected = (Stage.PD_KV_TRANSFER, 0)
+                return
+            self.sync_signature = None
+            self.sync_expected = None
+            self.sync_transaction_id = None
+            return
+        if batch.stage == Stage.PD_KV_TRANSFER:
+            self.sync_signature = None
+            self.sync_expected = None
+            self.sync_transaction_id = None
+
     def _trace_record(self, batch: BatchExecution) -> dict[str, Any]:
         cursor = batch.start_time
         sub_operations: list[dict[str, Any]] = []
@@ -550,6 +684,7 @@ class Simulator:
             cursor = operation_end
         return {
             "batch_id": batch.batch_id,
+            "transaction_id": batch.transaction_id,
             "resource": batch.resource_id,
             "stage": batch.stage.value,
             "pipeline_rank": batch.items[0].pipeline_rank,
@@ -586,6 +721,11 @@ class Simulator:
             "communication_bytes": batch.estimate.communication_bytes,
             "attention_backend": self.config.attention_backend.mode,
             "scheduler_policy": self.config.scheduler.policy,
+            "execution_mode": self.config.execution.mode,
             "kv_blocks_used": self.kv_cache.used_blocks if self.kv_cache else None,
             "kv_blocks_free": self.kv_cache.free_blocks if self.kv_cache else None,
+            "kv_allocation_mode": (
+                self.config.scheduler.kv_cache.allocation_mode
+                if self.kv_cache else None
+            ),
         }

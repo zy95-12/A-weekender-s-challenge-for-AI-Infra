@@ -18,7 +18,7 @@ class ModeledOperator:
 
 
 class Qwen3WorkloadModel:
-    """Build a Qwen3 operator sequence from Hugging Face model dimensions."""
+    """Build a Qwen2/Qwen3 operator sequence from Hugging Face dimensions."""
 
     def __init__(self, config: SimulationConfig):
         self.config = config
@@ -176,57 +176,62 @@ class Qwen3WorkloadModel:
                     ),
                 ]
             )
-            operators.extend(
-                [
-                    ModeledOperator(
-                        name=f"{prefix}.q_norm",
-                        category="compute",
-                        workload=OperatorWorkload(
-                            flops=5.0 * tokens * local_q_width,
-                            memory_bytes=2.0
-                            * tokens
-                            * local_q_width
-                            * model.dtype_bytes,
+            rope_dependencies = (f"{prefix}.q_proj", f"{prefix}.k_proj")
+            if model.architecture == "qwen3":
+                operators.extend(
+                    [
+                        ModeledOperator(
+                            name=f"{prefix}.q_norm",
+                            category="compute",
+                            workload=OperatorWorkload(
+                                flops=5.0 * tokens * local_q_width,
+                                memory_bytes=2.0
+                                * tokens
+                                * local_q_width
+                                * model.dtype_bytes,
+                            ),
+                            input_shape=self._shape(
+                                tokens, local_q_heads, model.head_dim
+                            ),
+                            dependencies=(f"{prefix}.q_proj",),
                         ),
-                        input_shape=self._shape(
-                            tokens, local_q_heads, model.head_dim
+                        ModeledOperator(
+                            name=f"{prefix}.k_norm",
+                            category="compute",
+                            workload=OperatorWorkload(
+                                flops=5.0 * tokens * local_kv_width,
+                                memory_bytes=2.0
+                                * tokens
+                                * local_kv_width
+                                * model.dtype_bytes,
+                            ),
+                            input_shape=self._shape(
+                                tokens, local_kv_heads, model.head_dim
+                            ),
+                            dependencies=(f"{prefix}.k_proj",),
                         ),
-                        dependencies=(f"{prefix}.q_proj",),
+                    ]
+                )
+                rope_dependencies = (f"{prefix}.q_norm", f"{prefix}.k_norm")
+            operators.append(
+                ModeledOperator(
+                    name=f"{prefix}.rope",
+                    category="compute",
+                    workload=OperatorWorkload(
+                        flops=6.0
+                        * tokens
+                        * (local_q_width + local_kv_width),
+                        memory_bytes=3.0
+                        * tokens
+                        * (local_q_width + local_kv_width)
+                        * model.dtype_bytes,
                     ),
-                    ModeledOperator(
-                        name=f"{prefix}.k_norm",
-                        category="compute",
-                        workload=OperatorWorkload(
-                            flops=5.0 * tokens * local_kv_width,
-                            memory_bytes=2.0
-                            * tokens
-                            * local_kv_width
-                            * model.dtype_bytes,
-                        ),
-                        input_shape=self._shape(
-                            tokens, local_kv_heads, model.head_dim
-                        ),
-                        dependencies=(f"{prefix}.k_proj",),
+                    input_shape=(
+                        f"{model.dtype} Q[{tokens}, {local_q_heads}, {model.head_dim}], "
+                        f"K[{tokens}, {local_kv_heads}, {model.head_dim}]"
                     ),
-                    ModeledOperator(
-                        name=f"{prefix}.rope",
-                        category="compute",
-                        workload=OperatorWorkload(
-                            flops=6.0
-                            * tokens
-                            * (local_q_width + local_kv_width),
-                            memory_bytes=3.0
-                            * tokens
-                            * (local_q_width + local_kv_width)
-                            * model.dtype_bytes,
-                        ),
-                        input_shape=(
-                            f"{model.dtype} Q[{tokens}, {local_q_heads}, {model.head_dim}], "
-                            f"K[{tokens}, {local_kv_heads}, {model.head_dim}]"
-                        ),
-                        dependencies=(f"{prefix}.q_norm", f"{prefix}.k_norm"),
-                    ),
-                ]
+                    dependencies=rope_dependencies,
+                )
             )
             operators.append(
                 ModeledOperator(
@@ -544,11 +549,13 @@ class NetworkModel:
         self.config = config
 
     def payload_bytes(self, items: Sequence[WorkItem]) -> float:
-        return float(
+        tensor_bytes = (
             sum(item.token_count for item in items)
             * self.config.model.hidden_size
             * self.config.model.dtype_bytes
+            * self.config.network.activation_tensor_count
         )
+        return float(tensor_bytes + self.config.network.protocol_overhead_bytes)
 
     def estimate(self, stage: Stage, items: Sequence[WorkItem]) -> PerformanceEstimate:
         if stage not in NETWORK_STAGES:
@@ -569,9 +576,12 @@ class NetworkModel:
         bytes_per_second = bandwidth_gbps * 1e9 / 8.0 * self.config.network.efficiency
         serialization = payload / bytes_per_second
         propagation = self.config.network.rtt_ms / 2000.0
-        total = serialization + propagation
+        sender_overhead = self.config.network.sender_overhead_ms / 1000.0
+        receiver_overhead = self.config.network.receiver_overhead_ms / 1000.0
+        total = sender_overhead + serialization + propagation + receiver_overhead
+        tensors = self.config.network.activation_tensor_count
         shape = (
-            f"{self.config.model.dtype} "
+            f"{tensors} x {self.config.model.dtype} "
             f"[{sum(item.token_count for item in items)}, {self.config.model.hidden_size}]"
         )
         return PerformanceEstimate(
@@ -581,11 +591,13 @@ class NetworkModel:
             compute_time_s=0.0,
             memory_time_s=serialization,
             collective_time_s=0.0,
-            overhead_time_s=propagation,
+            overhead_time_s=sender_overhead + propagation + receiver_overhead,
             total_time_s=total,
             input_shape=shape,
             sub_operations=(
+                SubOperation("sender_staging", "communication", sender_overhead, shape),
                 SubOperation("wan_serialization", "communication", serialization, shape),
                 SubOperation("wan_propagation", "communication", propagation, shape),
+                SubOperation("receiver_staging", "communication", receiver_overhead, shape),
             ),
         )

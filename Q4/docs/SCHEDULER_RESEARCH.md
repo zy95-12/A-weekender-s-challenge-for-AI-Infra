@@ -42,6 +42,7 @@ Primary references:
 | Prefix-cache-aware | Implemented | shared prefix blocks, activation-time hit state, LRU eviction | Explicit-prefix model, not runtime block hashing |
 | Preempt-and-recompute | Implemented | safe victim selection, released blocks, per-stage recompute tokens | Priority mode, safe points only |
 | PD-disaggregated routing | Implemented | separate phase resources and serialized KV-transfer resource | One P and one D route; no replica load balancing yet |
+| PR #8 split POC baseline | Implemented | one-at-a-time admission, pure prefill or all-active decode, synchronous RPC transaction | Matches the custom POC scheduler, intentionally not native vLLM |
 
 ## Recommended implementation order
 
@@ -56,6 +57,9 @@ Primary references:
 4. **Done:** add safe-point recompute preemption, watermark, and full-input/output reservation.
 5. **Done:** add explicit prefix sharing/LRU eviction and PD phase routing with a
    serialized KV-transfer event.
+6. **Done:** add `split_poc_naive` without removing the optimized policies. Combined
+   with `execution.mode=synchronous_rpc`, it preserves one batch across the full
+   Enterprise -> Cloud -> Enterprise call and forbids inter-transaction overlap.
 
 The next fidelity step is per-stage KV pools and multi-replica P/D load
 balancing. The current logical pool intentionally represents the bottleneck
@@ -72,6 +76,7 @@ instance and should not be interpreted as byte-accurate memory placement.
     "enable_chunked_prefill": true,
     "kv_cache": {
       "enabled": false,
+      "allocation_mode": "preallocate",
       "block_size_tokens": 16,
       "watermark": 0.0,
       "preemption_mode": "recompute"
@@ -80,7 +85,11 @@ instance and should not be interpreted as byte-accurate memory placement.
 }
 ```
 
+`allocation_mode=on_demand` grows the logical allocation at Edge Front as
+prefill/decode positions advance. `preallocate` retains the conservative
+full-input/output admission behavior. Both modes share the same scheduler and
+can be combined with chunked prefill or continuous batching.
+
 The legacy `decode_priority` field is retained for configuration compatibility
 but is no longer used by the vLLM-style scheduler. Running/waiting state and the
 selected `scheduler.policy` determine request order.
-

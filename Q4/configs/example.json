@@ -61,7 +61,15 @@
     "uplink_gbps": 10,
     "downlink_gbps": 10,
     "rtt_ms": 10,
-    "efficiency": 0.8
+    "efficiency": 0.8,
+    "activation_tensor_count": 1,
+    "protocol_overhead_bytes": 0,
+    "sender_overhead_ms": 0,
+    "receiver_overhead_ms": 0
+  },
+  "execution": {
+    "mode": "pipelined",
+    "preserve_batch_across_stages": false
   },
   "static_policy": {
     "batch_size": 8,
@@ -78,7 +86,7 @@
     "policy": "fcfs",
     "max_num_seqs": 8,
     "enable_chunked_prefill": true,
-    "kv_cache": {"enabled": false, "block_size_tokens": 16, "num_blocks": 0, "watermark": 0.0, "prefix_caching": false, "enable_preemption": true, "preemption_mode": "recompute"},
+    "kv_cache": {"enabled": false, "allocation_mode": "preallocate", "block_size_tokens": 16, "num_blocks": 0, "watermark": 0.0, "prefix_caching": false, "enable_preemption": true, "preemption_mode": "recompute"},
     "pd_disaggregation": {"enabled": false, "kv_transfer_bandwidth_gb_s": 100, "kv_transfer_latency_ms": 0.1}
   },
   "workload": {

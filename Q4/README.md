@@ -5,7 +5,7 @@
 和离散事件资源模型，模拟一个 Split-LLM Serving 实例的端到端行为。
 
 本版本的目标是验证调度、资源竞争和请求间流水逻辑，不进行最大 QPS 搜索。模型结构和
-shape 来自 Hugging Face Qwen3 配置，耗时仍是未经 profiling 校准的 analytical Roofline。
+shape 来自 Hugging Face Qwen2/Qwen3 配置，耗时仍是未经 profiling 校准的 analytical Roofline。
 
 ## 系统路径
 
@@ -25,6 +25,38 @@ cd Q4
 python -m split_serving_sim \
   --config configs/example.json \
   --output-dir outputs/example
+```
+
+### 复现 PR #8 baseline 行为
+
+以下配置对应 [PR #8](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/8)
+的 Qwen2.5-3B、双侧 A10 TP=2、同步 HTTP RPC 和 naive scheduler：
+
+- [`configs/pr8_split_1_3.json`](configs/pr8_split_1_3.json)：4 / 27 / 5；
+- [`configs/pr8_split_1_1.json`](configs/pr8_split_1_1.json)：9 / 18 / 9；
+- [`configs/pr8_split_3_1.json`](configs/pr8_split_3_1.json)：13 / 9 / 14。
+
+```bash
+python -m split_serving_sim \
+  --config configs/pr8_split_1_3.json \
+  --output-dir outputs/pr8-split-1-3
+```
+
+baseline 使用 `execution.mode=synchronous_rpc` 和
+`scheduler.policy=split_poc_naive`：一次 batch 必须以相同成员顺序完成 Front、上传、Cloud、
+下载和 Back，期间不能插入另一个 batch；每轮最多接纳一个新请求，有未完成 Prefill 时只运行
+一个 Prefill，否则把所有 active 请求组成 Decode batch。
+
+这些配置不会移除优化能力。需要实验 chunked prefill、mixed continuous batching 或跨 stage
+流水时，只需切换相应参数：
+
+```json
+{
+  "execution": {"mode": "pipelined"},
+  "static_policy": {"continuous_batching": {"enabled": true}},
+  "scheduler": {"policy": "fcfs", "enable_chunked_prefill": true},
+  "attention_backend": {"mode": "unified"}
+}
 ```
 
 示例配置位于 [`configs/example.json`](configs/example.json)，其中包含：
@@ -74,7 +106,7 @@ Observed throughput 只是指定输入流量下的观测结果，不代表最大
 
 ```text
 config.py          JSON schema、解析和拓扑/显存校验
-performance.py     Qwen3 逐层算子 workload、Roofline、TP 和 WAN 模型
+performance.py     Qwen2/Qwen3 逐层算子 workload、Roofline、TP 和 WAN 模型
 dag.py             Prefill chunk DAG 与 lazy decode DAG
 scheduler.py       vLLM-style running-first 调度、FCFS/priority 排序与 backpressure
 simulator.py       Event queue、资源占用和 batch execution
@@ -101,7 +133,7 @@ JSON Config
 - `max_batched_tokens` 同时限制一个 batch 的 token 数；
 - `prefill_token_budget` 限制单次调度注入的 prefill token，避免 prefill 洪峰长期阻塞 decode；
 - Scheduler 先推进 running requests，再按 `fcfs`、`priority` 或实验性的
-  `shortest_prefill` 顺序接纳 waiting requests；
+  `shortest_prefill` 顺序接纳 waiting requests；`split_poc_naive` 用于复现 PR #8；
 - 一个 GPU batch 只包含同一 stage，但可以混合 ready 的 prefill/decode work；
 - Edge Front 和 Edge Tail 共享 topology 中配置的 Edge GPU；
 - prefill chunk 在每个模型 stage 上保持因果顺序，同时允许跨 stage overlap；
@@ -143,6 +175,7 @@ dispatch 时。
     "enable_chunked_prefill": true,
     "kv_cache": {
       "enabled": false,
+      "allocation_mode": "preallocate",
       "block_size_tokens": 16,
       "num_blocks": 0,
       "watermark": 0.0,
@@ -159,13 +192,14 @@ dispatch 时。
   FlashInfer 风格，并产生两次 kernel launch；
 - 点击 mixed batch 后，详情区分别列出 Prefill requests 和 Decode requests；
 - KV block pool、watermark、prefix sharing/LRU eviction 会影响 admission；
+- `allocation_mode` 可选择 admission 时完整 `preallocate`，或随 position 增长的 `on_demand`；
 - priority 模式可在安全点抢占低优先级请求，恢复时在各 GPU stage 计入 recompute；
 - PD 模式可以通过每个 stage 的 `prefill_resource`、`decode_resource` 分离计算资源，
   并在首 token 前插入显式 `pd_kv_transfer`。
 
 完整调研、配置和精度边界见 [`docs/SCHEDULER_RESEARCH.md`](docs/SCHEDULER_RESEARCH.md)。
 
-## Qwen3 cost model
+## Qwen2/Qwen3 cost model
 
 `configs/example.json` 通过 `hf_config_path` 引用
 [`models/qwen3_32b_config.json`](models/qwen3_32b_config.json)。该文件摘自
@@ -197,7 +231,25 @@ latency = max(FLOPs / effective_peak_flops,
 ```
 
 Prefill attention 使用 causal triangle 的 token pair 数，decode 使用当前 KV context。Qwen3
-的 GQA 会分别按照 query heads 和 KV heads 计算 attention 与 KV-cache 流量。
+的 GQA 会分别按照 query heads 和 KV heads 计算 attention 与 KV-cache 流量。Qwen2 路径使用
+相同的 GQA/RoPE/SwiGLU 主体，但不会生成 Qwen3 特有的 Q/K Norm 算子。
+
+PR #8 配置引用固定 revision 对应的
+[`models/qwen2_5_3b_instruct_config.json`](models/qwen2_5_3b_instruct_config.json)，并用实验级
+override 将 dtype 设置为 FP16。
+
+### 网络与 RPC staging
+
+`network.activation_tensor_count` 控制每个方向传输的 activation tensor 数。普通 split 模型
+可以使用 1；PR #8 同时传输 hidden states 和 residual，因此设置为 2。payload 为：
+
+```text
+tokens × hidden_size × dtype_bytes × activation_tensor_count
+  + protocol_overhead_bytes
+```
+
+`sender_overhead_ms` 和 `receiver_overhead_ms` 可用于加入 D2H、NumPy/HTTP pack、unpack/H2D
+等固定 staging 开销。默认是 0，避免在没有实测校准时伪造精度。
 
 ### 并行语义
 
@@ -282,8 +334,9 @@ python -m http.server 8000 --directory outputs/demo
 python -m unittest discover -s tests -v
 ```
 
-当前包含 33 个行为测试，覆盖 Hugging Face profile、Qwen3/GQA shape、逐层 TP collective、
-PP 对角流水、replica sticky routing、continuous/static batching、FCFS、WAN 和甘特图输出。
+当前包含 37 个行为测试，覆盖 Hugging Face profile、Qwen2/Qwen3 GQA shape、逐层 TP collective、
+PP 对角流水、replica sticky routing、continuous/static batching、FCFS、PR #8 同步 RPC、
+双 tensor WAN、按需 KV 和甘特图输出。
 
 ## 当前边界
 

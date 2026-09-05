@@ -22,6 +22,31 @@ def item(item_id: int, tokens: int = 16) -> WorkItem:
 
 
 class PerformanceTest(unittest.TestCase):
+    def test_qwen2_omits_qk_norm_and_network_can_send_hidden_and_residual(self) -> None:
+        data = copied_toy_config()
+        data["model"]["model_type"] = "qwen2"
+        data["network"].update(
+            {
+                "activation_tensor_count": 2,
+                "protocol_overhead_bytes": 128,
+                "sender_overhead_ms": 0.1,
+                "receiver_overhead_ms": 0.2,
+            }
+        )
+        config = parse_config(data)
+        work_item = item(0, 16)
+        estimate = RooflineModel(config).estimate("cloud_middle", [work_item])
+        names = {operation.name for operation in estimate.sub_operations}
+        self.assertFalse(any(name.endswith((".q_norm", ".k_norm")) for name in names))
+
+        network = NetworkModel(config).estimate(Stage.WAN_UP, [work_item])
+        tensor_bytes = 16 * config.model.hidden_size * config.model.dtype_bytes * 2
+        self.assertEqual(network.communication_bytes, tensor_bytes + 128)
+        self.assertEqual(
+            [operation.name for operation in network.sub_operations],
+            ["sender_staging", "wan_serialization", "wan_propagation", "receiver_staging"],
+        )
+
     def test_mixed_attention_backend_can_be_unified_or_separate(self) -> None:
         mixed = [item(0), WorkItem(id=99, request_id=99, phase=Phase.DECODE, stage=Stage.EDGE_FRONT, token_start=32, token_count=1, context_tokens=32)]
         unified = RooflineModel(parse_config(copied_toy_config())).estimate("edge_front", mixed)

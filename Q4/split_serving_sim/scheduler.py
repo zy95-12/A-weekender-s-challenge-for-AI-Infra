@@ -49,6 +49,17 @@ class VLLMScheduler:
                 continue
             attempted.add(group)
             compatible = [item for item in ordered if (item.stage, item.pipeline_rank) == group]
+            if (
+                self.scheduler.policy == "split_poc_naive"
+                and anchor.stage == Stage.EDGE_FRONT
+                and anchor.pipeline_rank == 0
+            ):
+                prefills = [item for item in compatible if item.phase == Phase.PREFILL]
+                # PR #8 baseline: one whole/chunked prefill monopolizes the
+                # next end-to-end call; otherwise decode every active request.
+                compatible = prefills[:1] if prefills else [
+                    item for item in compatible if item.phase == Phase.DECODE
+                ]
             selected: list[WorkItem] = []
             request_ids: set[int] = set()
             new_running: set[int] = set()

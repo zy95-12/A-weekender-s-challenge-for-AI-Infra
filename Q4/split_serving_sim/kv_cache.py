@@ -84,6 +84,29 @@ class PagedKVCache:
         self.request_shared_prefix.pop(request_id, None)
         return self.allocations.pop(request_id, 0)
 
+    def grow_batch(self, targets: dict[int, int]) -> dict[int, int] | None:
+        """Atomically grow live request allocations to the requested token lengths."""
+        desired: dict[int, int] = {}
+        deltas: dict[int, int] = {}
+        for request_id, total_tokens in targets.items():
+            if request_id not in self.allocations:
+                raise ValueError(f"request {request_id} has no KV admission")
+            prefix_id = self.request_shared_prefix.get(request_id)
+            shared = self.shared_prefixes.get(prefix_id, 0) if prefix_id else 0
+            desired[request_id] = max(self.blocks_for_tokens(total_tokens) - shared, 0)
+            deltas[request_id] = max(
+                desired[request_id] - self.allocations[request_id], 0
+            )
+        needed = sum(deltas.values())
+        self._evict_prefixes_until(needed, exclude=None)
+        if self.free_blocks < needed:
+            return None
+        for request_id, target in desired.items():
+            self.allocations[request_id] = max(
+                self.allocations[request_id], target
+            )
+        return deltas
+
     def publish_prefix(
         self, request_id: int, prefix_id: str | None, prefix_tokens: int
     ) -> int:
@@ -121,4 +144,3 @@ class PagedKVCache:
             evicted += self.shared_prefixes.pop(victim)
             self.prefix_last_used.pop(victim, None)
         return evicted
-

@@ -46,6 +46,23 @@
     "scheduler_policy": "fcfs",
     "max_num_seqs": 8
   },
+  "model": {
+    "name": "Qwen/Qwen3-32B",
+    "architecture": "qwen3",
+    "num_layers": 64,
+    "dtype": "bfloat16"
+  },
+  "execution": {
+    "mode": "pipelined",
+    "preserve_batch_across_stages": false
+  },
+  "network": {
+    "uplink_gbps": 10.0,
+    "downlink_gbps": 10.0,
+    "rtt_ms": 10.0,
+    "activation_tensor_count": 1,
+    "protocol_overhead_bytes": 0
+  },
   "parallel_plan": [
     {
       "stage": "edge_front",

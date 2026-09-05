@@ -23,6 +23,8 @@ class ModelConfig:
     vocab_size: int = 0
     dtype: str = "bfloat16"
     dtype_bytes: int = 2
+    attention_bias: bool = False
+    tie_word_embeddings: bool = False
 
     @property
     def query_width(self) -> int:
@@ -40,8 +42,11 @@ class ModelConfig:
             + self.query_width * self.hidden_size
         )
         mlp = 3 * self.hidden_size * self.intermediate_size
-        norms = 2 * self.hidden_size + 2 * self.head_dim
-        return attention + mlp + norms
+        norms = 2 * self.hidden_size
+        if self.architecture == "qwen3":
+            norms += 2 * self.head_dim
+        biases = self.query_width + 2 * self.kv_width if self.attention_bias else 0
+        return attention + mlp + norms + biases
 
 
 @dataclass(frozen=True)
@@ -102,6 +107,16 @@ class NetworkConfig:
     downlink_gbps: float
     rtt_ms: float
     efficiency: float = 1.0
+    activation_tensor_count: int = 1
+    protocol_overhead_bytes: int = 0
+    sender_overhead_ms: float = 0.0
+    receiver_overhead_ms: float = 0.0
+
+
+@dataclass(frozen=True)
+class ExecutionConfig:
+    mode: str = "pipelined"
+    preserve_batch_across_stages: bool = False
 
 
 @dataclass(frozen=True)
@@ -125,6 +140,7 @@ class AttentionBackendConfig:
 @dataclass(frozen=True)
 class KVCacheConfig:
     enabled: bool = False
+    allocation_mode: str = "preallocate"
     block_size_tokens: int = 16
     num_blocks: int = 0
     watermark: float = 0.0
@@ -191,6 +207,7 @@ class SimulationConfig:
     stages: tuple[StageConfig, ...]
     hardware: dict[str, HardwareConfig]
     network: NetworkConfig
+    execution: ExecutionConfig
     static_policy: StaticPolicyConfig
     attention_backend: AttentionBackendConfig
     scheduler: SchedulerConfig
@@ -265,6 +282,8 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         vocab_size=int(model_data.get("vocab_size", 0)),
         dtype=dtype,
         dtype_bytes=int(model_data.get("dtype_bytes", inferred_dtype_bytes or 2)),
+        attention_bias=bool(model_data.get("attention_bias", False)),
+        tie_word_embeddings=bool(model_data.get("tie_word_embeddings", False)),
     )
 
     topology_data = _required(data, "topology", "root")
@@ -311,6 +330,21 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         downlink_gbps=float(_required(network_data, "downlink_gbps", "network")),
         rtt_ms=float(_required(network_data, "rtt_ms", "network")),
         efficiency=float(network_data.get("efficiency", 1.0)),
+        activation_tensor_count=int(network_data.get("activation_tensor_count", 1)),
+        protocol_overhead_bytes=int(network_data.get("protocol_overhead_bytes", 0)),
+        sender_overhead_ms=float(network_data.get("sender_overhead_ms", 0.0)),
+        receiver_overhead_ms=float(network_data.get("receiver_overhead_ms", 0.0)),
+    )
+    execution_data = data.get("execution", {})
+    execution_mode = str(execution_data.get("mode", "pipelined"))
+    execution = ExecutionConfig(
+        mode=execution_mode,
+        preserve_batch_across_stages=bool(
+            execution_data.get(
+                "preserve_batch_across_stages",
+                execution_mode == "synchronous_rpc",
+            )
+        ),
     )
 
     policy_data = _required(data, "static_policy", "root")
@@ -377,6 +411,7 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         enable_chunked_prefill=bool(scheduler_data.get("enable_chunked_prefill", True)),
         kv_cache=KVCacheConfig(
             enabled=bool(kv_data.get("enabled", False)),
+            allocation_mode=str(kv_data.get("allocation_mode", "preallocate")),
             block_size_tokens=int(kv_data.get("block_size_tokens", 16)),
             num_blocks=int(kv_data.get("num_blocks", 0)),
             watermark=float(kv_data.get("watermark", 0.0)),
@@ -442,6 +477,7 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         stages=stages,
         hardware=hardware,
         network=network,
+        execution=execution,
         static_policy=policy,
         attention_backend=attention_backend,
         scheduler=scheduler,
@@ -458,15 +494,15 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("model dimensions must be positive")
     if config.model.dtype_bytes <= 0:
         raise ConfigError("model.dtype_bytes must be positive")
-    if config.model.architecture != "qwen3":
-        raise ConfigError("only model architecture 'qwen3' is supported")
+    if config.model.architecture not in {"qwen2", "qwen3"}:
+        raise ConfigError("model architecture must be qwen2 or qwen3")
     if min(
         config.model.intermediate_size,
         config.model.num_attention_heads,
         config.model.num_key_value_heads,
         config.model.head_dim,
     ) <= 0:
-        raise ConfigError("Qwen3 model dimensions must be positive")
+        raise ConfigError("Qwen model dimensions must be positive")
     if config.model.num_attention_heads % config.model.num_key_value_heads != 0:
         raise ConfigError("num_attention_heads must be divisible by num_key_value_heads")
 
@@ -558,6 +594,19 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("network.rtt_ms cannot be negative")
     if not 0 < config.network.efficiency <= 1:
         raise ConfigError("network.efficiency must be in (0, 1]")
+    if config.network.activation_tensor_count <= 0:
+        raise ConfigError("network.activation_tensor_count must be positive")
+    if config.network.protocol_overhead_bytes < 0:
+        raise ConfigError("network.protocol_overhead_bytes cannot be negative")
+    if min(config.network.sender_overhead_ms, config.network.receiver_overhead_ms) < 0:
+        raise ConfigError("network staging overhead cannot be negative")
+    if config.execution.mode not in {"pipelined", "synchronous_rpc"}:
+        raise ConfigError("execution.mode must be pipelined or synchronous_rpc")
+    if (
+        config.execution.mode == "synchronous_rpc"
+        and not config.execution.preserve_batch_across_stages
+    ):
+        raise ConfigError("synchronous_rpc must preserve batches across stages")
 
     policy = config.static_policy
     if min(
@@ -577,8 +626,17 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("prefill_token_budget cannot exceed max_batched_tokens")
     if policy.dispatch_mode != "eager":
         raise ConfigError("only dispatch_mode='eager' is supported in the MVP")
-    if config.scheduler.policy not in {"fcfs", "priority", "shortest_prefill"}:
-        raise ConfigError("scheduler.policy must be fcfs, priority, or shortest_prefill")
+    if config.scheduler.policy not in {
+        "fcfs", "priority", "shortest_prefill", "split_poc_naive"
+    }:
+        raise ConfigError(
+            "scheduler.policy must be fcfs, priority, shortest_prefill, or split_poc_naive"
+        )
+    if (
+        config.scheduler.policy == "split_poc_naive"
+        and config.execution.mode != "synchronous_rpc"
+    ):
+        raise ConfigError("split_poc_naive requires execution.mode=synchronous_rpc")
     if config.scheduler.max_num_seqs <= 0:
         raise ConfigError("scheduler.max_num_seqs must be positive")
     if config.attention_backend.mode not in {"unified", "separate"}:
@@ -586,6 +644,8 @@ def validate_config(config: SimulationConfig) -> None:
     kv = config.scheduler.kv_cache
     if kv.enabled and kv.num_blocks <= 0:
         raise ConfigError("enabled KV cache requires positive num_blocks")
+    if kv.allocation_mode not in {"preallocate", "on_demand"}:
+        raise ConfigError("kv_cache.allocation_mode must be preallocate or on_demand")
     if kv.block_size_tokens <= 0 or not 0 <= kv.watermark < 1:
         raise ConfigError("invalid KV block size or watermark")
     pd = config.scheduler.pd_disaggregation
@@ -627,8 +687,8 @@ def validate_config(config: SimulationConfig) -> None:
     else:
         raise ConfigError("workload.mode must be synthetic or trace")
 
-    # This MVP does not model paging. At minimum, each stage's sharded weights
-    # must fit on one participating GPU.
+    # This MVP does not model weight paging. At minimum, each stage's sharded
+    # weights must fit on one participating GPU.
     weights_by_pipeline_rank: dict[tuple[str, int], float] = {}
     for stage in config.stages:
         for pipeline_rank in range(stage.pp_degree):
@@ -646,7 +706,11 @@ def validate_config(config: SimulationConfig) -> None:
                     * config.model.dtype_bytes
                     / stage.tp_degree
                 )
-            if layer_end == config.model.num_layers:
+            tied_embedding_is_local = (
+                config.model.tie_word_embeddings
+                and stage.resource == config.stages[0].resource
+            )
+            if layer_end == config.model.num_layers and not tied_embedding_is_local:
                 weight_bytes += (
                     config.model.vocab_size
                     * config.model.hidden_size
