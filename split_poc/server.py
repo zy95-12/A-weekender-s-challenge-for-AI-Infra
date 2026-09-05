@@ -277,6 +277,10 @@ def create_app(args):
                     raise ValueError("Unsupported execution metadata")
                 if not 1 <= len(command["items"]) <= args.max_active:
                     raise ValueError("Invalid batch size")
+                if command["phase"]=="verify" and (len(command["items"])!=1 or
+                        not 1<=command["items"][0].get("query_len",0)<=args.speculative_tokens+1 or
+                        command["items"][0].get("position",0)<1):
+                    raise ValueError("Invalid verification window")
                 seen = set()
                 for item in command["items"]:
                     if set(item) != {"request_id", "position", "query_len"}:
