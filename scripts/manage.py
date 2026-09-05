@@ -116,7 +116,9 @@ def up(args):
         model = ROOT / "models" / ("qwen" if role == "enterprise" else "cloud")
         tp = enterprise_tp if role == "enterprise" else cloud_tp
         common = [str(PYTHON), "-m", "split_poc.server", "--model", str(model),
-                  "--split", args.split, "--tp", str(tp), "--results", str(results)]
+                  "--split", args.split, "--tp", str(tp), "--results", str(results), "--ipc-mode", args.ipc_mode]
+        if args.wire_fast:
+            common.append("--wire-fast")
         if args.profile or args.phase_profile:
             common.append("--phase-profile")
         if not args.profile:
@@ -158,6 +160,8 @@ if __name__ == "__main__":
     parser.add_argument("--delay", "--delay-ms", dest="delay", type=float, default=5)
     parser.add_argument("--bandwidth-gbps", type=float, default=10)
     parser.add_argument("--profile", action="store_true")
+    parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe")
+    parser.add_argument("--wire-fast", action="store_true")
     parser.add_argument("--phase-profile", action="store_true")
     args = parser.parse_args()
     if args.action == "up":

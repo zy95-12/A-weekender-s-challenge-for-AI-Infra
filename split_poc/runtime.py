@@ -19,6 +19,7 @@ import torch.multiprocessing as mp
 
 from split_poc import SPLITS, WEIGHT_SHA256
 from split_poc.wire import pack, unpack
+from split_poc.local_ipc import LocalMailbox
 
 
 class KVPool:
@@ -270,7 +271,7 @@ class Runner:
                     try:
                         start = time.perf_counter()
                         payload = pack({k: command[k] for k in ("op", "items", "phase", "batch_id")},
-                                       [hidden.cpu().numpy(), residual.cpu().numpy()])
+                                       [hidden.cpu().numpy(), residual.cpu().numpy()], fast=self.args.get("wire_fast", False))
                         timings["enterprise_stage_pack_ms"] = (time.perf_counter() - start) * 1000
                         start = time.perf_counter()
                         sent_ns = time.perf_counter_ns()
@@ -319,7 +320,10 @@ class Runner:
 
 
 def worker(rank, args, pipe):
+    mailbox = None
     try:
+        if rank == 0 and args.get("local_ipc_names"):
+            mailbox = LocalMailbox(args["local_ipc_names"])
         runner = Runner(rank, args)
         from vllm.distributed import get_tp_group
         communicator = getattr(get_tp_group().device_communicator, "pynccl_comm", None)
@@ -341,7 +345,12 @@ def worker(rank, args, pipe):
             if command["op"] == "stop":
                 break
             try:
+                if mailbox and arrays is not None:
+                    arrays = mailbox.read(0, arrays)
                 result = runner.execute(command, arrays)
+                arrays = None
+                if mailbox and result and "arrays" in result:
+                    result = {"meta": result["meta"], "shared_shape": mailbox.write(1, result["arrays"])}
                 pipe.send({"result": result})
             except Exception:
                 pipe.send({"error": traceback.format_exc()})
@@ -354,6 +363,9 @@ def worker(rank, args, pipe):
         except Exception:
             pass
     finally:
+        if mailbox:
+            with contextlib.suppress(Exception):
+                mailbox.close()
         with contextlib.suppress(Exception):
             from vllm.distributed.parallel_state import destroy_model_parallel, destroy_distributed_environment
             destroy_model_parallel()
@@ -362,11 +374,23 @@ def worker(rank, args, pipe):
 
 class Executor:
     def __init__(self, args):
+        self.mailbox = LocalMailbox() if args.get("ipc_mode", "pipe") == "shm" and args["role"] == "cloud" else None
+        if self.mailbox:
+            args = {**args, "local_ipc_names": self.mailbox.names}
         ctx = mp.get_context("spawn")
         self.pipes, self.processes = [], []
         self.worker_audits = []
         self.healthy = True
         self.lock = threading.Lock()
+        try:
+            self._start_workers(args)
+        except BaseException:
+            self.healthy = False
+            self.close()
+            raise
+
+    def _start_workers(self, args):
+        ctx = mp.get_context("spawn")
         for rank in range(args["tp"]):
             parent, child = ctx.Pipe()
             process = ctx.Process(target=worker, args=(rank, args, child), daemon=True)
@@ -389,6 +413,8 @@ class Executor:
     def _call(self, command, arrays=None):
         if not self.healthy:
             raise RuntimeError("Executor unhealthy; restart required")
+        if self.mailbox and arrays is not None:
+            arrays = self.mailbox.write(0, arrays)
         for rank, pipe in enumerate(self.pipes):
             pipe.send((command, arrays if rank == 0 else None))
         replies = []
@@ -401,7 +427,10 @@ class Executor:
                 self.healthy = False
                 raise RuntimeError(reply["error"])
             replies.append(reply["result"])
-        return replies[0]
+        result = replies[0]
+        if self.mailbox and "shared_shape" in result:
+            result = {"meta": result["meta"], "arrays": self.mailbox.read(1, result["shared_shape"], copy=True)}
+        return result
 
     def close(self):
         if self.healthy:
@@ -417,3 +446,5 @@ class Executor:
                 process.terminate()
         for process in self.processes:
             process.join(timeout=10)
+        if self.mailbox:
+            self.mailbox.close()

@@ -40,7 +40,7 @@ def main():
         response = httpx.get(args.url + "/health", timeout=5, trust_env=False)
         response.raise_for_status()
         current = response.json()
-        for key in ("split", "layer_split", "tp", "cloud_tp", "model_id", "revision", "protocol"):
+        for key in ("split", "layer_split", "tp", "cloud_tp", "model_id", "revision", "protocol", "optimizations"):
             if current.get(key) != validated.get(key):
                 raise SystemExit(f"Correctness configuration mismatch: {key}")
     dest = Path(args.output).resolve()

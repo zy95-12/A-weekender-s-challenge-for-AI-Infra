@@ -19,23 +19,36 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import numpy as np
 from split_poc.wire import pack, unpack
+from split_poc.local_ipc import LocalMailbox
 
 
-def echo_worker(pipe):
-    while True:
-        arrays = pipe.recv()
-        if arrays is None:
-            return
-        pipe.send(arrays)
+def echo_worker(pipe, names):
+    mailbox=LocalMailbox(names) if names else None
+    try:
+        while True:
+            arrays = pipe.recv()
+            if arrays is None:
+                return
+            if mailbox:
+                arrays=mailbox.read(0,arrays)
+                shape=mailbox.write(1,arrays)
+                arrays=None
+                pipe.send(shape)
+            else:
+                pipe.send(arrays)
+    finally:
+        if mailbox:
+            mailbox.close()
 
 
-def server():
+def server(args):
     from fastapi import FastAPI, Request, Response
     import uvicorn
     app = FastAPI()
     ctx = mp.get_context("spawn")
     parent, child = ctx.Pipe()
-    process = ctx.Process(target=echo_worker, args=(child,), daemon=True)
+    mailbox=LocalMailbox() if args.ipc_mode=="shm" else None
+    process = ctx.Process(target=echo_worker, args=(child,mailbox.names if mailbox else None), daemon=True)
     process.start()
     child.close()
     lock = asyncio.Lock()
@@ -58,10 +71,12 @@ def server():
         async with lock:
             entered = time.perf_counter()
             if meta["ipc"]:
-                await asyncio.to_thread(parent.send, arrays)
-                arrays = await asyncio.to_thread(parent.recv)
+                message=mailbox.write(0,arrays) if mailbox else arrays
+                await asyncio.to_thread(parent.send, message)
+                result=await asyncio.to_thread(parent.recv)
+                arrays=mailbox.read(1,result,copy=True) if mailbox else result
             echoed = time.perf_counter()
-        encoded = pack({}, arrays)
+        encoded = pack({}, arrays, fast=args.wire_fast)
         finished = time.perf_counter()
         phases = {"body_receive_ms": (received-start)*1000,
                   "unpack_ms": (parsed-received)*1000,
@@ -77,6 +92,8 @@ def server():
             process.terminate()
         process.join(5)
         parent.close()
+        if mailbox:
+            mailbox.close()
 
     uvicorn.run(app, host="10.205.0.2", port=8099, access_log=False)
 
@@ -94,7 +111,7 @@ def client(args):
             for ipc in (False, True):
                 for repeat in range(-1, args.repeats):
                     start = time.perf_counter()
-                    body = pack({"ipc": ipc}, arrays)
+                    body = pack({"ipc": ipc}, arrays, fast=args.wire_fast)
                     packed = time.perf_counter()
                     response = http.post("/echo", content=body)
                     response.raise_for_status()
@@ -113,7 +130,7 @@ def client(args):
         # Separate experiments: multiple messages in flight, same real TCP path.
         for size in (8192, 64*1024**2):
             arrays=[np.full((size//8192,2048),v,np.float16) for v in (.25,-.5)]
-            body=pack({"ipc":True},arrays)
+            body=pack({"ipc":True},arrays,fast=args.wire_fast)
             def send_one(index):
                 start=time.perf_counter()
                 response=http.post("/echo",content=body)
@@ -152,9 +169,11 @@ def main():
     parser.add_argument("action",choices=["run","server","client"])
     parser.add_argument("--output",default="results/optimization_stage0/transport")
     parser.add_argument("--repeats",type=int,default=10)
+    parser.add_argument("--ipc-mode",choices=["pipe","shm"],default="pipe")
+    parser.add_argument("--wire-fast",action="store_true")
     args=parser.parse_args()
     if args.action=="server":
-        server()
+        server(args)
     elif args.action=="client":
         client(args)
     else:
@@ -167,7 +186,8 @@ def main():
             check(intent,output/"network_check.json")
             subprocess.run([sys.executable,str(ROOT/"scripts/environment.py"),str(output/"environment.json")],check=True,cwd=ROOT)
             with (output/"server.log").open("w") as log:
-                process=subprocess.Popen(["ip","netns","exec","split-cloud",sys.executable,__file__,"server"],stdout=log,stderr=subprocess.STDOUT)
+                extra=["--ipc-mode",args.ipc_mode]+(["--wire-fast"] if args.wire_fast else [])
+                process=subprocess.Popen(["ip","netns","exec","split-cloud",sys.executable,__file__,"server",*extra],stdout=log,stderr=subprocess.STDOUT)
                 try:
                     for _ in range(60):
                         if process.poll() is not None:
@@ -179,7 +199,7 @@ def main():
                     else:
                         raise RuntimeError("microbench server not ready")
                     subprocess.run(["ip","netns","exec","split-enterprise",sys.executable,__file__,"client",
-                        "--repeats",str(args.repeats),"--output",str(output/"measurement.json")],check=True)
+                        "--repeats",str(args.repeats),"--output",str(output/"measurement.json"),*extra],check=True)
                     after=snapshot()
                     (output/"network_after.json").write_text(json.dumps(after,indent=2))
                     verify(after,intent)

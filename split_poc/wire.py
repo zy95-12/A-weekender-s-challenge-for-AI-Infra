@@ -8,7 +8,7 @@ MAX_BODY = 160 * 1024 * 1024
 MAX_HEADER = 1024 * 1024
 
 
-def pack(meta, tensors=()):
+def pack(meta, tensors=(), *, fast=False):
     arrays = [np.ascontiguousarray(t) for t in tensors]
     descriptors = [{"shape": list(a.shape), "dtype": a.dtype.str,
                     "bytes": a.nbytes} for a in arrays]
@@ -16,7 +16,12 @@ def pack(meta, tensors=()):
                         separators=(",", ":")).encode()
     if len(header) > MAX_HEADER:
         raise ValueError("Header too large")
-    body = struct.pack("!I", len(header)) + header + b"".join(a.tobytes() for a in arrays)
+    if fast:
+        # One output allocation/copy; avoid per-tensor tobytes + intermediate join.
+        body = b"".join([struct.pack("!I", len(header)), header,
+                         *(memoryview(a).cast("B") for a in arrays)])
+    else:
+        body = struct.pack("!I", len(header)) + header + b"".join(a.tobytes() for a in arrays)
     if len(body) > MAX_BODY:
         raise ValueError("Body too large")
     return body

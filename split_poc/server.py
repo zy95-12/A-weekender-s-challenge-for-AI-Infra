@@ -160,6 +160,8 @@ def create_app(args):
         if tuple(remote_config.get("layer_split", [])) != SPLITS[args.split]:
             raise RuntimeError("Cloud layer partition differs from Enterprise")
         cloud_tp = remote_config["tp"]
+        if remote_config.get("optimizations") != {"ipc_mode": args.ipc_mode, "wire_fast": args.wire_fast}:
+            raise RuntimeError("Cloud optimization flags differ from Enterprise")
     executor = Executor(vars(args))
     app.state.executor = executor
     lock = threading.Lock()
@@ -191,6 +193,7 @@ def create_app(args):
         return {"status": "ready", "role": args.role, "split": args.split, "tp": args.tp,
                 "cloud_tp": cloud_tp, "model_id": MODEL_ID, "revision": REVISION, "protocol": 1,
                 "layer_split": SPLITS[args.split],
+                "optimizations": {"ipc_mode": args.ipc_mode, "wire_fast": args.wire_fast},
                 "gpu_pids": [p.pid for p in executor.processes],
                 "worker_audits": executor.worker_audits,
                 "active": len(scheduler.active) if scheduler else len(last_seen),
@@ -282,7 +285,7 @@ def create_app(args):
                     cloud_metrics["forward_steps"] += 1
                     cloud_metrics[command["phase"] + "_tokens"] += n
                     result["meta"]["timings"]["cloud_send_ns"] = time.perf_counter_ns()
-                    return pack(result["meta"], result["arrays"])
+                    return pack(result["meta"], result["arrays"], fast=args.wire_fast)
             try:
                 result = await asyncio.to_thread(execute)
             except Exception as exc:
@@ -495,6 +498,9 @@ def main():
     parser.add_argument("--max-active", type=int, default=8)
     parser.add_argument("--results", default="results/live")
     parser.add_argument("--diagnostics", action="store_true")
+    parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe",
+                        help="Cloud-local CPU IPC only; never bypasses WAN")
+    parser.add_argument("--wire-fast", action="store_true", help="Single-join lossless FP16 wire encoding")
     parser.add_argument("--phase-profile", action="store_true",
                         help="Detailed synchronous GPU stage timings; disable for baseline throughput")
     args = parser.parse_args()
