@@ -1,0 +1,187 @@
+{
+  "qualification": "E1/P2/D1 PD versus E1/cloudTP2 shared serving; decode TP differs, not bitwise equivalence acceptance",
+  "prompts": {
+    "current4k": {
+      "rows": [
+        {
+          "logits_row": 0,
+          "absolute_position": 4095,
+          "phase": "prefill",
+          "pd_top1": 785,
+          "reference_top1": 785,
+          "max_logit_error": 0.0,
+          "max_probability_error": 0.0,
+          "total_variation": 0.0
+        },
+        {
+          "logits_row": 1,
+          "absolute_position": 4096,
+          "phase": "decode",
+          "pd_top1": 6733,
+          "reference_top1": 6733,
+          "max_logit_error": 0.046875,
+          "max_probability_error": 2.0554540514083897e-08,
+          "total_variation": 2.0558104712716366e-08
+        },
+        {
+          "logits_row": 2,
+          "absolute_position": 4097,
+          "phase": "decode",
+          "pd_top1": 15885,
+          "reference_top1": 15885,
+          "max_logit_error": 0.03125,
+          "max_probability_error": 1.7594246060070873e-08,
+          "total_variation": 1.7594246277226033e-08
+        },
+        {
+          "logits_row": 3,
+          "absolute_position": 4098,
+          "phase": "decode",
+          "pd_top1": 518,
+          "reference_top1": 518,
+          "max_logit_error": 0.03515625,
+          "max_probability_error": 1.3530693526088275e-11,
+          "total_variation": 1.3533902313491388e-11
+        },
+        {
+          "logits_row": 4,
+          "absolute_position": 4099,
+          "phase": "decode",
+          "pd_top1": 11627,
+          "reference_top1": 11627,
+          "max_logit_error": 0.025390625,
+          "max_probability_error": 3.747447907542778e-10,
+          "total_variation": 5.054642635541806e-10
+        },
+        {
+          "logits_row": 5,
+          "absolute_position": 4100,
+          "phase": "decode",
+          "pd_top1": 304,
+          "reference_top1": 304,
+          "max_logit_error": 0.0390625,
+          "max_probability_error": 3.016255978316451e-08,
+          "total_variation": 3.016255985385257e-08
+        },
+        {
+          "logits_row": 6,
+          "absolute_position": 4101,
+          "phase": "decode",
+          "pd_top1": 279,
+          "reference_top1": 279,
+          "max_logit_error": 0.046875,
+          "max_probability_error": 1.927791259959122e-12,
+          "total_variation": 1.936614058512795e-12
+        },
+        {
+          "logits_row": 7,
+          "absolute_position": 4102,
+          "phase": "decode",
+          "pd_top1": 6556,
+          "reference_top1": 6556,
+          "max_logit_error": 0.0703125,
+          "max_probability_error": 5.951402703985309e-10,
+          "total_variation": 5.952226297854848e-10
+        }
+      ],
+      "prefill_logits_exact": true,
+      "top1_matches": 8,
+      "max_logit_error": 0.0703125,
+      "mean_logit_error": 0.006502832997056382,
+      "p99_logit_error": 0.02734375,
+      "max_probability_error": 3.016255978316451e-08,
+      "mean_total_variation": 8.67888353168833e-09
+    },
+    "nonaligned257": {
+      "rows": [
+        {
+          "logits_row": 0,
+          "absolute_position": 256,
+          "phase": "prefill",
+          "pd_top1": 3170,
+          "reference_top1": 3170,
+          "max_logit_error": 0.0,
+          "max_probability_error": 0.0,
+          "total_variation": 0.0
+        },
+        {
+          "logits_row": 1,
+          "absolute_position": 257,
+          "phase": "decode",
+          "pd_top1": 6366,
+          "reference_top1": 6366,
+          "max_logit_error": 0.021484375,
+          "max_probability_error": 0.0018030139660145383,
+          "total_variation": 0.0037571412416470985
+        },
+        {
+          "logits_row": 2,
+          "absolute_position": 258,
+          "phase": "decode",
+          "pd_top1": 315,
+          "reference_top1": 315,
+          "max_logit_error": 0.01953125,
+          "max_probability_error": 0.0016423388261440908,
+          "total_variation": 0.003313516066635747
+        },
+        {
+          "logits_row": 3,
+          "absolute_position": 259,
+          "phase": "decode",
+          "pd_top1": 518,
+          "reference_top1": 518,
+          "max_logit_error": 0.02734375,
+          "max_probability_error": 0.0024038802727801567,
+          "total_variation": 0.004053893568300436
+        },
+        {
+          "logits_row": 4,
+          "absolute_position": 260,
+          "phase": "decode",
+          "pd_top1": 220,
+          "reference_top1": 220,
+          "max_logit_error": 0.037109375,
+          "max_probability_error": 0.0007452866289298088,
+          "total_variation": 0.0007529453100683273
+        },
+        {
+          "logits_row": 5,
+          "absolute_position": 261,
+          "phase": "decode",
+          "pd_top1": 297,
+          "reference_top1": 297,
+          "max_logit_error": 0.025390625,
+          "max_probability_error": 0.0026238078579661483,
+          "total_variation": 0.003335737393146277
+        },
+        {
+          "logits_row": 6,
+          "absolute_position": 262,
+          "phase": "decode",
+          "pd_top1": 279,
+          "reference_top1": 279,
+          "max_logit_error": 0.037109375,
+          "max_probability_error": 4.01236479132816e-05,
+          "total_variation": 4.015035938120795e-05
+        },
+        {
+          "logits_row": 7,
+          "absolute_position": 263,
+          "phase": "decode",
+          "pd_top1": 6556,
+          "reference_top1": 6556,
+          "max_logit_error": 0.02734375,
+          "max_probability_error": 9.345468046761951e-05,
+          "total_variation": 9.38883282436898e-05
+        }
+      ],
+      "prefill_logits_exact": true,
+      "top1_matches": 8,
+      "max_logit_error": 0.037109375,
+      "mean_logit_error": 0.0041973727924722575,
+      "p99_logit_error": 0.017578125,
+      "max_probability_error": 0.0026238078579661483,
+      "mean_total_variation": 0.001918409033427848
+    }
+  }
+}

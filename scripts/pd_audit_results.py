@@ -56,7 +56,7 @@ def main():
     fields=['variant','requests','completed_qps','slo_attainment','mean_ttft_ms','p99_ttft_ms','mean_tpot_ms',
             'p99_tpot_ms','mean_first_second_ms','p99_first_second_ms','p99_token_itl_ms','p99_max_itl_ms']
     with (OUT/'comparison.csv').open('w') as f:
-        w=csv.DictWriter(f,fieldnames=fields,extrasaction='ignore');w.writeheader();w.writerows(summaries)
+        w=csv.DictWriter(f,fieldnames=fields,extrasaction='ignore',lineterminator='\n');w.writeheader();w.writerows(summaries)
     print(json.dumps(result,indent=2))
 
 

@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "variants": [
+    {
+      "variant": "stage123_q4",
+      "formal_requests": 126,
+      "all_requests": 158,
+      "positions_valid": true
+    },
+    {
+      "variant": "pd_stage123_p2d1",
+      "formal_requests": 214,
+      "all_requests": 246,
+      "positions_valid": true,
+      "handoff_order_valid": true,
+      "mean_exposed_kv_after_first_token_ms": 20.832771126168225,
+      "p99_exposed_kv_after_first_token_ms": 90.93884273,
+      "fraction_kv_ready_before_first_token": 0.5373831775700935,
+      "mean_receive_thread_duration_ms": 33.54415767757009,
+      "mean_import_to_ready_ms": 6.36297170093458
+    }
+  ]
+}
