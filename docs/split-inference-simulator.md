@@ -7,5 +7,6 @@
 - [结构与后端](../Q4/docs/ARCHITECTURE.md)
 - [当前精度、证据和验证命令](../Q4/docs/VALIDATION.md)
 - [启动完整 demo](../demo/README.md)
+- [真实按钮验收与新增 SLO 扫描](live-demo-validation.md)
 
-当前 PD C40 校准对照误差为 QPS +3.05%、TTFT −10.64%、TPOT −2.80%，尚不是跨模型/硬件泛化或精确 SLO 容量验收。demo 的性能区调用 Q4 解析模型；安全区是证据回放，baseline 启动/对话是假数据展示，当前 Qwen3-32B/A10 演示参数未做实测校准。
+当前 PD C40 校准对照误差为 QPS +3.05%、TTFT −10.64%、TPOT −2.80%，尚不是跨模型/硬件泛化或精确 SLO 容量验收。demo 已接通 PR #15 的真实 embedding 攻击、根目录 serving 的启动与流式对话，展示归档的真实 GSM8K logits 和 C16 耗时拆解，以及新增优化并发扫描。仿真区使用当前 Qwen2.5-3B/A10 baseline/PD 后端；预测值与实测值明确区分。

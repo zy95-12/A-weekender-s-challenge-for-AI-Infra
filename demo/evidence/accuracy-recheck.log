@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "samples": 8,
+  "variants": {
+    "baseline": {
+      "prefill": {
+        "rows": 8,
+        "passed": true,
+        "mae": 0.0,
+        "rmse": 0.0,
+        "max_abs_error": 0.0,
+        "softmax_tv": 0.0,
+        "max_probability_delta": 0.0,
+        "min_cosine_similarity": 0.9999999999999999
+      },
+      "decode": {
+        "rows": 56,
+        "passed": true,
+        "mae": 0.0,
+        "rmse": 0.0,
+        "max_abs_error": 0.0,
+        "softmax_tv": 0.0,
+        "max_probability_delta": 0.0,
+        "min_cosine_similarity": 0.9999999999999998
+      }
+    },
+    "optimized": {
+      "prefill": {
+        "rows": 8,
+        "passed": true,
+        "mae": 0.0,
+        "rmse": 0.0,
+        "max_abs_error": 0.0,
+        "softmax_tv": 0.0,
+        "max_probability_delta": 0.0,
+        "min_cosine_similarity": 0.9999999999999999
+      },
+      "decode": {
+        "rows": 56,
+        "passed": true,
+        "mae": 0.0,
+        "rmse": 0.0,
+        "max_abs_error": 0.0,
+        "softmax_tv": 0.0,
+        "max_probability_delta": 0.0,
+        "min_cosine_similarity": 0.9999999999999998
+      }
+    }
+  },
+  "scope": "Same input IDs and absolute positions; last prefill position plus forced decode; matched native TP/attention configuration. No answer equality gate."
+}

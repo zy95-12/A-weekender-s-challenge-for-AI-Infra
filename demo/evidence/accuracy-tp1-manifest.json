@@ -1,0 +1,56 @@
+{
+  "dataset": "openai/grade-school-math",
+  "revision": "3101c7d5072418e28b9008a6636bde82a006892c",
+  "dataset_sha256": {
+    "train": "17f347dc51477c50d4efb83959dbb7c56297aba886e5544ee2aaed3024813465",
+    "test": "3730d312f6e3440559ace48831e51066acaca737f6eabec99bccb9e4b3c39d14"
+  },
+  "test_size": 1319,
+  "indices": [
+    51,
+    209,
+    228,
+    285,
+    457,
+    501,
+    563,
+    1309
+  ],
+  "seed": 42,
+  "few_shot_train_indices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "max_tokens": 32,
+  "steps": 8,
+  "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+  "prompts_sha256": "6a0f3740a7f3b2781701cf335d2a1518365970042657b9f87e4c0badd63478f7",
+  "gate": "Public API emits text; same-input absolute-position logits pass the fixed numerical gate, separately for prefill and decode. No answer agreement gate.",
+  "reference_experiment": {
+    "date": "2026-09-07",
+    "native_tp": 1,
+    "native_chunked_prefill": false,
+    "split_tp": "2+2",
+    "split_layers": [
+      4,
+      27,
+      5
+    ],
+    "diagnostic_concurrency": 1,
+    "fresh_native_and_split_capture": true
+  }
+}

@@ -1,0 +1,651 @@
+{
+  "id": "70ac09b943414dfd8e858064cda81504",
+  "kind": "simulate",
+  "status": "completed",
+  "started_at": 1788716417.1883583,
+  "result": {
+    "engine": "Q4",
+    "source": "simulation",
+    "variant": "baseline",
+    "concurrency": 1,
+    "input_tokens": 4096,
+    "output_tokens": 79,
+    "seed": 17,
+    "point": {
+      "concurrency": 1,
+      "qps": 0.4166666666666667,
+      "ttft_mean_ms": 726.9538094374433,
+      "tpot_mean_ms": 20.996945055759173,
+      "ttft_p99_ms": 726.9538094376635,
+      "tpot_p99_ms": 20.996945055789077
+    },
+    "summary": {
+      "num_requests": 25,
+      "simulation_start_ms": 2364.7155237844217,
+      "simulation_end_ms": 62364.71552378442,
+      "simulation_duration_ms": 60000.0,
+      "observed_request_throughput_qps": 0.4166666666666667,
+      "observed_output_throughput_tokens_s": 32.916666666666664,
+      "ttft_ms": {
+        "mean": 726.9538094374433,
+        "p50": 726.9538094374823,
+        "p95": 726.9538094376635,
+        "p99": 726.9538094376635
+      },
+      "tpot_ms": {
+        "mean": 20.996945055759173,
+        "p50": 20.996945055765845,
+        "p95": 20.996945055787265,
+        "p99": 20.996945055789077
+      },
+      "itl_ms": {
+        "p50": 20.994323151305707,
+        "p95": 21.025898687599692,
+        "p99": 21.027626687475276,
+        "max": 21.027626687580778
+      },
+      "e2e_ms": {
+        "mean": 2364.715523786659,
+        "p50": 2364.7155237870265,
+        "p95": 2364.7155237888937,
+        "p99": 2364.71552378903
+      },
+      "average_batch_size": null,
+      "resource_utilization": {
+        "cloud_a10": 0.2984345059456738,
+        "enterprise_a10": 0.12273776327899813,
+        "wan_down": 0.055179248941349464,
+        "wan_up": 0.054523895666547806
+      },
+      "slo": {
+        "ttft_limit_ms": 3000.0,
+        "tpot_limit_ms": 100.0,
+        "target_attainment": 0.99,
+        "ttft_pass": true,
+        "tpot_pass": true,
+        "compliant_requests": 25,
+        "attainment": 1.0,
+        "goodput_qps": 0.4166666666666667,
+        "pass": true
+      },
+      "resource_utilization_scope": "full_run_including_warmup",
+      "total_requests_including_warmup_and_drain": 27,
+      "warmup_requests": 1,
+      "drain_requests_excluded": 1,
+      "measurement_window": {
+        "mode": "fixed_duration_excluding_warmup_and_drain",
+        "start_ms": 2364.7155237844217,
+        "end_ms": 62364.71552378442,
+        "duration_ms": 60000.0
+      },
+      "static_policy": {
+        "batch_size": 8,
+        "max_batched_tokens": 4096,
+        "prefill_token_budget": 4096,
+        "prefill_chunk_size": 4096,
+        "scheduler": "fcfs",
+        "continuous_batching": true,
+        "attention_backend": "unified",
+        "operator_backend": "vllm",
+        "scheduler_policy": "split_poc_naive",
+        "max_num_seqs": 8,
+        "decode_first": false,
+        "allow_mixed_batch": false,
+        "prefer_ready_back": false,
+        "max_consecutive_decode_batches": 8,
+        "max_decode_tokens_per_batch": 0,
+        "max_prefill_wait_ms": 0.0
+      },
+      "model": {
+        "name": "Qwen/Qwen2.5-3B-Instruct",
+        "architecture": "qwen2",
+        "num_layers": 36,
+        "dtype": "float16",
+        "operator_backend": "vllm",
+        "operator_backend_version": "0.10.x"
+      },
+      "execution": {
+        "host_submission": {
+          "enabled": true,
+          "configured_enabled": true,
+          "submit_us": 6.0,
+          "submit_us_by_type": {
+            "mm": 7.5,
+            "flash_attention": 18.0
+          },
+          "resource_totals": {
+            "enterprise_a10": {
+              "cpu_busy_ms": 1782.1215000000818,
+              "gpu_busy_ms": 7774.135654871773,
+              "exposed_delay_ms": 62.34148800688473
+            },
+            "cloud_a10": {
+              "cpu_busy_ms": 5183.190000000008,
+              "gpu_busy_ms": 19023.39251211523,
+              "exposed_delay_ms": 30.850632054294376
+            }
+          },
+          "scope": "full_run_including_warmup_and_drain",
+          "gpu_model": "one ordered stream and one host lane per TP resource group"
+        },
+        "mode": "synchronous_rpc",
+        "preserve_batch_across_stages": true,
+        "max_inflight_transactions": 1,
+        "buffer_pool_mib": 0.0,
+        "max_inflight_transactions_observed": 1,
+        "max_inflight_bytes_observed": 67109632.0
+      },
+      "data_path": {
+        "enabled": true,
+        "ipc_mode": "copy",
+        "wire_fast": false,
+        "tcp_buffer_mib": 0.0,
+        "wan_calibration": {
+          "enabled": true,
+          "variant": "baseline",
+          "source": "https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/366b71a4c516095d19993397f1410847c550cafb/docs/evidence/issue-5/wan-calibration/curves.csv",
+          "interpolation": "piecewise_linear_with_analytical_fallback"
+        }
+      },
+      "workload": {
+        "mode": "closed_loop",
+        "concurrency": 1
+      },
+      "pd_admission": {
+        "enabled": false,
+        "events": [],
+        "command_lane": "shared_with_forward"
+      },
+      "performance_profile": {
+        "enabled": true,
+        "samples": 33,
+        "operator_estimate_counts": {
+          "edge_front/prefill/tp2": {
+            "profile_exact": 1350
+          },
+          "cloud_middle/prefill/tp2": {
+            "profile_exact": 8748
+          },
+          "edge_tail/prefill/tp2": {
+            "profile_exact": 1674
+          },
+          "edge_front/decode/tp2": {
+            "profile_exact": 97632,
+            "profile_type_average": 7668
+          },
+          "cloud_middle/decode/tp2": {
+            "profile_exact": 630585,
+            "profile_type_average": 51759
+          },
+          "edge_tail/decode/tp2": {
+            "profile_exact": 120987,
+            "profile_type_average": 9585
+          }
+        },
+        "coverage_scope": "all simulated GPU operator estimates, including warmup",
+        "backend": "operator_profile_or_roofline",
+        "busy_time_scope": "modeled GPU execution"
+      },
+      "network": {
+        "uplink_gbps": 10.0,
+        "downlink_gbps": 10.0,
+        "rtt_ms": 10.0,
+        "activation_tensor_count": 2,
+        "protocol_overhead_bytes": 384,
+        "rpc_window": 1,
+        "link_scheduling": "serialized_bytes_overlapped_propagation",
+        "utilization_scope": "wan serialization only"
+      },
+      "trace": {
+        "enabled": false,
+        "records": 0,
+        "records_dropped": 0,
+        "detailed_records": 0,
+        "detail_records_dropped": 0,
+        "max_trace_records": 0,
+        "max_detailed_trace_records": 0
+      },
+      "kv_cache": {
+        "capacity_blocks": 8192,
+        "allocation_mode": "preallocate",
+        "used_blocks_at_end": 0,
+        "events": [
+          {
+            "time_ms": 0.0,
+            "event": "allocate",
+            "request_id": 0,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 2364.7155237844217,
+            "event": "free",
+            "request_id": 0,
+            "blocks": 261
+          },
+          {
+            "time_ms": 2364.7155237844217,
+            "event": "allocate",
+            "request_id": 1,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 4729.431047567061,
+            "event": "free",
+            "request_id": 1,
+            "blocks": 261
+          },
+          {
+            "time_ms": 4729.431047567061,
+            "event": "allocate",
+            "request_id": 2,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 7094.146571349572,
+            "event": "free",
+            "request_id": 2,
+            "blocks": 261
+          },
+          {
+            "time_ms": 7094.146571349572,
+            "event": "allocate",
+            "request_id": 3,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 9458.862095137918,
+            "event": "free",
+            "request_id": 3,
+            "blocks": 261
+          },
+          {
+            "time_ms": 9458.862095137918,
+            "event": "allocate",
+            "request_id": 4,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 11823.577618926949,
+            "event": "free",
+            "request_id": 4,
+            "blocks": 261
+          },
+          {
+            "time_ms": 11823.577618926949,
+            "event": "allocate",
+            "request_id": 5,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 14188.29314271598,
+            "event": "free",
+            "request_id": 5,
+            "blocks": 261
+          },
+          {
+            "time_ms": 14188.29314271598,
+            "event": "allocate",
+            "request_id": 6,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 16553.00866650397,
+            "event": "free",
+            "request_id": 6,
+            "blocks": 261
+          },
+          {
+            "time_ms": 16553.00866650397,
+            "event": "allocate",
+            "request_id": 7,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 18917.724190290006,
+            "event": "free",
+            "request_id": 7,
+            "blocks": 261
+          },
+          {
+            "time_ms": 18917.724190290006,
+            "event": "allocate",
+            "request_id": 8,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 21282.43971407604,
+            "event": "free",
+            "request_id": 8,
+            "blocks": 261
+          },
+          {
+            "time_ms": 21282.43971407604,
+            "event": "allocate",
+            "request_id": 9,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 23647.155237862076,
+            "event": "free",
+            "request_id": 9,
+            "blocks": 261
+          },
+          {
+            "time_ms": 23647.155237862076,
+            "event": "allocate",
+            "request_id": 10,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 26011.87076164811,
+            "event": "free",
+            "request_id": 10,
+            "blocks": 261
+          },
+          {
+            "time_ms": 26011.87076164811,
+            "event": "allocate",
+            "request_id": 11,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 28376.586285434147,
+            "event": "free",
+            "request_id": 11,
+            "blocks": 261
+          },
+          {
+            "time_ms": 28376.586285434147,
+            "event": "allocate",
+            "request_id": 12,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 30741.301809220182,
+            "event": "free",
+            "request_id": 12,
+            "blocks": 261
+          },
+          {
+            "time_ms": 30741.301809220182,
+            "event": "allocate",
+            "request_id": 13,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 33106.01733300657,
+            "event": "free",
+            "request_id": 13,
+            "blocks": 261
+          },
+          {
+            "time_ms": 33106.01733300657,
+            "event": "allocate",
+            "request_id": 14,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 35470.732856793606,
+            "event": "free",
+            "request_id": 14,
+            "blocks": 261
+          },
+          {
+            "time_ms": 35470.732856793606,
+            "event": "allocate",
+            "request_id": 15,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 37835.44838058063,
+            "event": "free",
+            "request_id": 15,
+            "blocks": 261
+          },
+          {
+            "time_ms": 37835.44838058063,
+            "event": "allocate",
+            "request_id": 16,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 40200.163904367655,
+            "event": "free",
+            "request_id": 16,
+            "blocks": 261
+          },
+          {
+            "time_ms": 40200.163904367655,
+            "event": "allocate",
+            "request_id": 17,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 42564.87942815468,
+            "event": "free",
+            "request_id": 17,
+            "blocks": 261
+          },
+          {
+            "time_ms": 42564.87942815468,
+            "event": "allocate",
+            "request_id": 18,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 44929.59495194171,
+            "event": "free",
+            "request_id": 18,
+            "blocks": 261
+          },
+          {
+            "time_ms": 44929.59495194171,
+            "event": "allocate",
+            "request_id": 19,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 47294.31047572874,
+            "event": "free",
+            "request_id": 19,
+            "blocks": 261
+          },
+          {
+            "time_ms": 47294.31047572874,
+            "event": "allocate",
+            "request_id": 20,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 49659.02599951576,
+            "event": "free",
+            "request_id": 20,
+            "blocks": 261
+          },
+          {
+            "time_ms": 49659.02599951576,
+            "event": "allocate",
+            "request_id": 21,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 52023.741523302786,
+            "event": "free",
+            "request_id": 21,
+            "blocks": 261
+          },
+          {
+            "time_ms": 52023.741523302786,
+            "event": "allocate",
+            "request_id": 22,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 54388.45704708982,
+            "event": "free",
+            "request_id": 22,
+            "blocks": 261
+          },
+          {
+            "time_ms": 54388.45704708982,
+            "event": "allocate",
+            "request_id": 23,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 56753.17257087684,
+            "event": "free",
+            "request_id": 23,
+            "blocks": 261
+          },
+          {
+            "time_ms": 56753.17257087684,
+            "event": "allocate",
+            "request_id": 24,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 59117.88809466387,
+            "event": "free",
+            "request_id": 24,
+            "blocks": 261
+          },
+          {
+            "time_ms": 59117.88809466387,
+            "event": "allocate",
+            "request_id": 25,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 61482.60361845089,
+            "event": "free",
+            "request_id": 25,
+            "blocks": 261
+          },
+          {
+            "time_ms": 61482.60361845089,
+            "event": "allocate",
+            "request_id": 26,
+            "blocks": 261,
+            "prefix_hit_blocks": 0,
+            "evicted_prefix_blocks": 0
+          },
+          {
+            "time_ms": 63847.319142237924,
+            "event": "free",
+            "request_id": 26,
+            "blocks": 261
+          }
+        ]
+      },
+      "parallel_plan": [
+        {
+          "stage": "edge_front",
+          "layer_range": [
+            0,
+            4
+          ],
+          "tp_degree": 2,
+          "pp_degree": 1,
+          "pp_layer_ranges": [
+            [
+              0,
+              4
+            ]
+          ],
+          "replicas": 1,
+          "devices": 2
+        },
+        {
+          "stage": "cloud_middle",
+          "layer_range": [
+            4,
+            31
+          ],
+          "tp_degree": 2,
+          "pp_degree": 1,
+          "pp_layer_ranges": [
+            [
+              4,
+              31
+            ]
+          ],
+          "replicas": 1,
+          "devices": 2
+        },
+        {
+          "stage": "edge_tail",
+          "layer_range": [
+            31,
+            36
+          ],
+          "tp_degree": 2,
+          "pp_degree": 1,
+          "pp_layer_ranges": [
+            [
+              31,
+              36
+            ]
+          ],
+          "replicas": 1,
+          "devices": 2
+        }
+      ]
+    },
+    "calibration": "Optimized: Qwen2.5-3B/A10 C40 command+host empirical profile; baseline: operator+host model. Other concurrency points are predictions, not measured capacity."
+  },
+  "error": null,
+  "finished_at": 1788716433.370998
+}

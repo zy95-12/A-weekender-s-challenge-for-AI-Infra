@@ -1,0 +1,71 @@
+{
+  "comparison_completed": true,
+  "metric_mode": "ranking",
+  "samples": 8,
+  "variants": {
+    "baseline": {
+      "prefill": {
+        "rows": 8,
+        "min_cosine_similarity": 0.9999946522989831,
+        "mean_cosine_similarity": 0.9999966475543451,
+        "top1_matches": 8,
+        "top1_agreement_rate": 1.0,
+        "top_k_overlap": {
+          "5": {
+            "mean": 1.0,
+            "min": 1.0
+          },
+          "10": {
+            "mean": 1.0,
+            "min": 1.0
+          },
+          "20": {
+            "mean": 1.0,
+            "min": 1.0
+          }
+        }
+      },
+      "decode": {
+        "rows": 56,
+        "min_cosine_similarity": 0.9999919328111292,
+        "mean_cosine_similarity": 0.9999965881538788,
+        "top1_matches": 56,
+        "top1_agreement_rate": 1.0,
+        "top_k_overlap": {
+          "5": {
+            "mean": 1.0,
+            "min": 1.0
+          },
+          "10": {
+            "mean": 0.9928571428571429,
+            "min": 0.9
+          },
+          "20": {
+            "mean": 0.9964285714285713,
+            "min": 0.95
+          }
+        }
+      },
+      "native_config": {
+        "dtype": "half",
+        "tensor_parallel_size": 1,
+        "enforce_eager": true,
+        "max_model_len": 8192,
+        "max_num_seqs": 1,
+        "max_num_batched_tokens": 8192,
+        "gpu_memory_utilization": 0.65,
+        "enable_prefix_caching": false,
+        "enable_chunked_prefill": false,
+        "disable_custom_all_reduce": true,
+        "disable_async_output_proc": true,
+        "seed": 0,
+        "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "vllm": "0.10.2",
+        "torch": "2.8.0",
+        "capture": "read-only V0 execute_model and compute_logits wrappers; sampler row selection unchanged"
+      }
+    }
+  },
+  "scope": "Same input IDs and absolute positions; last prefill position plus forced decode. Native TP is recorded per variant; TP overrides include parallelism differences. No answer equality gate.",
+  "evaluation": "Descriptive metrics; no pass/fail thresholds specified. Top-k overlap = intersection size / k; ties use ascending token ID."
+}

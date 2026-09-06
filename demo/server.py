@@ -1,167 +1,369 @@
 #!/usr/bin/env python3
-"""Dependency-free web server for the security inference research demo."""
+"""Local research UI: real subprocess jobs, serving SSE, and Q4 simulation."""
+
 from __future__ import annotations
-
-import argparse
-import gc
-import json
-import os
-import resource
-import sys
-import threading
-from dataclasses import replace
-from functools import lru_cache, partial
-from http import HTTPStatus
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import argparse, hashlib, json, subprocess, sys, threading, time, uuid
+import urllib.request, urllib.error
 from pathlib import Path
-from typing import Any
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import urlparse
 
-DEMO_DIR = Path(__file__).resolve().parent
-REPO_ROOT = DEMO_DIR.parent
-Q4_DIR = REPO_ROOT / "Q4"
-sys.path.insert(0, str(Q4_DIR))
-
-from split_serving_sim.config import load_config  # noqa: E402
-from split_serving_sim.simulator import Simulator  # noqa: E402
-
-SUPPORTED = {"model": "Qwen3-32B", "hardware": "A10", "cards": 9, "tp_degree": 4}
-SIMULATION_LOCK = threading.Lock()
+ROOT = Path(__file__).resolve().parents[1]
+DEMO = ROOT / "demo"
+RUNS = ROOT / "results/demo"
+PYTHON = ROOT / ".venv/bin/python"
+JOBS = {}
+LOCK = threading.Lock()
 
 
-def apply_memory_limit(limit_mib: int) -> None:
-    """Leave most of a 4 GiB host available to SSH and other processes."""
-    if limit_mib <= 0:
-        return
-    limit = limit_mib * 1024 * 1024
-    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-    new_hard = limit if hard in (-1, resource.RLIM_INFINITY) else min(hard, limit)
-    resource.setrlimit(resource.RLIMIT_AS, (min(limit, new_hard), new_hard))
+def health():
+    try:
+        owner = json.loads((ROOT / "run/enterprise.pid.json").read_text())
+        if (
+            Path(f"/proc/{owner['pid']}/stat").read_text().split()[21]
+            != owner["start_ticks"]
+        ):
+            return {"status": "stopped"}
+        with urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=3) as r:
+            return json.load(r)
+    except (OSError, ValueError, KeyError, IndexError):
+        return {"status": "stopped"}
 
 
-def validate_payload(payload: dict[str, Any]) -> tuple[int, int, int]:
-    for key, expected in SUPPORTED.items():
-        if payload.get(key) != expected:
-            raise NotImplementedError(
-                "该组合仅预留接口；当前真实后端支持 Qwen3-32B / A10 / 9 卡 / 云侧 TP4。"
-            )
-    concurrency = int(payload.get("concurrency", 0))
-    input_tokens = int(payload.get("input_tokens", 0))
-    output_tokens = int(payload.get("output_tokens", 0))
-    if concurrency not in {1, 2, 4, 8}:
-        raise ValueError("concurrency 必须是 1、2、4 或 8")
-    if not 32 <= input_tokens <= 2048:
-        raise ValueError("input_tokens 必须在 32–2048 之间")
-    if not 2 <= output_tokens <= 64:
-        raise ValueError("output_tokens 必须在 2–64 之间")
-    return concurrency, input_tokens, output_tokens
-
-
-@lru_cache(maxsize=32)
-def simulate_point(concurrency: int, input_tokens: int, output_tokens: int) -> dict[str, Any]:
-    base = load_config(Q4_DIR / "configs" / "example.json")
-    # A10 FP16 nominal preset. This is intentionally marked uncalibrated in the UI.
-    hardware = {
-        name: replace(
-            item,
-            peak_flops_tflops=125.0,
-            hbm_bandwidth_gb_s=600.0,
-            memory_gb=24.0,
-            compute_efficiency=0.55,
-            memory_efficiency=0.65,
+def validate_sim(payload):
+    if set(payload) - {"variant", "concurrency"}:
+        raise ValueError(
+            "Only variant and concurrency are supported; model and workload are fixed"
         )
-        for name, item in base.hardware.items()
-    }
-    config = replace(
-        base,
-        hardware=hardware,
-        workload=replace(
-            base.workload,
-            mode="closed_loop",
-            num_requests=128,
-            concurrency=concurrency,
-            warmup_requests=concurrency,
-            measurement_duration_s=5.0,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-        ),
-        static_policy=replace(base.static_policy, max_batch_size=8),
-        scheduler=replace(base.scheduler, max_num_seqs=8),
-        simulation=replace(
-            base.simulation,
-            trace_enabled=False,
-            max_trace_records=0,
-            max_detailed_trace_records=0,
-            max_time_s=120.0,
-        ),
-    )
-    with SIMULATION_LOCK:
-        summary = Simulator(config).run().summary
-    point = {
-        "concurrency": concurrency,
-        "qps": float(summary["observed_request_throughput_qps"]),
-        "ttft_mean_ms": float(summary["ttft_ms"]["mean"]),
-        "ttft_p99_ms": float(summary["ttft_ms"]["p99"]),
-        "tpot_mean_ms": float(summary["tpot_ms"]["mean"]),
-        "tpot_p99_ms": float(summary["tpot_ms"]["p99"]),
-        "measured_requests": int(summary["num_requests"]),
-    }
-    gc.collect()
-    return point
+    if payload.get("variant") not in ("baseline", "optimized"):
+        raise ValueError("Choose baseline or optimized")
+    c = payload.get("concurrency")
+    if type(c) is not int or not 1 <= c <= 96:
+        raise ValueError("Concurrency must be an integer in 1–96")
+    return {"variant": payload["variant"], "concurrency": c}
 
 
-class DemoHandler(SimpleHTTPRequestHandler):
-    server_version = "SplitShieldDemo/1.0"
+def launch(kind, payload):
+    if kind == "simulate":
+        payload = validate_sim(payload)
+    elif kind == "encode":
+        if (
+            not isinstance(payload.get("text"), str)
+            or not 1 <= len(payload["text"]) <= 20000
+        ):
+            raise ValueError("Enter 1–20000 characters")
+    elif kind == "recover":
+        parent = JOBS.get(payload.get("encode_id", ""))
+        if not parent or parent["kind"] != "encode" or parent["status"] != "completed":
+            raise ValueError("First complete encoding")
+    elif kind != "start":
+        raise ValueError("Unknown job")
+    if not LOCK.acquire(blocking=False):
+        raise RuntimeError("Another experiment is running; wait for it to finish")
+    jid = uuid.uuid4().hex
+    out = RUNS / jid
+    try:
+        out.mkdir(parents=True)
+        job = {
+            "id": jid,
+            "kind": kind,
+            "status": "running",
+            "started_at": time.time(),
+            "result": None,
+            "error": None,
+        }
+        JOBS[jid] = job
+        (out / "input.json").write_text(json.dumps(payload, ensure_ascii=False))
+    except Exception:
+        LOCK.release()
+        raise
 
-    def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/api/simulate":
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return
+    def worker():
+        attempted_start = False
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 16_384:
-                raise ValueError("请求体大小不合法")
-            payload = json.loads(self.rfile.read(length))
-            if not isinstance(payload, dict):
-                raise ValueError("请求体必须是 JSON object")
-            concurrency, input_tokens, output_tokens = validate_payload(payload)
-            point = simulate_point(concurrency, input_tokens, output_tokens)
-            self.send_json(HTTPStatus.OK, {"status": "ok", "engine": "Q4", "point": point})
-        except NotImplementedError as exc:
-            self.send_json(HTTPStatus.UNPROCESSABLE_ENTITY, {"status": "not_implemented", "message": str(exc)})
-        except (ValueError, TypeError, json.JSONDecodeError) as exc:
-            self.send_json(HTTPStatus.BAD_REQUEST, {"status": "invalid_request", "message": str(exc)})
-        except Exception as exc:  # keep the demo response useful without leaking a traceback
-            self.send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"status": "error", "message": f"仿真失败：{exc}"})
+            if kind == "start":
+                h = health()
+                if any(
+                    h.get(k, 0)
+                    for k in ("active", "waiting", "pd_reserving", "pd_releasing")
+                ):
+                    raise RuntimeError(
+                        "Serving has in-flight requests; retry after they drain"
+                    )
+                if h["status"] != "ready":
+                    try:
+                        with urllib.request.urlopen(
+                            "http://127.0.0.1:8000/health", timeout=2
+                        ) as r:
+                            foreign = json.load(r)
+                    except (OSError, ValueError):
+                        foreign = None
+                    if foreign:
+                        raise RuntimeError(
+                            "Port 8000 belongs to another checkout; stop that service from its own directory first"
+                        )
+                # Fixed command, no arbitrary shell interpolation from the browser.
+                command = ["./poc", "up", "--wan"]
+            elif kind in ("encode", "recover"):
+                if kind == "recover":
+                    import shutil
 
-    def send_json(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+                    for name in ("hidden.npy", "target.json"):
+                        shutil.copyfile(RUNS / payload["encode_id"] / name, out / name)
+                command = [
+                    str(PYTHON),
+                    str(ROOT / "Q1/demo_attack.py"),
+                    "--model",
+                    str(ROOT / "models/qwen"),
+                    "--output",
+                    str(out),
+                    "--phase",
+                    kind,
+                ]
+            else:
+                command = [
+                    sys.executable,
+                    str(DEMO / "simulate.py"),
+                    str(out / "input.json"),
+                    str(out / "result.json"),
+                ]
+            (out / "command.json").write_text(json.dumps(command))
+            source_files = [
+                "demo/server.py",
+                "demo/simulate.py",
+                "Q1/demo_attack.py",
+                "Q1/retrieval.py",
+                "scripts/manage.py",
+            ]
+            provenance = {
+                "command": command,
+                "sources_sha256": {
+                    name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+                    for name in source_files
+                },
+                "model_revision": (
+                    (ROOT / "models/qwen/revision.txt").read_text().strip()
+                    if (ROOT / "models/qwen/revision.txt").is_file()
+                    else None
+                ),
+            }
+            (out / "provenance.json").write_text(json.dumps(provenance, indent=2))
+            attempted_start = kind == "start"
+            with (out / "log.txt").open("w") as log:
+                subprocess.run(
+                    command,
+                    cwd=ROOT,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    check=True,
+                    timeout=1800,
+                )
+            if kind == "start":
+                result = health()
+                if result["status"] != "ready":
+                    raise RuntimeError("Startup exited without a healthy service")
+                result = {"health": result, "command": command}
+            else:
+                result = json.loads(
+                    (
+                        out
+                        / (
+                            f"{kind}.json"
+                            if kind in ("encode", "recover")
+                            else "result.json"
+                        )
+                    ).read_text()
+                )
+            job.update(status="completed", result=result)
+        except Exception as e:
+            job.update(status="failed", error=str(e))
+            if attempted_start:
+                with (out / "log.txt").open("a") as log:
+                    try:
+                        subprocess.run(
+                            ["./poc", "down"],
+                            cwd=ROOT,
+                            stdout=log,
+                            stderr=subprocess.STDOUT,
+                            timeout=120,
+                        )
+                    except (OSError, subprocess.SubprocessError) as cleanup:
+                        log.write("Cleanup failed: " + str(cleanup))
+        finally:
+            job["finished_at"] = time.time()
+            (out / "job.json").write_text(json.dumps(job, ensure_ascii=False, indent=2))
+            LOCK.release()
+
+    threading.Thread(target=worker, daemon=True).start()
+    return dict(job)
+
+
+class Handler(SimpleHTTPRequestHandler):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, directory=str(DEMO), **kw)
+
+    def send_json(self, status, payload):
+        b = json.dumps(payload, ensure_ascii=False).encode()
         self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(b)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        self.wfile.write(body)
+        self.wfile.write(b)
+
+    def do_GET(self):
+        path = urlparse(self.path).path
+        if path == "/api/health":
+            return self.send_json(200, health())
+        if path == "/api/evidence":
+            data = {
+                p.stem: json.loads(p.read_text())
+                for p in (DEMO / "evidence").glob("*.json")
+            }
+            data["accuracy"] = data["accuracy-tp1-ranking"]
+            data["accuracy_manifest"] = data["accuracy-tp1-manifest"]
+            return self.send_json(200, data)
+        if path.startswith("/api/jobs/"):
+            jid = path.rsplit("/", 1)[-1]
+            j = JOBS.get(jid)
+            if not j:
+                return self.send_json(404, {"error": "Unknown job"})
+            log = RUNS / jid / "log.txt"
+            return self.send_json(
+                200,
+                {
+                    **j,
+                    "log": (
+                        log.read_text(errors="replace")[-30000:] if log.exists() else ""
+                    ),
+                },
+            )
+        if path.startswith("/api/artifacts/"):
+            pieces = path.split("/")
+            if len(pieces) != 5:
+                return self.send_json(404, {"error": "Not found"})
+            jid, name = pieces[-2:]
+            if jid not in JOBS or name not in (
+                "hidden.npy",
+                "encode.json",
+                "recover.json",
+                "result.json",
+                "log.txt",
+                "job.json",
+                "provenance.json",
+            ):
+                return self.send_json(404, {"error": "Not found"})
+            file = RUNS / jid / name
+            if not file.is_file():
+                return self.send_json(404, {"error": "Not ready"})
+            self.send_response(200)
+            self.send_header("Content-Type", "application/octet-stream")
+            self.send_header("Content-Disposition", f'attachment; filename="{name}"')
+            self.send_header("Content-Length", str(file.stat().st_size))
+            self.end_headers()
+            with file.open("rb") as f:
+                while chunk := f.read(65536):
+                    self.wfile.write(chunk)
+            return
+        return super().do_GET()
+
+    def do_POST(self):
+        try:
+            origin = self.headers.get("Origin")
+            if origin and urlparse(origin).netloc != self.headers.get("Host"):
+                return self.send_json(403, {"error": "Same-origin requests only"})
+            if self.headers.get_content_type() != "application/json":
+                raise ValueError("Content-Type must be application/json")
+            n = int(self.headers.get("Content-Length", "0"))
+            if not 0 < n <= 100000:
+                raise ValueError("Invalid body size")
+            p = json.loads(self.rfile.read(n))
+            if not isinstance(p, dict):
+                raise ValueError("Expected JSON object")
+            routes = {
+                "/api/service/start": "start",
+                "/api/security/encode": "encode",
+                "/api/security/recover": "recover",
+                "/api/simulate": "simulate",
+            }
+            if self.path in routes:
+                return self.send_json(202, launch(routes[self.path], p))
+            if self.path == "/api/chat":
+                return self.chat(p)
+            return self.send_json(404, {"error": "Unknown endpoint"})
+        except (ValueError, TypeError) as e:
+            self.send_json(400, {"error": str(e)})
+        except RuntimeError as e:
+            self.send_json(409, {"error": str(e)})
+        except (OSError, subprocess.SubprocessError) as e:
+            self.send_json(503, {"error": str(e)})
+
+    def chat(self, p):
+        messages = p.get("messages")
+        if (
+            not isinstance(messages, list)
+            or not 1 <= len(messages) <= 40
+            or any(
+                not isinstance(m, dict)
+                or m.get("role") not in ("user", "assistant", "system")
+                or not isinstance(m.get("content"), str)
+                for m in messages
+            )
+        ):
+            raise ValueError("Invalid messages")
+        if health()["status"] != "ready":
+            raise RuntimeError("Service is not ready")
+        if not LOCK.acquire(blocking=False):
+            raise RuntimeError("Experiment in progress; wait before chatting")
+        try:
+            return self.stream_chat(messages)
+        finally:
+            LOCK.release()
+
+    def stream_chat(self, messages):
+        body = json.dumps(
+            {
+                "model": "split-qwen",
+                "messages": messages,
+                "temperature": 0,
+                "max_tokens": 128,
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            }
+        ).encode()
+        req = urllib.request.Request(
+            "http://127.0.0.1:8000/v1/chat/completions",
+            data=body,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=180) as upstream:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.close_connection = True
+            try:
+                for line in upstream:
+                    self.wfile.write(line)
+                    self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            except OSError as e:
+                self.wfile.write(
+                    ("data: " + json.dumps({"error": str(e)}) + "\n\n").encode()
+                )
+                self.wfile.flush()
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Serve the SplitShield HTML demo")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8088)
-    parser.add_argument("--memory-limit-mib", type=int, default=768)
-    args = parser.parse_args()
-    apply_memory_limit(args.memory_limit_mib)
-    handler = partial(DemoHandler, directory=str(DEMO_DIR))
-    server = ThreadingHTTPServer((args.host, args.port), handler)
-    print(f"SplitShield demo: http://{args.host}:{args.port}", flush=True)
-    print(f"PID {os.getpid()} · address-space limit {args.memory_limit_mib} MiB", flush=True)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.server_close()
-    return 0
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8088)
+    a = p.parse_args()
+    print(f"Live research demo: http://{a.host}:{a.port}", flush=True)
+    ThreadingHTTPServer((a.host, a.port), Handler).serve_forever()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

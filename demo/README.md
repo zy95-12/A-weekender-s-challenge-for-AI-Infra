@@ -1,140 +1,73 @@
-# Split-Infer 优化/建模 Demo 演示
+# 真实可运行的 Split-Infer 研究界面
 
-页面以 **SplitShield** 作为暂定展示名。这是一个零前端依赖的单页 Demo，汇总行业洞察、Split Inference 安全实验、真实系统 baseline 和 Q4 性能建模能力。
-
-Demo 的目标不是把所有功能包装成已经完成，而是提供一个统一、可演示的研究入口，并明确标注能力边界：
-
-- 安全攻击区重放 PR #15 已验证的实验结果；
-- baseline 启动和对话区使用假数据展示预期产品形态；
-- 默认性能配置会调用 Q4 仿真器真实计算，不使用前端伪造曲线；
-- 尚无模型或硬件 cost model 的组合只保留接口，并返回明确的 `not_implemented`。
-
-## 环境要求
-
-- Python 3.11 或更高版本；
-- 仓库中已存在 `Q4/split_serving_sim`；
-- 不需要 Node.js、前端构建工具、CDN 或额外 Python 包。
+所有操作调用实际后端；已归档实验明确标为历史实测，不模拟进度、输出文本或性能数值。
 
 ## 启动
 
 在仓库根目录运行：
 
 ```bash
-python demo/server.py --host 127.0.0.1 --port 8088
+python3 demo/server.py --host 127.0.0.1 --port 8088
 ```
 
-浏览器访问 `http://127.0.0.1:8088`。远端服务器可以通过 SSH 端口转发查看：
+访问 http://127.0.0.1:8088。远程机器可通过 SSH 转发 8088 端口。
+页面“启动 Demo”实际执行固定命令 `./poc up --wan`，包含首次环境/模型准备。
+完成健康检查后显示“服务已启动”，对话转发至真实 `/v1/chat/completions` SSE。
+该命令启动 baseline；如果之前本目录运行 optimized，会按既有 manage.py 行为切回 baseline。
+外部 checkout 的 GPU 服务应先从其自身目录停止，本项目共用四卡与 network namespace。
+启动环境要求见 [serving 文档](../docs/integrated-serving.md)：Linux/root、四张 A10、模型与 vLLM 依赖。
+UI/仿真需要 Python 3.11+；GPU serving 的既有环境为 Python 3.12。
+
+也可以先 `./poc setup` 准备环境，然后运行攻击。攻击独立使用 CPU，模型版本与 serving 相同。
+UI 后端串行执行启动、攻击、仿真和对话，避免内部任务竞争；外部 CLI 压测应独占服务。
+UI 进程退出不会停止 serving；停止服务使用 `./poc down`。
+
+## 模块与真实数据来源
+
+- **方案分析**：`Q1/demo_attack.py` 调用 PR #15 原版 `retrieval.recover`，把输入编码为 FP16 embedding，然后真实执行全词表 FP32 余弦最近邻恢复。CPU 实现，不是密码学加解密，也不声称反演了 4 层后的 serving 激活。每次运行可下载 NPY 和逐位置 JSON，真实耗时包含在结果中。原始 IDs 只用于检索之后评分。
+- **功能实现**：固定 `./poc up --wan`；轮询实际健康状态。回复来自模型，TTFT/TPOT 来自浏览器 token 事件计时，包含网络、代理和浏览器开销；少于两个输出 token 时 TPOT 不定义。
+- **精度**：只展示 Split 4/27/5 对原生完整单卡 TP1/full-prefill 的 8 道 GSM8K 真实归档结果。逐绝对位置对齐，decode 使用同一 teacher-forcing 序列；不比较自由回答。`accuracy-samples.json` 展示这 8 组不同输入。原生与 Split TP2+2 已于2026-09-07重新采集，现采用 logits cosine、top1 一致率和 top-5/10/20 overlap，不沿用绝对误差门槛；原始 logits、模型版本和门槛见 [精度报告](../docs/gsm8k-native-tp1.md)。
+- **C16 拆解**：来自历史 baseline refinement C16 完成 cohort 的 96 个请求和 7488 个 decode 位置。`baseline-c16-raw.zip` 保留原始请求、trace 和环境，区间为 wall-clock/RPC 区间，不伪装成 kernel 时间。`python3 scripts/check_demo_evidence.py` 可独立复算。
+- **优化曲线**：本次新增四卡最优 PD、4K/79 closed-loop 测量。每点至少 60 秒、每 worker 至少 3 轮；边界另做更长确认。SLO 为至少 99% 请求同时 TTFT≤3s、请求平均 TPOT≤100ms，完成和到达 cohort 都检查。CSV 和 ZIP 直接从真实请求生成。
+- **仿真**：`demo/simulate.py` 对接当前主线 Q4，只开放 Qwen2.5-3B/A10/4K/79。optimized 使用 vendored real-serving scheduler、C40 empirical command 和 host profile，seed17；baseline 使用 behavioral scheduler、operator/host cost，沿用 baseline 精度回归的活动上限（C1 为8，其余为16）。每点真实执行、不缓存结果；不同并发仍是预测，参见 [校准与局限](../Q4/docs/CALIBRATION_AND_LIMITS.md)。
+
+## 复现实测曲线
+
+确保其他任务已停止：
 
 ```bash
-ssh -L 8088:127.0.0.1:8088 <user>@<server-ip>
+./poc up --preset optimized --wan
+.venv/bin/python scripts/demo_sweep.py --output results/my-demo-sweep
+python3 scripts/package_demo_evidence.py --sweep results/my-demo-sweep \
+  --serving-results "$(cat run/current_results)" --output results/my-demo-evidence
 ```
 
-服务默认设置 768 MiB 地址空间上限，并将仿真串行化，给 4 GB 服务器的 SSH 和系统进程留出空间。可用 `--memory-limit-mib` 调整；不建议在共享服务器上关闭限制。
+扫描默认从 C1 增至 C96，遇到第一个不满足联合 SLO 的点停止；没有找到失效点时不会宣称找到最大容量。
+边界可使用 `scripts/pd_benchmark.py --seconds 180 --cycles 6` 另测确认点；归档器在同一并发存在多次测量时选最长窗口绘图，保留全部原始运行。
 
-只查看静态排版可以直接打开 `demo/index.html`，但性能建模需要通过 `server.py` 访问，否则 `/api/simulate` 不可用。
+## API
 
-## 页面内容与数据边界
+- `POST /api/service/start {}`：异步执行固定启动命令。
+- `GET /api/health`：本工作目录服务的真实健康状态。
+- `POST /api/chat {"messages":[{"role":"user","content":"你好"}]}`：真实 SSE。
+- `POST /api/security/encode {"text":"…"}` / `POST /api/security/recover {"encode_id":"…"}`：真实生成与恢复。
+- `POST /api/simulate {"variant":"optimized","concurrency":40}`：当前 Q4 仿真。
+- `GET /api/jobs/{id}`：实际状态、日志、结果；失败明确报告。
+- `GET /api/artifacts/{id}/{filename}`：下载本次产物。
+- `GET /api/evidence`：归档实测 JSON。
 
-1. **背景**：说明云端大模型运行时隐私问题。
-2. **业界洞察**：只提炼主仓 [完整洞察报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md) 的核心结论。
-3. **安全分析**：重放 PR #15 的 embedding-only 100% token 恢复证据，并展示不同企业侧层数下的固定预算攻击结果。按钮不会在浏览器中运行 GPU 攻击。详见 [安全报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md)。
-4. **系统实现**：介绍 PR #8 的 Qwen2.5-3B、4/27/5、TP2+2 baseline。启动按钮和对话结果是假数据，只表达产品交互；真实部署见 [PR #8](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/8)。
-5. **性能优化**：只保留后续扩展位置。
-6. **性能建模**：前端依次调用 `POST /api/simulate`，每完成一个 closed-loop 并发点就更新 QPS—TTFT/TPOT 曲线。
-
-当前真实可运行组合为 **Qwen3-32B / A10 / 9 卡 / 云侧 TP4**。A10 使用解析 Roofline 参数预设，尚未针对 Qwen3-32B 实测校准，适合演示 Roofline + DAG + event-driven 的系统行为，不应用作生产容量承诺。DeepSeek-V3/V4、H20、L20、Ascend 910B/950 以及其他卡数已保留表单和 API 契约，但后端会返回 `422 not_implemented`，不会生成伪曲线。
-
-## 性能建模链路
-
-```text
-HTML 配置表单
-    │  concurrency = 1 → 2 → 4 → 8（逐点请求）
-    ▼
-POST /api/simulate
-    │  参数白名单 / 范围校验 / 串行锁 / 结果缓存
-    ▼
-Q4 Simulator
-    │  Roofline cost + DAG + event-driven closed loop
-    ▼
-observed QPS + mean/P99 TTFT + mean/P99 TPOT
-    │
-    └── 前端原生 SVG 增量绘图
-```
-
-### 支持矩阵
-
-| 模型 | 硬件 | 卡数 / 并行 | 当前行为 |
-| --- | --- | --- | --- |
-| Qwen3-32B | A10 | 9 卡，云侧 TP4 | 调用 Q4 真实解析仿真 |
-| DeepSeek-V3 / V4 | 任意预留硬件 | 任意 | 接口预留，返回 HTTP 422 |
-| Qwen3-32B | H20 / L20 / Ascend 910B / 950 | 任意 | 接口预留，返回 HTTP 422 |
-
-当前 Qwen3-32B 拓扑沿用 Q4 示例：企业侧 front/tail 使用 1 卡，云侧 middle 使用 TP4 × PP2 共 8 卡。每个并发点采用 5 秒 closed-loop 测量窗口，先排除 warmup，再统计完成请求。
-
-API 示例：
-
-```bash
-curl -s http://127.0.0.1:8088/api/simulate \
-  -H 'Content-Type: application/json' \
-  -d '{"model":"Qwen3-32B","hardware":"A10","cards":9,"tp_degree":4,"input_tokens":256,"output_tokens":12,"concurrency":1}'
-```
-
-成功响应：
-
-```json
-{
-  "status": "ok",
-  "engine": "Q4",
-  "point": {
-    "concurrency": 1,
-    "qps": 0.8,
-    "ttft_mean_ms": 122.36,
-    "ttft_p99_ms": 122.36,
-    "tpot_mean_ms": 81.26,
-    "tpot_p99_ms": 81.26,
-    "measured_requests": 4
-  }
-}
-```
-
-这些数值是默认配置的示例输出，会随输入/输出 token 数及后续 cost model 更新而变化。
-
-## 文件
-
-- `index.html`：六部分页面结构与研究内容
-- `styles.css`：响应式视觉与组件样式
-- `refinements.css`：标题层级与首屏展示微调
-- `app.js`：攻击回放、假对话、逐点仿真和 SVG 曲线
-- `server.py`：静态文件服务、参数校验、Q4 仿真适配、内存限制与缓存
-- `test_demo.py`：HTML 结构、证据链接与 API 参数契约测试
-
-全部前端资源随仓库提供，不依赖 CDN、Node.js 或第三方 Python 包。
+任务产物在 `results/demo/<uuid>/`，日志与命令可追溯。任务索引在内存中，重启 UI 后旧产物仍保留在磁盘，但不支持恢复轮询；不实现断点续跑。没有任意 shell 输入；默认 loopback、POST 检查同源。保持为本地研究工具，不提供公网多用户部署。
 
 ## 验证
 
-在仓库根目录运行 Demo 测试：
-
 ```bash
-python -m unittest demo/test_demo.py -v
-```
-
-验证底层 Q4 仿真器：
-
-```bash
-(cd Q4 && python -m unittest discover -s tests -v)
-```
-
-验证 JavaScript 语法（可选，需要本机有 Node.js）：
-
-```bash
+python3 -m unittest demo/test_demo.py -v
 node --check demo/app.js
+python3 scripts/check_demo_evidence.py
 ```
 
-## 证据来源
+端到端验收须在真实四卡环境运行启动、对话；CPU 攻击仍需要固定模型权重。
 
-- [大模型安全推理技术洞察](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md)
-- [PR #15：hidden-state security](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/15)
-- [PR #8：real split-vLLM baseline](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/8)
-- [PR #7：Q4 split-serving simulator](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/7)
+可选浏览器端到端脚本：`demo/browser_smoke.cjs`（需要单独安装 Playwright/Chromium）。先 `./poc down`，启动 UI 后运行 `node demo/browser_smoke.cjs`；它会实际启动四卡服务并运行对话、攻击和两个仿真点。可通过 `DEMO_URL`、`DEMO_EVIDENCE_DIR`、`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指定地址、产物目录及浏览器。前端运行本身不依赖 Playwright。图表另可通过安装 matplotlib 后运行 `scripts/plot_demo_sweep.py` 导出 PNG/SVG。
 
-仿真主线整理后的校准、硬编码与精度边界见 [清单](../Q4/docs/CALIBRATION_AND_LIMITS.md)。本 demo 仍使用上文 Qwen3-32B 解析预设，尚未接入校准的 Qwen2.5-3B PD 预设。
+本次完整验收与新增数据见 [验证报告](../docs/live-demo-validation.md)。

@@ -59,6 +59,8 @@ python3 scripts/manage.py up --preset optimized --print-config
 
 ## GSM8K 功能与 logits 验证
 
+当前脚本默认采用 logits cosine、top1 一致率与 top-5/10/20 overlap，报告描述性指标，不自动给出数值通过结论。单卡原生TP1新对照见[当前报告](gsm8k-native-tp1.md)。下文绝对误差门槛是历史验收模式，复算时需显式加 `--metric-mode absolute`；`--native-tp 1` 可覆盖原生TP配置。
+
 先准备环境/模型（`./poc setup`，已启动过可跳过），确保其他 checkout 的服务已停止：
 
 ```bash

@@ -1,0 +1,47 @@
+{
+  "passed": false,
+  "samples": 8,
+  "variants": {
+    "baseline": {
+      "prefill": {
+        "rows": 8,
+        "passed": false,
+        "mae": 0.010455941616635215,
+        "rmse": 0.013140448814662281,
+        "max_abs_error": 0.078125,
+        "softmax_tv": 0.004258081595352043,
+        "max_probability_delta": 0.0034815536888359033,
+        "min_cosine_similarity": 0.9999946522989831
+      },
+      "decode": {
+        "rows": 56,
+        "passed": false,
+        "mae": 0.016247064057226028,
+        "rmse": 0.020200444650412527,
+        "max_abs_error": 0.09765625,
+        "softmax_tv": 0.01012979717407285,
+        "max_probability_delta": 0.010128060436664588,
+        "min_cosine_similarity": 0.9999919328111292
+      },
+      "native_config": {
+        "dtype": "half",
+        "tensor_parallel_size": 1,
+        "enforce_eager": true,
+        "max_model_len": 8192,
+        "max_num_seqs": 1,
+        "max_num_batched_tokens": 8192,
+        "gpu_memory_utilization": 0.65,
+        "enable_prefix_caching": false,
+        "enable_chunked_prefill": false,
+        "disable_custom_all_reduce": true,
+        "disable_async_output_proc": true,
+        "seed": 0,
+        "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+        "vllm": "0.10.2",
+        "torch": "2.8.0",
+        "capture": "read-only V0 execute_model and compute_logits wrappers; sampler row selection unchanged"
+      }
+    }
+  },
+  "scope": "Same input IDs and absolute positions; last prefill position plus forced decode. Native TP is recorded per variant; TP overrides include parallelism differences. No answer equality gate."
+}

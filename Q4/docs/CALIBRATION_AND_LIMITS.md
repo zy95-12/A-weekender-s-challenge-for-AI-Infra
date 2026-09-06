@@ -1,6 +1,6 @@
 # 校准、硬编码与未解决问题
 
-本文件是当前交付的适用范围清单。**可迁移的是机制和接口，不是当前数值表。** 已验证的主要目标是 Qwen2.5-3B-Instruct / FP16 / 4-27-5 层 / A10 / 4K 输入、79 输出。解析示例与 demo 的 Qwen3-32B 不等于已经经过实测校准。
+本文件是当前交付的适用范围清单。**可迁移的是机制和接口，不是当前数值表。** 已验证的主要目标是 Qwen2.5-3B-Instruct / FP16 / 4-27-5 层 / A10 / 4K 输入、79 输出。Qwen3-32B 解析示例不等于已经经过实测校准；当前 demo 已切换到本文件描述的 Qwen2.5-3B 后端。
 
 ## 1. 已校准或带实验依据的成本
 
@@ -49,11 +49,9 @@ command 模式不重复叠加 host submission，并移除已包含的 D2H/H2D/cl
 
 ## 4. Demo 的固定数据和未校准部分
 
-完整 demo 保留原有六个页面区域。安全攻击按钮重放已有证据；baseline 启动/对话是**假数据交互**，不调用根目录真实 serving 服务。性能模拟 API 会调用 Q4，不伪造成功曲线。
+demo 的攻击按钮实际调用 PR #15 的 embedding 最近邻攻击，CPU 执行；不是密码学加密，也不是 4 层后的激活反演。启动按钮实际执行 `./poc up --wan`，对话转发根目录真实 serving SSE。精度、C16 拆解和优化曲线明确标注为真实归档实验。
 
-当前 demo 只支持 Qwen3-32B/A10/9 卡、云 TP4×PP2 + 企业 1 卡。A10 参数硬编码为 125 TFLOPS、600 GB/s、24 GB、efficiency 0.55/0.65；未对该模型实测校准。并发白名单 1/2/4/8、输入 32–2048、输出 2–64；128 请求、5 秒窗、batch/active 上限 8。其他预留模型/硬件返回 `422 not_implemented`。demo 并未接入当前 Qwen2.5-3B PD 校准预设。
-
-因此：演示可运行不等于硬件容量准确；假对话不能作为模型正确性证明。范围说明也保留在 [demo README](../../demo/README.md) 和页面中。
+仿真区只开放 Qwen2.5-3B/A10/4 卡、4K 输入/79 输出、并发 1–96。optimized 使用当前 real-serving scheduler + C40 empirical command/host profile、seed17；baseline 使用 behavioral scheduler + operator/host cost、沿用 baseline 精度回归的活动上限（C1 为8，其余为16）。每点1024请求预算、60秒测量窗、warmup等于并发。没有重新拟合成本以匹配 demo 曲线。并发外推与 baseline 已知低估仍然存在，不能把仿真完成作为 SLO 容量验收。更多使用方式见 [demo README](../../demo/README.md)。
 
 ## 5. 当前未解决的问题
 

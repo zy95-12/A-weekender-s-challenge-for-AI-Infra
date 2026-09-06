@@ -1,0 +1,125 @@
+{
+  "id": "fa45970b8be54ff3a9ceabb2085af728",
+  "kind": "simulate",
+  "status": "completed",
+  "started_at": 1788716118.8015163,
+  "result": {
+    "engine": "Q4",
+    "source": "simulation",
+    "variant": "optimized",
+    "concurrency": 40,
+    "input_tokens": 4096,
+    "output_tokens": 79,
+    "seed": 17,
+    "point": {
+      "concurrency": 40,
+      "qps": 5.233333333333334,
+      "ttft_mean_ms": 723.9888178016209,
+      "tpot_mean_ms": 87.46588331741508,
+      "ttft_p99_ms": 1181.2614494299773,
+      "tpot_p99_ms": 92.16429394840537
+    },
+    "summary": {
+      "num_requests": 314,
+      "simulation_start_ms": 13541.841287575115,
+      "simulation_end_ms": 73541.84128757511,
+      "simulation_duration_ms": 59999.99999999999,
+      "observed_request_throughput_qps": 5.233333333333334,
+      "observed_output_throughput_tokens_s": 413.4333333333334,
+      "ttft_ms": {
+        "mean": 723.9888178016209,
+        "p50": 702.7850402027376,
+        "p95": 1024.7104779521064,
+        "p99": 1181.2614494299773
+      },
+      "tpot_ms": {
+        "mean": 87.46588331741508,
+        "p50": 87.3576483836504,
+        "p95": 91.19636350014342,
+        "p99": 92.16429394840537
+      },
+      "itl_ms": {
+        "p50": 84.3321920635608,
+        "p95": 134.08135684524916,
+        "p99": 156.0388588109014,
+        "max": 172.84626387154822
+      },
+      "e2e_ms": {
+        "mean": 7546.3277165599975,
+        "p50": 7543.1056427889835,
+        "p95": 7938.727452344271,
+        "p99": 8168.3726134867875
+      },
+      "average_batch_size": null,
+      "resource_utilization": {},
+      "slo": {
+        "ttft_limit_ms": 3000.0,
+        "tpot_limit_ms": 100.0,
+        "target_attainment": 0.99,
+        "ttft_pass": true,
+        "tpot_pass": true,
+        "compliant_requests": 314,
+        "attainment": 1.0,
+        "goodput_qps": 5.233333333333334,
+        "pass": true
+      },
+      "scheduler_backend": "serving_source",
+      "serving_source": {
+        "repository": "https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra",
+        "commit": "34c809ca88b8b796f07cccfe55066db0b74cf7f8",
+        "files": {
+          "pipeline.py": "df620c1436494e24e255b7b1fac95ed7f7b6c0c2123fe7bc8752cedb48091c40",
+          "pd_scheduler.py": "1b1d6d78f929e36a76baaddb8e0ae21366c1ceba6070f1e8c51c9519888b2637",
+          "pipeline_state.py": "ad033a7b42659611b0e02f7b85a982ecfac228b705bbbaaaa11317841d62304b",
+          "scheduling.py": "61da5943304f3283f1f57bd3adad004f3b8cde1b48daf33115b75d64154f3534",
+          "server.py": "7f731731801374b9856cc5fc700069271602951de00e139a70c1ec5d98bcc8f4"
+        }
+      },
+      "command_cost_coverage": {
+        "edge_front/prefill/tp1": {
+          "command_exact_batch": 788
+        },
+        "cloud_middle/prefill/tp1": {
+          "command_exact_batch": 788
+        },
+        "edge_tail/prefill/tp1": {
+          "command_exact_batch": 788
+        },
+        "edge_front/decode/tp1": {
+          "command_exact_batch": 810,
+          "command_interpolated_batch": 133
+        },
+        "cloud_middle/decode/tp1": {
+          "command_exact_batch": 810,
+          "command_interpolated_batch": 133
+        },
+        "edge_tail/decode/tp1": {
+          "command_exact_batch": 810,
+          "command_interpolated_batch": 133
+        }
+      },
+      "command_sampling": "empirical",
+      "cost_seed": 17,
+      "residual_coverage": {
+        "exact_batch": 4794,
+        "nearest_batch_relative_residual": 399
+      },
+      "measurement_window": {
+        "start_ms": 13541.841287575115,
+        "end_ms": 73541.84128757511
+      },
+      "lifecycle_drained": true,
+      "serving_host_work": {
+        "enabled": true,
+        "coverage": {
+          "exact_batch": 28870,
+          "nearest_batch_per_request": 2650
+        },
+        "total_ms": 3289.9966267486934
+      }
+    },
+    "calibration": "Optimized: Qwen2.5-3B/A10 C40 command+host empirical profile; baseline: operator+host model. Other concurrency points are predictions, not measured capacity."
+  },
+  "error": null,
+  "finished_at": 1788716121.9200537
+}

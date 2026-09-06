@@ -1,0 +1,69 @@
+{
+  "source": "baseline refinement C16, 4K/79, TP2+2, measured completion cohort",
+  "summary": {
+    "variant": "baseline",
+    "concurrency": 16,
+    "server_max_active": 16,
+    "measurement_start": 15467.354045201,
+    "measurement_end": 15555.310063794,
+    "warmup_s": 15.08873558400046,
+    "minimum_seconds": 60,
+    "minimum_completions": 20,
+    "minimum_worker_cycles": 6,
+    "drain_s": 14.836027030998594,
+    "latency_cohort": "requests completed within measurement window",
+    "total_requests_including_warmup_drain": 128,
+    "requests": 96,
+    "successful": 96,
+    "duration_s": 87.95601859300041,
+    "completed_qps": 1.0914545875958934,
+    "goodput_qps": 0.0,
+    "slo_attainment": 0.0,
+    "output_tokens": [
+      79
+    ],
+    "mean_ttft_ms": 6331.412125239752,
+    "p99_ttft_ms": 11828.050551051272,
+    "mean_tpot_ms": 106.97518356290027,
+    "p99_tpot_ms": 179.17562731731195,
+    "mean_e2e_ms": 14679.258654572948,
+    "p99_e2e_ms": 15318.146536250151,
+    "mean_max_itl_ms": 5513.062164416663,
+    "p99_max_itl_ms": 11150.672889849191,
+    "slo_pass": false,
+    "p50_ttft_ms": 6431.621346499924,
+    "p95_ttft_ms": 11550.37634224982,
+    "p50_tpot_ms": 107.08763351281866,
+    "p95_tpot_ms": 174.7422967980816,
+    "p50_e2e_ms": 14652.556522500163,
+    "p95_e2e_ms": 15308.78723024989,
+    "start_cohort_slo_attainment": 0.0,
+    "start_cohort_requests": 96,
+    "little_law_concurrency_estimate": 16.021744201040367
+  },
+  "breakdown": {
+    "ttft": {
+      "total_ms": 6331.412125239752,
+      "parts_ms": {
+        "上行 RPC 区间": 115.63056653125,
+        "下行 RPC 区间": 154.76339882291666,
+        "云侧处理区间": 341.749162625,
+        "企业侧处理及本步其余开销": 122.82872730215865,
+        "本步以外等待及交付残差": 5596.440269958426
+      },
+      "rows": 96
+    },
+    "tpot": {
+      "total_ms": 106.97518356290027,
+      "parts_ms": {
+        "上行 RPC 区间": 5.520669194444444,
+        "下行 RPC 区间": 5.679984335470086,
+        "云侧处理区间": 14.688659886752136,
+        "企业侧处理及本步其余开销": 10.07659217948786,
+        "本步以外等待及交付残差": 71.00927796674574
+      },
+      "rows": 7488
+    }
+  },
+  "note": "Wall-clock timestamp intervals, not isolated GPU kernel times. RPC includes host packing/IPC; residual includes scheduling, other requests and delivery. No simulation estimates."
+}

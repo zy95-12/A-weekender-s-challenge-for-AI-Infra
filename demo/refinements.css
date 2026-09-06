@@ -29,7 +29,7 @@
 .eyebrow {
   margin-bottom: 22px;
   color: #c3d1d5;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 650;
   letter-spacing: .13em;
 }
@@ -63,3 +63,24 @@ h3 {
     font-size: clamp(40px, 13vw, 58px);
   }
 }
+textarea {width:100%;box-sizing:border-box;background:#0a1820;color:#e5f2f5;border:1px solid #34505d;border-radius:8px;padding:12px;margin:10px 0;font:inherit}
+pre {white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto;font-size:12px;color:#a9c5ce}
+table {width:100%;border-collapse:collapse;font-size:13px;margin:18px 0} th,td {padding:10px;text-align:left;border-bottom:1px solid #29404c} .optimization .card {margin:24px 0;padding:24px;overflow-x:auto} #system>.card {padding:24px;margin-top:24px} button:disabled {opacity:.55;cursor:wait} .breakdown-bar {display:flex;height:22px;width:100%;margin:12px 0}.breakdown-bar span {min-width:2px} .data-table {overflow-x:auto}
+#chart {height:auto;min-height:340px;display:block} #chart>div {width:100%} #service-log:empty {display:none}
+
+.card a {color:var(--cyan)} #security .card {padding:24px} #attack-download {margin:14px 0} #security h3 {margin-bottom:14px}
+
+#security .link-row {display:flex;gap:12px} #security .link-row button {width:auto;flex:1;padding:12px 8px;font-size:14px}
+
+/* Give the priority investment a wider card, followed by four focused topics. */
+.insight-grid {grid-template-columns:repeat(6,minmax(0,1fr))}
+.insight-grid .insight-card {grid-column:span 2}
+.insight-grid .featured {grid-column:span 4}
+@media (max-width:900px) {
+  .insight-grid {grid-template-columns:1fr}
+  .insight-grid .insight-card {grid-column:auto}
+}
+
+.technology-rating {margin:16px 0 10px;font-size:13px;line-height:1.9}
+.technology-rating b {color:var(--cyan);white-space:nowrap;margin-left:8px}
+.insight-card small {color:var(--muted)}
