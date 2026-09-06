@@ -31,6 +31,28 @@
         <h1 id="hero-title" class="demo-title">
           Split-Infer 优化/建模<br /><em>Demo 演示</em>
         </h1>
+        <section
+          class="project-abstract"
+          id="abstract"
+          aria-labelledby="abstract-title"
+        >
+          <h2 id="abstract-title">摘要</h2>
+          <p>
+            大模型的安全推理是企业上云关注的关键问题之一。本项目围绕大模型安全推理的
+            SplitInfer 方案，开展了安全性分析、功能实现、系统优化和性能建模。
+            实验表明，加深企业端部署层数可以降低 token 被明文恢复的成功率；
+            在特定 SLO（4K 上下文输入，TTFT ≤ 3s、TPOT ≤ 100ms）下，
+            按本次最高已测合格点比较，优化系统吞吐达到 baseline 的约
+            <strong>15.1 倍（0.317 QPS → 4.775 QPS）</strong>。
+            项目同时实现了面向多种硬件配置与模型的理论性能建模框架， 为
+            SplitInfer 方案的落地提供参考。
+          </p>
+          <p class="abstract-note">
+            恢复率与数据分布相关；吞吐比较来自单次有限窗口，baseline 合格点仅有
+            18 条到达请求，不代表精确容量提升倍数。当前实测校准集中在 Qwen2.5-3B
+            / A10，跨模型、跨硬件的预测精度尚未验证。
+          </p>
+        </section>
         <div class="hero-grid">
           <div>
             <div class="eyebrow"><span>01</span> 背景 / WHY IT MATTERS</div>
