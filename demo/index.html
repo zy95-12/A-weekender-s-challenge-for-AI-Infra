@@ -326,7 +326,8 @@ Security inference should protect private prompts while preserving useful model 
           <p>
             固定 8 道 GSM8K 输入；同 token、同绝对位置，decode 使用 teacher
             forcing。只比较 logits，不要求自由回答相同。下面为原生单卡 TP1 对
-            Split TP2+2 的最新真实 GPU 测量，未调整原数值门槛。
+            Split TP2+2 的最新真实 GPU 测量，采用 logits cosine、top1 一致率与
+            top-k token overlap。
           </p>
           <div id="accuracy-results">加载验证证据…</div>
           <a

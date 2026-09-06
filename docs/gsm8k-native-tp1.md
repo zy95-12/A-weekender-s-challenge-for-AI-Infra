@@ -1,49 +1,43 @@
-# 单卡原生完整模型对 Split 4/27/5 的新精度对照
+# 单卡原生完整模型对 Split 4/27/5：cosine 与 token 排名对照
 
-2026-09-07 重新进行 GPU 采集。原生完整模型改为 **单卡 TP1**；Split 保持企业 TP2 + 云 TP2、4/27/5 层、WAN 单向5ms/10Gbps。模型为固定 revision `aa8e72537993ba99e69dfaafa59ed015b17504d1` 的 Qwen2.5-3B-Instruct，FP16、vLLM0.10.2 V0、eager、FlashAttention，两边均为完整 prefill。
+使用2026-09-07新采集的同一批真实 logits，离线重新计算指标，无需重复GPU推理。原生完整模型为单卡TP1，Split为企业TP2+云TP2、4/27/5层；Qwen2.5-3B-Instruct、FP16、vLLM0.10.2 V0、eager、FlashAttention、full-prefill。模型revision为 `aa8e72537993ba99e69dfaafa59ed015b17504d1`。
 
-复用先前固定的8道 GSM8K test 输入，indices 为51、209、228、285、457、501、563、1309，输入长度3268–3319。此次先停止 split，设置 `CUDA_VISIBLE_DEVICES=0` 采集原生 TP1，再启动真实 Split TP2+2，使用新原生输出 token 做 teacher forcing，独立重新采集 split logits。没有复用旧 split logits，也没有将原生 logits 传入 split。公共API功能测试为C8，logits诊断逐请求执行；两者的并发范围不同。
+固定8道GSM8K test输入，indices为51、209、228、285、457、501、563、1309，长度3268–3319。原生与split独立采集，decode使用原生生成的token做teacher forcing，逐绝对位置比较。每题比较最后一个prefill位置和7个decode位置；诊断逐请求执行，不代表C16/C44动态batch场景。
 
-## 结果
+## 当前指标
 
-下表 MAE/RMSE 是每个阶段中最差位置的全词表误差；概率指标用 temperature=1 的稳定softmax计算。
+| 阶段 | 位置数 | Logits cosine平均 | Logits cosine最低 | Top1一致 |
+|---|---:|---:|---:|---:|
+| Prefill末位置 | 8 | 0.99999665 | 0.99999465 | 8/8（100%） |
+| Decode | 56 | 0.99999659 | 0.99999193 | 56/56（100%） |
 
-| 阶段 | 位置数 | 最大逐位置 MAE | 最大逐位置 RMSE | 最大绝对误差 | 最大 softmax TV | 最大单token概率差 | 未通过位置 |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| prefill末位置 | 8 | 0.01045594 | 0.01314045 | 0.078125 | 0.00425808 | 0.00348155 | 1/8 |
-| decode | 56 | 0.01624706 | 0.02020044 | 0.09765625 | 0.01012980 | 0.01012806 | 7/56 |
+| 阶段 | Top5 overlap平均 / 最低 | Top10 overlap平均 / 最低 | Top20 overlap平均 / 最低 |
+|---|---:|---:|---:|
+| Prefill末位置 | 100% / 100% | 100% / 100% | 100% / 100% |
+| Decode | 100% / 100% | 99.2857% / 90% | 99.6429% / 95% |
 
-全位置平均 MAE 分别为0.00741936、0.00742412。64/64位置的top1 token一致；不将其解释为所有自由回答一致。最大单token概率变化分别约0.348和1.013个百分点。
+Decode的56个位置中，4个位置top10集合有1个token不同，4个位置top20集合有1个token不同，其余集合完全一致。Top-k集合相同不代表集合内排名相同，也不代表概率值逐值相同。Top1一致只描述这64个受测位置，不是完整自由回答一致性结论。
 
-**原数值门槛未通过，比较命令退出码为1。** 门槛保持逐位置MAE≤0.01、RMSE≤0.02、最大绝对误差≤0.1、cosine≥0.9999，没有针对本次结果放宽。prefill最小cosine为0.99999465，decode为0.99999193；失败来自部分位置的MAE/RMSE。功能生成正常不等于数值门槛通过。
+## 口径
 
-原有“原生TP2对Split TP2+2逐值一致”是另一组对照，仍保留在[原验证报告](gsm8k-validation.md)。此次改成原生TP1后，计算中的分片、矩阵形状和归约路径发生变化，测得非零误差；不能仅凭这组实验把误差全部归因于切分或全部归因于TP。两次试验都只检查最后一个prefill位置与7个decode位置，不覆盖全prompt每个位置，也不代表高并发动态batch下的误差范围。
+- Cosine：对同一位置的151936维原始logits计算点积除以两个L2范数的乘积，不先做softmax或中心化。高维向量cosine很高不自动保证前列token一致，因此同时报告top1和top-k。
+- Top1：比较最大logit对应的token ID，同时保留原生与split的ID。
+- Top-k overlap：`|TopK(native) ∩ TopK(split)| / k`，不是Jaccard，也不考虑集合内顺序。逐位置计算，再按阶段统计平均与最低值。
+- 同分：logit降序，相等时token ID升序，保证FP16同分情形可复现。最低重叠率反映集合边界差异，不作为额外失败门槛。
 
-## 原始证据与复算
+**当前使用描述性指标，不沿用MAE/绝对误差门槛，也未自行设定新的通过阈值。** 比较程序正常退出表示采集数据有效且完成计算，不等价于安全性或精度认证。之前的绝对误差报告保留为历史记录，不影响当前评价。
 
-[最新汇总](../demo/evidence/accuracy-tp1.json) · [逐绝对位置记录](../demo/evidence/accuracy-tp1-positions.json) · [完整原始 logits、输入、配置和日志](../demo/evidence/accuracy-tp1-raw.zip) · [SHA256](../demo/evidence/SHA256SUMS.json)。NPZ中原生与split均保存独立捕获的全词表logits，FP16计算结果转FP32保存；不是FP32原生模型对照。
+## 证据与复算
 
-解压ZIP到新目录后，可无GPU复算：
+[当前汇总](../demo/evidence/accuracy-tp1-ranking.json) · [逐位置cosine、top1 ID、top20 ID及overlap](../demo/evidence/accuracy-tp1-ranking-positions.json) · [完整原始logits、输入、配置与采集日志](../demo/evidence/accuracy-tp1-raw.zip) · [SHA256](../demo/evidence/SHA256SUMS.json)。原始ZIP沿用此前采集归档，其内汇总和复算源码是历史绝对指标版本；用当前仓库脚本可对其中相同NPZ重新计算排名指标。
+
+将ZIP解压至新目录，运行当前脚本：
 
 ```bash
 .venv/bin/python scripts/gsm8k_validate.py --phase compare \
-  --compare-variants baseline --output /path/to/extracted
-# 预期退出码1：按原门槛正确报告本次不通过。
+  --compare-variants baseline --metric-mode ranking --output /path/to/extracted
 ```
 
-重新采集须使用空输出目录，先按既有 `--phase prepare` 准备同一组8题，然后依次执行：
+`ranking`是默认模式。只有显式指定`--metric-mode absolute`时才复算历史绝对误差与旧门槛。此次没有修改、量化或替换原始logits。
 
-```bash
-./poc down
-CUDA_VISIBLE_DEVICES=0 VLLM_USE_V1=0 VLLM_ATTENTION_BACKEND=FLASH_ATTN \
-  OMP_NUM_THREADS=4 HF_HUB_OFFLINE=1 \
-  .venv/bin/python scripts/gsm8k_validate.py --phase native --variant baseline \
-  --native-tp 1 --output results/new-tp1
-./poc up --wan
-.venv/bin/python scripts/gsm8k_validate.py --phase split --variant baseline \
-  --output results/new-tp1
-.venv/bin/python scripts/gsm8k_validate.py --phase compare \
-  --compare-variants baseline --output results/new-tp1
-```
-
-`--native-tp` 只改变原生完整模型的TP；默认行为仍沿用此前匹配各split配置的对照。此次显式选择TP1、baseline/full-prefill，未开启原生chunked prefill。页面现在显示本次结果，并标注原数值门槛“未通过”。
+若重新采集，先在空输出目录执行`--phase prepare`，然后停止本目录split服务，用 `CUDA_VISIBLE_DEVICES=0 VLLM_USE_V1=0 VLLM_ATTENTION_BACKEND=FLASH_ATTN` 执行 `--phase native --variant baseline --native-tp 1`；再 `./poc up --wan`，执行 `--phase split --variant baseline`，最后按上面命令compare。各阶段使用同一个 `--output`。

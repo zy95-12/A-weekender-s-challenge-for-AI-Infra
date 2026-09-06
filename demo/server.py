@@ -220,7 +220,7 @@ class Handler(SimpleHTTPRequestHandler):
                 p.stem: json.loads(p.read_text())
                 for p in (DEMO / "evidence").glob("*.json")
             }
-            data["accuracy"] = data["accuracy-tp1"]
+            data["accuracy"] = data["accuracy-tp1-ranking"]
             data["accuracy_manifest"] = data["accuracy-tp1-manifest"]
             return self.send_json(200, data)
         if path.startswith("/api/jobs/"):

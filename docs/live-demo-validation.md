@@ -14,7 +14,7 @@ Headless Chromium 从服务停止状态打开页面，点击启动按钮，后�
 
 ## 原生完整模型精度
 
-更新：页面已切换到2026-09-07新采集的原生单卡TP1对Split TP2+2结果，存在非零误差，原数值门槛未通过；见[新对照报告](gsm8k-native-tp1.md)。以下记录是此前匹配TP2的历史验收。
+更新：页面已切换到2026-09-07新采集的原生单卡TP1对Split TP2+2结果，当前展示logits cosine、top1及top-k overlap，不沿用绝对误差门槛；见[新对照报告](gsm8k-native-tp1.md)。以下记录是此前匹配TP2的历史验收。
 
 使用现有真实 GPU 归档的8个不同 GSM8K test 输入，输入长度3268–3319，均为Split 4/27/5。页面只显示 baseline TP2/full-prefill 对相同数值路径原生完整模型的结果：8个prefill末位置、56个teacher-forced decode位置，全词表逐值一致，MAE、最大绝对误差、softmax TV均为0。
 

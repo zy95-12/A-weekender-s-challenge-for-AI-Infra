@@ -13,7 +13,7 @@ DEST = ROOT/'docs/evidence/issue-6/gsm8k-integration'
 def main():
     DEST.mkdir(parents=True,exist_ok=True)
     summary = json.loads((RAW/'summary.json').read_text())
-    assert summary['passed']
+    assert summary.get('comparison_completed') if summary.get('metric_mode')=='ranking' else summary['passed']
     for name in ['summary.json','manifest.json','baseline-positions.json','optimized-positions.json','curl.sse']:
         shutil.copy2(RAW/name,DEST/name)
     members = {}

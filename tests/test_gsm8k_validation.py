@@ -50,11 +50,36 @@ class LogitsTests(unittest.TestCase):
                     forced_tokens=[20,21],rows_json=np.array(json.dumps(self.rows())))
             (out/'native-baseline/config.json').write_text(json.dumps({'tensor_parallel_size':1}))
             with contextlib.redirect_stdout(io.StringIO()):
-                compare(SimpleNamespace(output=out,compare_variants=['baseline']))
+                compare(SimpleNamespace(output=out,compare_variants=['baseline'],metric_mode='absolute'))
             result=json.loads((out/'summary.json').read_text())
             self.assertTrue(result['passed'])
             self.assertEqual(result['variants']['baseline']['native_config']['tensor_parallel_size'],1)
             self.assertGreater(result['variants']['baseline']['decode']['mae'],.0019)
+            with contextlib.redirect_stdout(io.StringIO()):
+                compare(SimpleNamespace(output=out,compare_variants=['baseline']))
+            ranking=json.loads((out/'summary.json').read_text())
+            self.assertEqual(ranking['metric_mode'],'ranking')
+            self.assertNotIn('passed',ranking)
+            self.assertNotIn('mae',ranking['variants']['baseline']['decode'])
+            self.assertEqual(ranking['variants']['baseline']['decode']['top_k_overlap']['10']['mean'],1)
+
+    def test_ranking_scale_invariance_and_overlap(self):
+        from scripts.gsm8k_validate import ranking_metrics
+        a=np.array([4.,3.,2.,1.])
+        same=ranking_metrics(a,a*10,ks=(1,2,3))
+        self.assertAlmostEqual(same['cosine_similarity'],1)
+        self.assertTrue(same['top1_agreement'])
+        self.assertEqual(same['top_k_overlap']['2'],1)
+        swapped=ranking_metrics(a,np.array([4.,2.,3.,1.]),ks=(1,2,3))
+        self.assertEqual(swapped['top_k_overlap']['2'],.5)
+        self.assertEqual(swapped['top_k_overlap']['3'],1)
+        self.assertNotIn('mae',swapped)
+
+    def test_ranking_ties_and_zero_vectors(self):
+        from scripts.gsm8k_validate import ranking_metrics
+        tied=ranking_metrics(np.array([2.,2.,1.]),np.array([2.,2.,1.]),ks=(1,2))
+        self.assertEqual(tied['native_top_tokens'],[0,1])
+        with self.assertRaises(ValueError):ranking_metrics(np.zeros(3),np.ones(3),ks=(1,))
 
 
 if __name__ == '__main__': unittest.main()

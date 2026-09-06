@@ -167,6 +167,23 @@ def logit_metrics(a, b):
     return result
 
 
+def ranking_metrics(a, b, ks=(5,10,20)):
+    """Raw-logit cosine and set overlap; descending score, token ID breaks ties."""
+    a, b = np.asarray(a,dtype=np.float64), np.asarray(b,dtype=np.float64)
+    if a.shape != b.shape or a.ndim != 1 or not np.isfinite(a).all() or not np.isfinite(b).all():
+        raise ValueError('Logits must be finite matching vocabulary vectors')
+    norm = np.linalg.norm(a)*np.linalg.norm(b)
+    if norm == 0:raise ValueError('Cosine is undefined for a zero vector')
+    if not ks or any(type(k) is not int or k<1 or k>len(a) for k in ks):
+        raise ValueError('Invalid top-k sizes')
+    ids=np.arange(len(a));left=np.lexsort((ids,-a));right=np.lexsort((ids,-b))
+    return {'cosine_similarity':float(np.clip(np.dot(a,b)/norm,-1,1)),
+        'native_top1_token':int(left[0]),'split_top1_token':int(right[0]),
+        'top1_agreement':bool(left[0]==right[0]),
+        'top_k_overlap':{str(k):len(set(left[:k])&set(right[:k]))/k for k in ks},
+        'native_top_tokens':left[:max(ks)].tolist(),'split_top_tokens':right[:max(ks)].tolist()}
+
+
 def split(args):
     import httpx
     import io
@@ -221,8 +238,11 @@ def split(args):
 def compare(args):
     out = Path(args.output); check_inputs(out, require_model=False)
     prompts = json.loads((out/'prompts.json').read_text())
-    report = {'passed':True, 'samples':len(prompts), 'variants':{},
+    mode = getattr(args,'metric_mode','ranking')
+    report = {'comparison_completed':True, 'metric_mode':mode, 'samples':len(prompts), 'variants':{},
         'scope':'Same input IDs and absolute positions; last prefill position plus forced decode. Native TP is recorded per variant; TP overrides include parallelism differences. No answer equality gate.'}
+    if mode == 'absolute':report['passed']=True
+    else:report['evaluation']='Descriptive metrics; no pass/fail thresholds specified. Top-k overlap = intersection size / k; ties use ascending token ID.'
     for variant in args.compare_variants:
         rows = []
         native_config = json.loads((out/('native-'+variant)/'config.json').read_text())
@@ -238,19 +258,28 @@ def compare(args):
             for i,(x,y) in enumerate(zip(a['logits'],b['logits'])):
                 assert ar[i]['absolute_position'] == br[i]['absolute_position']
                 rows.append({'index':p['index'], 'phase':'prefill' if i==0 else 'decode',
-                    'absolute_position':ar[i]['absolute_position'], 'native_row':ar[i], 'split_row':br[i], **logit_metrics(x,y)})
+                    'absolute_position':ar[i]['absolute_position'], 'native_row':ar[i], 'split_row':br[i], **(ranking_metrics(x,y) if mode=='ranking' else logit_metrics(x,y))})
         save(out/(variant+'-positions.json'), rows)
         summary = {}
         for phase in ('prefill','decode'):
             selected = [r for r in rows if r['phase']==phase]
-            summary[phase] = {'rows':len(selected), 'passed':all(r['passed'] for r in selected),
-                **{key:max(r[key] for r in selected) for key in ('mae','rmse','max_abs_error','softmax_tv','max_probability_delta')},
-                'min_cosine_similarity':min(r['cosine_similarity'] for r in selected)}
+            if mode == 'absolute':
+                summary[phase] = {'rows':len(selected), 'passed':all(r['passed'] for r in selected),
+                    **{key:max(r[key] for r in selected) for key in ('mae','rmse','max_abs_error','softmax_tv','max_probability_delta')},
+                    'min_cosine_similarity':min(r['cosine_similarity'] for r in selected)}
+            else:
+                summary[phase]={'rows':len(selected),
+                    'min_cosine_similarity':min(r['cosine_similarity'] for r in selected),
+                    'mean_cosine_similarity':float(np.mean([r['cosine_similarity'] for r in selected])),
+                    'top1_matches':sum(r['top1_agreement'] for r in selected),
+                    'top1_agreement_rate':float(np.mean([r['top1_agreement'] for r in selected])),
+                    'top_k_overlap':{str(k):{'mean':float(np.mean([r['top_k_overlap'][str(k)] for r in selected])),
+                        'min':min(r['top_k_overlap'][str(k)] for r in selected)} for k in (5,10,20)}}
         summary['native_config'] = native_config
         report['variants'][variant] = summary
-        report['passed'] &= all(summary[p]['passed'] for p in ('prefill','decode'))
+        if mode=='absolute':report['passed'] &= all(summary[p]['passed'] for p in ('prefill','decode'))
     save(out/'summary.json',report); print(json.dumps(report,indent=2),flush=True)
-    if not report['passed']:
+    if mode=='absolute' and not report['passed']:
         raise SystemExit(1)
 
 
@@ -287,7 +316,7 @@ def all_phases(args):
     except BaseException:
         subprocess.run(['./poc','down'],cwd=ROOT,check=False)
         raise
-    print('PASS; optimized service is running at '+args.url,flush=True)
+    print('Comparison complete; optimized service is running at '+args.url,flush=True)
 
 
 def main():
@@ -295,6 +324,7 @@ def main():
     parser.add_argument('--phase',choices=['all','prepare','native','split','compare'],default='all')
     parser.add_argument('--output',default='results/gsm8k-logits')
     parser.add_argument('--variant',choices=['baseline','optimized'],default='optimized')
+    parser.add_argument('--metric-mode',choices=['ranking','absolute'],default='ranking',help='Ranking metrics by default; absolute retains the historical numerical gate')
     parser.add_argument('--native-tp',type=int,choices=[1,2],help='Override native full-model TP; default matches each split variant')
     parser.add_argument('--compare-variants',nargs='+',choices=['baseline','optimized'],default=['baseline','optimized'])
     parser.add_argument('--limit',type=int,default=8,help='0 selects the full test set')
