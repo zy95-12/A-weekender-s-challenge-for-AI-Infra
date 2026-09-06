@@ -1,0 +1,39 @@
+{
+  "backend": "Transformers4.55.2 Qwen2Model FP16 SDPA, single GPU; same pinned weights as serving, not a bitwise TP2 wire capture",
+  "representation": "decoder block residual-stream output; before final RMSNorm at depth36",
+  "depths": [
+    4,
+    9,
+    18,
+    27,
+    36
+  ],
+  "splits": {
+    "train": {
+      "tokens": 65536,
+      "sequences": 16,
+      "context_tokens": 4096,
+      "seconds": 16.934309970999948
+    },
+    "validation": {
+      "tokens": 8192,
+      "sequences": 2,
+      "context_tokens": 4096,
+      "seconds": 1.7387777769999957
+    },
+    "test": {
+      "tokens": 8192,
+      "sequences": 2,
+      "context_tokens": 4096,
+      "seconds": 1.731853422000313
+    },
+    "current": {
+      "tokens": 4174,
+      "sequences": 1,
+      "context_tokens": 4174,
+      "seconds": 0.9107073830000445
+    }
+  },
+  "current_prompt_tokens": 4096,
+  "current_output_input_tokens": 78
+}

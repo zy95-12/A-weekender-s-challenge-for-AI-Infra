@@ -1,0 +1,6 @@
+.venv
+__pycache__/
+*.pyc
+Q1/cache/
+Q1/checkpoints/
+Q1/raw/

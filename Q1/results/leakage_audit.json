@@ -1,0 +1,9 @@
+{
+  "train_validation_exact_4096token_window_overlap": 0,
+  "target_16grams_present_in_training": 0,
+  "target_positions_with_token_seen_in_training": 3221,
+  "target_distinct_tokens_seen_in_training": 59,
+  "target_total_positions": 4096,
+  "target_distinct_tokens": 92,
+  "recomputed_depth_seed_results": 10
+}

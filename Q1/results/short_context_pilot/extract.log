@@ -1,0 +1,5 @@
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:00<00:00,  1.12it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.51it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:01<00:00,  1.43it/s]
+train {'tokens': 65536, 'sequences': 256, 'context_tokens': 256, 'seconds': 16.722990629999913}
+validation {'tokens': 8192, 'sequences': 32, 'context_tokens': 256, 'seconds': 2.8990351460001875}
+test {'tokens': 8192, 'sequences': 32, 'context_tokens': 256, 'seconds': 1.4175568369996654}
+current {'tokens': 4174, 'sequences': 1, 'context_tokens': 4174, 'seconds': 0.910304406999785}

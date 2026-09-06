@@ -1,0 +1,119 @@
+{
+  "depth": 36,
+  "seed": 42,
+  "epochs": 4,
+  "train_tokens": 65536,
+  "validation_tokens": 8192,
+  "hidden_width": 512,
+  "input_width": 2048,
+  "vocab_size": 151936,
+  "optimizer": "AdamW lr0.001 weight_decay0.01",
+  "batch_size": 256,
+  "checkpoint_selection": "highest public-validation top1; target never used",
+  "history": [
+    {
+      "epoch": 1,
+      "training_loss": 4.601487021893263,
+      "public_validation_accuracy": 0.544921875,
+      "elapsed_s": 4.452752959999998
+    },
+    {
+      "epoch": 2,
+      "training_loss": 1.7771974676288664,
+      "public_validation_accuracy": 0.609130859375,
+      "elapsed_s": 9.273533491999842
+    },
+    {
+      "epoch": 3,
+      "training_loss": 0.5785701175918803,
+      "public_validation_accuracy": 0.627197265625,
+      "elapsed_s": 14.678390237000713
+    },
+    {
+      "epoch": 4,
+      "training_loss": 0.14797925694438163,
+      "public_validation_accuracy": 0.6312255859375,
+      "elapsed_s": 19.942810096999892
+    }
+  ],
+  "evaluations": {
+    "public_test": {
+      "mlp": {
+        "positions": 8192,
+        "correct": 4948,
+        "token_accuracy": 0.60400390625,
+        "distinct_token_types": 2172,
+        "macro_token_type_accuracy": 0.2422787675189795,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.60400390625,
+        "exact_decoded_text_match": false,
+        "training_seen_positions": 6899,
+        "training_seen_token_accuracy": 0.7172053920858096
+      },
+      "cosine": {
+        "positions": 8192,
+        "correct": 148,
+        "token_accuracy": 0.01806640625,
+        "distinct_token_types": 2172,
+        "macro_token_type_accuracy": 0.0009597701095230549,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.01806640625,
+        "exact_decoded_text_match": false,
+        "training_seen_positions": 6899,
+        "training_seen_token_accuracy": 0.021017538773735325
+      }
+    },
+    "current_prompt": {
+      "mlp": {
+        "positions": 4096,
+        "correct": 461,
+        "token_accuracy": 0.112548828125,
+        "distinct_token_types": 92,
+        "macro_token_type_accuracy": 0.25181184185760846,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.11268638474700562,
+        "exact_decoded_text_match": false,
+        "training_seen_positions": 3221,
+        "training_seen_token_accuracy": 0.14312325364793543
+      },
+      "cosine": {
+        "positions": 4096,
+        "correct": 0,
+        "token_accuracy": 0.0,
+        "distinct_token_types": 92,
+        "macro_token_type_accuracy": 0.0,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.0,
+        "exact_decoded_text_match": false,
+        "training_seen_positions": 3221,
+        "training_seen_token_accuracy": 0.0
+      }
+    },
+    "current_output_inputs": {
+      "mlp": {
+        "positions": 78,
+        "correct": 26,
+        "token_accuracy": 0.3333333333333333,
+        "distinct_token_types": 57,
+        "macro_token_type_accuracy": 0.2957393483709273,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.3333333333333333,
+        "exact_decoded_text_match": false,
+        "training_seen_positions": 67,
+        "training_seen_token_accuracy": 0.3880597014925373
+      },
+      "cosine": {
+        "positions": 78,
+        "correct": 0,
+        "token_accuracy": 0.0,
+        "distinct_token_types": 57,
+        "macro_token_type_accuracy": 0.0,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.0,
+        "exact_decoded_text_match": false,
+        "training_seen_positions": 67,
+        "training_seen_token_accuracy": 0.0
+      }
+    }
+  }
+}

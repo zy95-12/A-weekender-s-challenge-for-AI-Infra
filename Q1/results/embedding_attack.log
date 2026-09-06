@@ -1,0 +1,40 @@
+{
+  "method": "Full 151936-row cosine search; FP16 exposed embeddings, FP32 normalized dot products; TF32 off",
+  "depth": 0,
+  "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+  "evaluations": {
+    "current_prompt": {
+      "positions": 4096,
+      "correct": 4096,
+      "token_accuracy": 1.0,
+      "distinct_token_types": 92,
+      "macro_token_type_accuracy": 1.0,
+      "exact_sequence_match": true,
+      "non_special_token_accuracy": 1.0,
+      "exact_decoded_text_match": true,
+      "seconds": 0.3782285879997289
+    },
+    "current_output_tokens": {
+      "positions": 79,
+      "correct": 79,
+      "token_accuracy": 1.0,
+      "distinct_token_types": 58,
+      "macro_token_type_accuracy": 1.0,
+      "exact_sequence_match": true,
+      "non_special_token_accuracy": 1.0,
+      "exact_decoded_text_match": true,
+      "seconds": 0.01784232099998917
+    },
+    "public_test": {
+      "positions": 8192,
+      "correct": 8192,
+      "token_accuracy": 1.0,
+      "distinct_token_types": 2172,
+      "macro_token_type_accuracy": 1.0,
+      "exact_sequence_match": true,
+      "non_special_token_accuracy": 1.0,
+      "exact_decoded_text_match": true,
+      "seconds": 0.9798583570000119
+    }
+  }
+}
