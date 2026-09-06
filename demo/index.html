@@ -35,7 +35,8 @@
           <div>
             <div class="eyebrow"><span>01</span> 背景 / WHY IT MATTERS</div>
             <h2 class="background-title">
-              大模型已进入企业核心业务，<br /><em>数据安全上云</em>成为基础设施的关键问题
+              大模型已进入企业核心业务，<br /><em>数据安全上云</em
+              >成为基础设施的关键问题
             </h2>
             <p class="lede">
               模型能力快速增长，私有输入也随之进入云端。传输加密只保护链路，无法自动解决运行时数据暴露。本项目从安全攻击、功能实现、系统优化、性能建模四个方面，分析
@@ -59,10 +60,6 @@
             <div class="risk-badge">!</div>
           </div>
         </div>
-        <div class="signal-row">
-          <span>研究主线</span><b>Security Analysis</b><i></i
-          ><b>Serving System</b><i></i><b>Performance Model</b>
-        </div>
       </section>
 
       <section class="section" id="insight" aria-labelledby="insight-title">
@@ -70,7 +67,8 @@
           <div>
             <div class="eyebrow"><span>02</span> 业界洞察 / LANDSCAPE</div>
             <h2 id="insight-title">
-              安全推理没有银弹，<br />关键是匹配威胁模型。
+              TEE / Confidential Computing 应当成为 AI-Factory 的投入重点，<br />SplitInfer
+              是端云协同的核心方向，长期关注 FHE / MPC
             </h2>
           </div>
           <a
@@ -84,30 +82,46 @@
         <div class="insight-grid">
           <article class="insight-card featured">
             <span class="card-no">01</span>
-            <h3>近期落地优先级</h3>
+            <h3>TEE / Confidential Computing</h3>
             <p>
-              先做数据最小化，再以 TEE /
-              机密计算建立运行时可信边界。两者工程成熟度更高，也更容易形成可审计的防线。
+              通过硬件隔离与远程证明建立运行时可信边界，结合按证明释放密钥，保护计算中的数据。重点投入
+              Confidential GPU、可信 I/O 与 CPU—GPU
+              联合证明，并明确各组件的保护范围。
             </p>
-            <div class="tags">
-              <span>Data minimization</span><span>TEE</span>
-            </div>
+            <div class="tags"><span>运行时保护</span></div>
           </article>
           <article class="insight-card">
             <span class="card-no">02</span>
-            <h3>Split Inference</h3>
+            <h3>数据最小化</h3>
             <p>
-              适合端侧算力有限、云侧承担中间层的场景，但中间激活不是天然安全边界，必须评估反演与侧信道风险。
+              在请求进入云端之前，识别敏感字段并删除、脱敏或假名化；结合本地检索与上下文筛选，只上传完成任务所需的信息。需要同时验证信息暴露量与任务效果。
             </p>
-            <small>系统价值高 · 安全需验证</small>
+            <div class="tags"><span>请求构造</span></div>
           </article>
           <article class="insight-card">
             <span class="card-no">03</span>
-            <h3>FHE / MPC</h3>
+            <h3>SplitInfer</h3>
             <p>
-              密码学保障最强，但成本和算子覆盖仍限制通用大模型部署，更适合高敏感、范围明确的子任务。
+              企业端与云端分担模型层，联合设计切分位置、激活传输、KV
+              管理与调度，平衡端侧资源、时延和吞吐。中间激活仍可能被反演，需要用真实攻击评估暴露风险。
             </p>
-            <small>保障强 · 工程成本高</small>
+            <div class="tags"><span>端云协同</span></div>
+          </article>
+          <article class="insight-card">
+            <span class="card-no">04</span>
+            <h3>FHE · 全同态加密</h3>
+            <p>
+              由客户端加密输入，云端执行密文计算，再由密钥持有者解密结果。关注矩阵运算加速、非线性近似与密文开销，先评估范围明确的高敏子任务。
+            </p>
+            <div class="tags"><span>密文计算</span></div>
+          </article>
+          <article class="insight-card">
+            <span class="card-no">05</span>
+            <h3>MPC · 安全多方计算</h3>
+            <p>
+              通过秘密共享等协议，让多方协同计算并限制单方获得完整数据。关注通信轮次、预处理成本和非线性算子协议；安全保障取决于参与方与合谋假设。
+            </p>
+            <div class="tags"><span>多方协作</span></div>
           </article>
         </div>
         <blockquote>
