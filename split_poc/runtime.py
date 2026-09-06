@@ -232,6 +232,9 @@ class Runner:
     def execute(self, command, arrays=None):
         from vllm.forward_context import set_forward_context
         from vllm.distributed import get_tp_group
+        if command["op"] in {"wan_prepare", "wan_echo", "wan_roundtrip"}:
+            from split_poc.wan_probe import execute
+            return execute(self, command, arrays)
         if command["op"] in {"profile_start", "profile_stop"}:
             if command["op"] == "profile_start":
                 torch.cuda.profiler.start()
