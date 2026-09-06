@@ -12,10 +12,12 @@
 | 独立控制通道 | readiness 控制不排在正常 GPU forward 命令后。开启 | [#17](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/17) |
 | chunk KV 提前迁移 | 支持按已完成页提前传输。当前关闭，使用整段 prompt KV 迁移 | [#17](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/17) |
 | 独立 P 窗口 | 每个 P 在途窗口 3，D 全局窗口 2。窗口不是 GPU batch 大小 | [#19](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/19) |
-| P 副本扩展 | 两个 TP1 P，按剩余 prefill token 负载分配；请求固定 P；独立 KV 迁移通道，共享 D KV pool。开启 | 本分支 PR |
-| 控制连接恢复 | 控制/数据连接池分离，明确空闲期限；仅幂等控制操作在连接异常时新建连接重试一次；forward 不重放 | 本分支 PR |
+| P 副本扩展 | 两个 TP1 P，按剩余 prefill token 负载分配；请求固定 P；独立 KV 迁移通道，共享 D KV pool。开启 | [#20](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/20) |
+| 控制连接恢复 | 控制/数据连接池分离，明确空闲期限；仅幂等控制操作在连接异常时新建连接重试一次；forward 不重放 | [#20](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/20) |
 | 算子 profiling | input shape、dtype、算子及时间采集开关；性能测试关闭 | [#14](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/14) |
 | SLO 测量 | 开始/完成 cohort、逐请求 TTFT/TPOT、输出与绝对位置审计 | [#18](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/18)、#19、本分支 |
+
+WAN 曲线探针及 baseline/Stage1 测量数据已单独提交 [#21](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/21)，基于 #14，为可选仿真标定工具，不是 PD 运行依赖。当前 PR 整理重新运行双 P 分支 71 项 CPU 测试、WAN 分支 51 项 CPU 测试，均通过；没有重复 GPU 压测。
 
 ## 当前推荐配置及实测边界
 
