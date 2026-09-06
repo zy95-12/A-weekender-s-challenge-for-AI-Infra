@@ -138,6 +138,7 @@ def up(args):
             common += ['--pd','--pd-epoch',args.pd_epoch,'--prefill-tp',str(args.prefill_tp),
                        '--decode-tp',str(args.decode_tp),'--cloud-decode','http://10.205.0.2:8002']
             if role!='enterprise':common+=['--pd-role','decode' if role=='cloud_decode' else 'prefill']
+            if not args.pd_control_channel:common+=['--no-pd-control-channel']
             if args.pd_verify_kv:common+=['--pd-verify-kv']
             if args.pd_chunk_transfer:common+=['--pd-chunk-transfer']
         if args.profile or args.phase_profile:
@@ -189,7 +190,11 @@ def up(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    preset_parser = argparse.ArgumentParser(add_help=False)
+    preset_parser.add_argument('--preset', choices=['baseline', 'optimized'], default='baseline')
+    preset, _ = preset_parser.parse_known_args()
+    parser = argparse.ArgumentParser(parents=[preset_parser])
+    parser.add_argument('--print-config', action='store_true', help='Print effective settings without starting services')
     parser.add_argument("action", choices=["up", "down", "status"])
     parser.add_argument("--split", choices=["1:3", "1:1", "3:1", "4:30:2"], default="1:3")
     parser.add_argument("--tp", type=int, choices=[1, 2], default=2)
@@ -203,7 +208,7 @@ if __name__ == "__main__":
     parser.add_argument("--kv-blocks", type=int, default=8192, help="KV pages per pool; size for the intended concurrency")
     parser.add_argument("--max-active", type=int, choices=range(1,129), default=8)
     parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe")
-    parser.add_argument("--wire-fast", action="store_true")
+    parser.add_argument("--wire-fast", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--prefill-chunk-size", type=int, default=0)
     parser.add_argument("--scheduler-policy", choices=["legacy","decode-first"], default="legacy")
     parser.add_argument("--decode-quota", type=int, default=1)
@@ -211,12 +216,19 @@ if __name__ == "__main__":
     parser.add_argument("--phase-profile", action="store_true")
     parser.add_argument('--pd-prefill-window',type=int,default=0,help='PD prefill in-flight limit; 0 inherits pipeline-window; decode keeps pipeline-window')
     parser.add_argument("--pipeline-window", type=int, default=0)
-    parser.add_argument('--pd',action='store_true',help='Separate cloud prefill and decode GPU groups')
+    parser.add_argument('--pd',action=argparse.BooleanOptionalAction,default=False,help='Separate cloud prefill and decode GPU groups')
     parser.add_argument('--prefill-replicas',type=int,choices=[1,2],default=1)
     parser.add_argument('--prefill-tp',type=int,choices=[1,2],default=2)
     parser.add_argument('--decode-tp',type=int,choices=[1,2],default=1)
     parser.add_argument('--pd-verify-kv',action='store_true',help='Diagnostic exact KV copy hashes; excluded from benchmarks')
-    parser.add_argument('--pd-chunk-transfer',action='store_true',help='Migrate completed KV pages after each prefill chunk')
+    parser.add_argument('--pd-chunk-transfer',action=argparse.BooleanOptionalAction,default=False,help='Migrate completed KV pages after each prefill chunk')
+    parser.add_argument('--pd-control-channel', action=argparse.BooleanOptionalAction, default=True,
+                        help='Separate PD readiness pipe; --no-pd-control-channel uses the normal command pipe')
+    if preset.preset == 'optimized':
+        parser.set_defaults(pd=True, prefill_replicas=2, prefill_tp=1, decode_tp=1,
+            ipc_mode='shm', wire_fast=True, tcp_buffer_mib=16, prefill_chunk_size=2048,
+            scheduler_policy='decode-first', decode_quota=4, pipeline_window=2,
+            pd_prefill_window=3, max_active=96, kv_blocks=32768)
     args = parser.parse_args()
     if args.pd and (args.prefill_tp*args.prefill_replicas+args.decode_tp!=3 or args.enterprise_tp not in (None,1) or not args.pipeline_window):
         parser.error('PD on this four-GPU host requires E1, P+D=3 and --pipeline-window')
@@ -233,6 +245,9 @@ if __name__ == "__main__":
         parser.error("Pipeline window must be 0..8")
     if not 0 <= args.tcp_buffer_mib <= 64:
         parser.error("TCP buffer must be 0..64 MiB")
+    if args.print_config:
+        print(json.dumps(vars(args), indent=2))
+        raise SystemExit(0)
     if args.action == "up":
         up(args)
     elif args.action == "down":

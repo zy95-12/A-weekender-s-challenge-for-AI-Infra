@@ -247,7 +247,7 @@ def create_app(args):
         return {"status": "ready", "role": args.role, "split": args.split, "tp": args.tp,
                 "pd":args.pd,"pd_role":args.pd_role,"pd_epoch":args.pd_epoch,
                 "prefill_replicas":args.prefill_replicas,"prefill_replica":args.prefill_replica,
-                "pd_chunk_transfer":args.pd_chunk_transfer,"pd_control_channel":bool(args.pd_role),
+                "pd_chunk_transfer":args.pd_chunk_transfer,"pd_control_channel":bool(args.pd_role) and args.pd_control_channel,
                 "pd_reservations":len(pd_control.records) if pd_control else None,
                 "pd_reserving":len(scheduler.reserving) if scheduler and args.pd else 0,
                 "pd_releasing":len(scheduler.releasing) if scheduler and args.pd else 0,
@@ -609,6 +609,7 @@ def main():
     parser.add_argument('--pd-kv-port',type=int,default=29611)
     parser.add_argument('--pd-epoch',default='')
     parser.add_argument('--pd-verify-kv',action='store_true')
+    parser.add_argument('--pd-control-channel', action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument('--pd-chunk-transfer',action='store_true',help='Migrate completed KV pages after each prefill chunk')
     args = parser.parse_args()
     if args.prefill_replicas==2 and (not args.pd or args.prefill_tp!=1 or args.decode_tp!=1):

@@ -451,7 +451,7 @@ class Executor:
         ctx = mp.get_context("spawn")
         for rank in range(args["tp"]):
             parent, child = ctx.Pipe()
-            pd_parent,pd_child=ctx.Pipe() if args.get('pd_role') else (None,None)
+            pd_parent,pd_child=ctx.Pipe() if args.get('pd_role') and args.get('pd_control_channel', True) else (None,None)
             process = ctx.Process(target=worker, args=(rank, args, child,pd_child), daemon=True)
             process.start()
             child.close()
