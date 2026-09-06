@@ -295,6 +295,8 @@ class WorkloadConfig:
     concurrency: int = 0
     warmup_requests: int = 0
     measurement_duration_s: float = 0.0
+    warmup_duration_s: float = 0.0
+    arrival_tail_s: float = 0.0
     requests: tuple[RequestSpec, ...] = ()
 
 
@@ -730,6 +732,8 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         measurement_duration_s=float(
             workload_data.get("measurement_duration_s", 0.0)
         ),
+        warmup_duration_s=float(workload_data.get("warmup_duration_s", 0.0)),
+        arrival_tail_s=float(workload_data.get("arrival_tail_s", 0.0)),
         requests=request_specs,
     )
 
@@ -1052,6 +1056,24 @@ def validate_config(config: SimulationConfig) -> None:
             or workload.num_requests - workload.warmup_requests < workload.concurrency
         ):
             raise ConfigError("closed_loop requires positive concurrency covered by num_requests")
+    elif workload.mode == "open_loop":
+        if workload.warmup_requests or workload.concurrency:
+            raise ConfigError("open_loop uses time-based warmup and no client concurrency limit")
+        if (not math.isfinite(workload.measurement_duration_s) or workload.measurement_duration_s <= 0
+            or not math.isfinite(workload.warmup_duration_s) or workload.warmup_duration_s < 0
+            or not math.isfinite(workload.arrival_tail_s) or workload.arrival_tail_s < 0):
+            raise ConfigError("open_loop requires a positive finite measurement window and nonnegative warmup/tail")
+        if workload.arrival_rate_qps is not None and (not math.isfinite(workload.arrival_rate_qps) or workload.arrival_rate_qps <= 0):
+            raise ConfigError("open_loop arrival rate must be finite and positive")
+        if workload.requests:
+            ids = [r.request_id for r in workload.requests]
+            end_ms = (workload.warmup_duration_s + workload.measurement_duration_s + workload.arrival_tail_s)*1000
+            if len(ids) != len(set(ids)) or any(not math.isfinite(r.arrival_time_ms) or not 0 <= r.arrival_time_ms < end_ms or r.input_tokens <= 0 or r.output_tokens <= 0 for r in workload.requests):
+                raise ConfigError("invalid open_loop request trace")
+        elif (workload.arrival_process not in {"constant", "poisson"}
+              or workload.arrival_rate_qps is None or not math.isfinite(workload.arrival_rate_qps)
+              or workload.arrival_rate_qps <= 0 or workload.input_tokens <= 0 or workload.output_tokens <= 0):
+            raise ConfigError("open_loop generation requires a finite positive arrival rate and token lengths")
     elif workload.mode == "trace":
         if not workload.requests:
             raise ConfigError("trace workload requires at least one request")
@@ -1066,16 +1088,16 @@ def validate_config(config: SimulationConfig) -> None:
         ):
             raise ConfigError("trace request values are invalid")
     else:
-        raise ConfigError("workload.mode must be synthetic, closed_loop, or trace")
+        raise ConfigError("workload.mode must be synthetic, closed_loop, open_loop, or trace")
     request_count = (
         len(workload.requests) if workload.mode == "trace" else workload.num_requests
     )
-    if not 0 <= workload.warmup_requests < request_count:
+    if workload.mode != "open_loop" and not 0 <= workload.warmup_requests < request_count:
         raise ConfigError("warmup_requests must leave at least one measured request")
     if workload.measurement_duration_s < 0:
         raise ConfigError("workload.measurement_duration_s cannot be negative")
-    if workload.measurement_duration_s and workload.mode != "closed_loop":
-        raise ConfigError("measurement_duration_s is only supported for closed_loop")
+    if workload.measurement_duration_s and workload.mode not in {"closed_loop", "open_loop"}:
+        raise ConfigError("measurement_duration_s is only supported for closed_loop or open_loop")
     if config.slo is not None and not 0 < config.slo.target_attainment <= 1:
         raise ConfigError("slo.target_attainment must be in (0, 1]")
 

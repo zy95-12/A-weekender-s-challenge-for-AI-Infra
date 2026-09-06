@@ -69,3 +69,7 @@ C1/C8/C16 的当前回归值：
 ## 本次主线整理验证
 
 Q4 99 项、demo 2 项、根目录 serving 78 项测试通过；JavaScript 语法检查通过。demo HTTP 实际调用 Q4 的 C1/C2 点返回成功，未支持模型返回 422，结果见 [smoke 数据](validation/demo_api_smoke.json)。wheel 构建后在独立 venv、仓库外目录执行 serving+empirical+host 路径成功；快照资源包含在安装包中。
+
+## 开环独立验证
+
+已回放 11 个真实开环到达计划，结果和复现见 [开环误差报告](OPEN_LOOP_VALIDATION.md)。沿用原成本表，不能将旧闭环校准精度直接视为开环容量预测精度。

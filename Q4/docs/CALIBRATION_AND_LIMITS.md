@@ -39,7 +39,7 @@ command 模式不重复叠加 host submission，并移除已包含的 D2H/H2D/cl
 |---|---|---|
 | `presets.py` optimized | 企业 TP1、max_active 96、KV blocks 32768、禁止 mixed batch；默认双 P TP1+D TP1、chunk2048、P/D window3/2、quota4 | 这是实验预设，会覆盖部分输入 JSON；TP/window/chunk/quota 有 CLI 开关，其他值需修改预设或直接构造目标配置 |
 | `vendor/serving/manifest.json` | 调度源码固定到 `34c809c...`，包含真实 1 ms wait/sleep 行为 | serving 改动后需同步快照、哈希与决策测试；当前没有自动跟随 main |
-| 虚拟 serving | PP1，1–2 个 P replica，固定长度 closed-loop，warmup=0 或 concurrency；成功路径 | 新 PP 拓扑、异构请求、取消/错误恢复需扩展执行接口，不能仅换 cost JSON |
+| 虚拟 serving | PP1，1–2 个 P replica，closed-loop / open-loop；闭环 warmup=0 或 concurrency；成功路径 | 新 PP 拓扑、异构请求、取消/错误恢复需扩展执行接口，不能仅换 cost JSON |
 | KV 与模型占位 | 真实 KVAdmission 默认 16-token block；虚拟 token 为 0，KV 使用计数部分为占位输出 | 更改 block 大小时要同步原逻辑；仿真不执行模型、不验 logits，不模拟每个角色的真实 KV 张量 |
 | command 校准工具 | decode context 4096–4175；本轮采集/回归为 4K/79 | 这是工具中的工况限定；换长度要重新构建范围和数据，不可把现表当成长上下文通用表 |
 | 模型算子图 | Qwen2/Qwen3 类 dense decoder 及已支持融合/attention 形式 | 新架构需要核对算子图；MoE/MLA 等未实现不能只换模型名 |
@@ -68,3 +68,12 @@ demo 的攻击按钮实际调用 PR #15 的 embedding 最近邻攻击，CPU 执�
 先确认目标架构和调度协议受支持 → 更新模型/拓扑配置 → 校准算子或 command、CPU 收尾、搬运/网络及 PD 成本 → 检查精确/回退覆盖率 → 使用独立请求/工况验证分项和总指标。
 
 可复用的是队列规则、事件依赖、数据量公式和成本接口。**排队时间应由新成本和资源竞争产生，不应复制当前 28 ms/38 ms 等残差为新硬件常数。** 结构依赖漏建时先修实现，不能只重新 profiling。
+
+## 7. 开环外部验证
+
+新增独立到达与双 cohort 固定窗口统计，回放结果见 [开环报告](OPEN_LOOP_VALIDATION.md)。
+本次未重新校准：baseline 使用旧算子/CPU/WAN 模型，PD 使用旧 C40 command/host 表。
+开环与闭环可切换，但成功路径不模拟客户端连接池、超时、取消、HTTP 错误和重试。
+精确到达时间表消除了负载差异，不消除成本外推和线程/锁建模误差。
+实际输入到达后的 CPU/HTTP dispatch 并未单独校准；TTFT 比较使用客户端计划到达边界。
+本次只验证同模型、同硬件、4K/79；变量长度接口可表达不等于成本表已覆盖。

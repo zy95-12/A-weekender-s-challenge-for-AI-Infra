@@ -18,6 +18,7 @@ from types import SimpleNamespace
 
 from .core import WorkItem, Phase, Stage
 from .metrics import RequestRuntime, build_summary
+from . import open_loop
 from .simulator import Simulator, SimulationResult
 from .serving_source import load_serving
 
@@ -110,11 +111,11 @@ class VirtualServingSimulator:
     def __init__(self, config, gpu_cost_model=None, host_work=None):
         pd = config.scheduler.pd_disaggregation
         if (not pd.enabled or config.scheduler.policy != 'split_poc_pd'
-            or config.workload.mode != 'closed_loop' or any(s.pp_degree != 1 for s in config.stages)
+            or config.workload.mode not in {'closed_loop', 'open_loop'} or any(s.pp_degree != 1 for s in config.stages)
             or config.scheduler.allow_mixed_batch or (config.scheduler.kv_cache.enabled and config.scheduler.kv_cache.enable_preemption)):
-            raise ValueError('serving backend requires closed-loop PD, PP1, no mixed batches or preemption')
+            raise ValueError('serving backend requires closed-loop or open-loop PD, PP1, no mixed batches or preemption')
         w = config.workload
-        if w.warmup_requests not in (0, w.concurrency):
+        if w.mode == "closed_loop" and w.warmup_requests not in (0, w.concurrency):
             raise ValueError('serving backend currently requires warmup=0 or concurrency')
         if config.stage('cloud_middle').prefill_replicas not in (1, 2):
             raise ValueError('serving source supports one or two P replicas')
@@ -140,6 +141,11 @@ class VirtualServingSimulator:
         self.warmup_done = 0
         self.measurement_start = 0.0 if not config.workload.warmup_requests else None
         self.measurement_end = (config.workload.measurement_duration_s or None) if self.measurement_start == 0 else None
+        self.open_loop = w.mode == 'open_loop'
+        self.arrivals_done = not self.open_loop
+        if self.open_loop:
+            self.measurement_start = w.warmup_duration_s
+            self.measurement_end = self.measurement_start + w.measurement_duration_s
         self.host_work = host_work
         if host_work is None:
             self.trace = io.StringIO()
@@ -341,13 +347,17 @@ class VirtualServingSimulator:
             if previous and not previous.done():previous.add_done_callback(lambda _,launch=launch:launch())
             else:launch()
 
-    def launch(self):
+    def launch(self, spec=None):
         count=len(self.jobs);w=self.config.workload
-        if count>=w.num_requests or (self.measurement_end is not None and self.clock.now>=self.measurement_end):
+        if not self.open_loop and (count>=w.num_requests or (self.measurement_end is not None and self.clock.now>=self.measurement_end)):
             return False
-        job=self.source['Job']([0]*w.input_tokens,w.output_tokens,True)
+        input_tokens = spec.input_tokens if spec else w.input_tokens
+        output_tokens = spec.output_tokens if spec else w.output_tokens
+        job=self.source['Job']([0]*input_tokens,output_tokens,True)
         self.jobs[job.id]=job
-        metric=RequestRuntime(count,self.clock.now,w.input_tokens,w.output_tokens)
+        metric=RequestRuntime(spec.request_id if spec else count,
+                              spec.arrival_time_ms/1000 if spec else self.clock.now,
+                              input_tokens,output_tokens)
         self.metrics[job.id]=metric
         class Events:
             def put(_,event):
@@ -356,25 +366,34 @@ class VirtualServingSimulator:
                 if metric.first_token_time is None:metric.first_token_time=self.clock.now
                 if event['done']:
                     metric.finish_time=self.clock.now
-                    if count<w.warmup_requests:
+                    if not self.open_loop and count<w.warmup_requests:
                         self.warmup_done+=1
                         if self.warmup_done==w.warmup_requests:
                             self.measurement_start=self.clock.now
                             self.measurement_end=self.clock.now+w.measurement_duration_s if w.measurement_duration_s else None
-                    self.launch()
+                    if not self.open_loop:
+                        self.launch()
         job.events=Events()
         self.scheduler.submit(job)
         return True
 
     def run(self):
         w=self.config.workload
-        for _ in range(min(w.concurrency,w.num_requests)):self.launch()
+        if self.open_loop:
+            specs = open_loop.request_specs(w)
+            if not specs:
+                raise ValueError('open_loop generated no requests')
+            for spec in specs:
+                self.clock.at(spec.arrival_time_ms/1000, lambda spec=spec: self.launch(spec))
+            self.clock.at(open_loop.load_end(w), lambda: setattr(self, 'arrivals_done', True))
+        else:
+            for _ in range(min(w.concurrency,w.num_requests)):self.launch()
         # The real run loop checks closed only at its top. Shut down only after
         # clients and remote release futures drain, never cancel active jobs.
         original=self.scheduler.admit_pending
         def admit():
             original()
-            if (not self.scheduler.active and not self.scheduler.reserving and not self.scheduler.releasing
+            if (self.arrivals_done and not self.scheduler.active and not self.scheduler.reserving and not self.scheduler.releasing
                 and self.scheduler.pending.empty() and self.scheduler.waiting_admission is None):
                 self.scheduler.closed=True
         self.scheduler.admit_pending=admit
@@ -388,16 +407,17 @@ class VirtualServingSimulator:
         for serving_id,metric in self.metrics.items():
             row=metric.to_metrics()
             row['serving_request_id']=serving_id
-            row['measured']=metric.request_id>=w.warmup_requests and lo<=metric.finish_time<=hi
+            row['measured']=(lo <= metric.arrival_time < hi if self.open_loop else metric.request_id>=w.warmup_requests and lo<=metric.finish_time<=hi)
             rows.append(row)
         selected=[r for r in rows if r['measured']]
-        if not selected:raise ValueError('no measured requests')
-        summary=build_summary(selected,[],{},lo,hi,self.config.slo)
+        if not selected and not self.open_loop:raise ValueError('no measured requests')
+        summary=(open_loop.summary(rows,[],lo,hi,self.config.slo,w) if self.open_loop
+                 else build_summary(selected,[],{},lo,hi,self.config.slo))
         summary.update(scheduler_backend='serving_source',serving_source=self.manifest,
             command_cost_coverage=getattr(self.gpu,'coverage',{}),
             command_sampling=getattr(self.gpu,'sampling','mean'),cost_seed=getattr(self.gpu,'seed',None),
             residual_coverage=getattr(self.gpu,'residual_coverage',{}),
-            measurement_window=dict(start_ms=lo*1000,end_ms=hi*1000),
+            measurement_window=summary.get("measurement_window", dict(start_ms=lo*1000,end_ms=hi*1000)),
             scheduling_decisions=self.decisions,
             lifecycle_drained=not self.scheduler.admission.reservations,
             serving_host_work=dict(enabled=self.host_work is not None,

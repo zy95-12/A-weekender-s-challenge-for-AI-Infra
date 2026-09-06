@@ -37,6 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("concurrency", "num-requests", "warmup-requests"):
         parser.add_argument(f"--{name}", type=int)
     parser.add_argument("--measurement-duration-s", type=float)
+    parser.add_argument("--workload-mode", choices=("open_loop", "closed_loop", "synthetic", "trace"))
+    parser.add_argument("--arrival-rate-qps", type=float)
+    parser.add_argument("--arrival-process", choices=("poisson", "constant"))
+    parser.add_argument("--warmup-duration-s", type=float)
+    parser.add_argument("--arrival-tail-s", type=float)
+    parser.add_argument("--random-seed", type=int)
     parser.add_argument("--preset", choices=("baseline", "optimized"))
     parser.add_argument("--scheduler-backend", choices=("behavioral", "serving"), default="behavioral")
     parser.add_argument("--cost-model", choices=("profile", "roofline", "command"), default="profile")
@@ -56,8 +62,14 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     config = load_config(args.config)
     workload_overrides = {name: getattr(args, name) for name in (
-        "concurrency", "num_requests", "warmup_requests", "measurement_duration_s")
+        "concurrency", "num_requests", "warmup_requests", "measurement_duration_s",
+        "arrival_rate_qps", "arrival_process", "warmup_duration_s", "arrival_tail_s", "random_seed")
         if getattr(args, name) is not None}
+    if args.workload_mode:
+        workload_overrides["mode"] = args.workload_mode
+        if args.workload_mode == "open_loop":
+            workload_overrides.setdefault("concurrency", 0)
+            workload_overrides.setdefault("warmup_requests", 0)
     if workload_overrides:
         config = replace(config, workload=replace(config.workload, **workload_overrides))
     features = None
