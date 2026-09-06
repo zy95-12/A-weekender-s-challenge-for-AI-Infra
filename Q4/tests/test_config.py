@@ -37,8 +37,19 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(config.data_path.ipc_mode, "shm")
         self.assertTrue(config.data_path.wire_fast)
         self.assertEqual(config.execution.max_inflight_transactions, 2)
+        self.assertFalse(config.data_path.wan_calibration.enabled)
+        self.assertEqual(config.workload.measurement_duration_s, 0)
         self.assertTrue(config.scheduler.decode_first)
         self.assertEqual(config.workload.concurrency, 2)
+
+    def test_loads_issue5_wan_calibration_and_measurement_window(self) -> None:
+        config = load_config(
+            Path(__file__).parents[1] / "configs" / "issue6_stage123.json"
+        )
+        self.assertTrue(config.data_path.wan_calibration.enabled)
+        self.assertEqual(config.data_path.wan_calibration.variant, "stage1")
+        self.assertEqual(len(config.data_path.wan_calibration.knots), 12)
+        self.assertEqual(config.workload.measurement_duration_s, 60)
 
     def test_parses_attention_scheduler_and_nested_continuous_batching(self) -> None:
         data = copied_toy_config()
@@ -49,6 +60,23 @@ class ConfigTest(unittest.TestCase):
         self.assertFalse(config.static_policy.continuous_batching)
         self.assertEqual(config.attention_backend.mode, "separate")
         self.assertEqual(config.scheduler.policy, "priority")
+
+    def test_parses_vllm_physical_operator_backend(self) -> None:
+        data = copied_toy_config()
+        data["attention_backend"] = {"mode": "unified"}
+        data["operator_backend"] = {"name": "vllm", "version": "0.10.2"}
+        config = parse_config(data)
+        self.assertEqual(config.operator_backend.name, "vllm")
+        self.assertEqual(config.operator_backend.version, "0.10.2")
+        self.assertTrue(config.operator_backend.fused_qkv)
+        self.assertTrue(config.operator_backend.fused_add_rms_norm)
+
+    def test_vllm_backend_rejects_unobserved_attention_plan(self) -> None:
+        data = copied_toy_config()
+        data["operator_backend"] = {"name": "vllm"}
+        data["attention_backend"] = {"mode": "separate"}
+        with self.assertRaisesRegex(ConfigError, "requires unified attention"):
+            parse_config(data)
     def test_valid_config(self) -> None:
         config = parse_config(copied_toy_config())
         self.assertEqual(config.model.name, "toy")

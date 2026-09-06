@@ -1,0 +1,327 @@
+{
+  "version": 1,
+  "datasets": {
+    "baseline": {
+      "dataset": "baseline",
+      "input_files": [
+        {
+          "name": "baseline_prefill.csv",
+          "bytes": 847948,
+          "sha256": "8022b1a9a5d9b6cf03167381fe468b30afb521ee9b8c77e31b8daabe3c34e3e6"
+        },
+        {
+          "name": "baseline_decode.csv",
+          "bytes": 6688322,
+          "sha256": "c91dce4309c06e56328d5afc72fe1cafb855e1d97e643b39be2140efc18cc206"
+        }
+      ],
+      "kernel_files": [
+        {
+          "name": "kernel_instances.csv",
+          "bytes": 2794229,
+          "sha256": "203a6bcd63f3f27bed2e6ff7a2c37473b25d9e44148787af86975ee8418f9115"
+        }
+      ],
+      "raw_gpu_operator_calls": 8226,
+      "mapped_gpu_operator_calls": 7848,
+      "call_coverage": 0.9540481400437637,
+      "gpu_duration_coverage": 0.9733541175286671,
+      "critical_invocations": 3924,
+      "rank_width_histogram": {
+        "2": 3924
+      },
+      "collective_reductions": {
+        "raw_timestamp_intrinsic": 657
+      },
+      "collective_kernel_sum_critical_ms": 239.19896199999994,
+      "collective_intrinsic_ms": 92.73355700000003,
+      "profile_samples": 33,
+      "mapped_raw_operators": {
+        "aten.linear.default": 2610,
+        "pynccl.all_reduce": 1314,
+        "_C.fused_add_rms_norm.default": 1296,
+        "_C.rotary_embedding.default": 648,
+        "aten.zeros.default": 648,
+        "vllm.unified_attention_with_output.default": 648,
+        "_C.silu_and_mul.default": 648,
+        "aten.embedding.default": 18,
+        "_C.rms_norm.default": 18
+      },
+      "unmatched_raw_operators": {
+        "c10d.broadcast_.default": 72,
+        "aten.mul.Tensor": 54,
+        "aten.ge.Scalar": 36,
+        "aten.lt.Scalar": 36,
+        "aten.__and__.Tensor": 36,
+        "aten.add.Tensor": 18,
+        "aten.__or__.Tensor": 18,
+        "aten.sub.Tensor": 18,
+        "aten.bitwise_not.default": 18,
+        "aten.masked_fill_.Scalar": 18,
+        "aten.index_select.default": 18,
+        "c10d.gather_.default": 18,
+        "aten.cat.default": 9,
+        "aten.to.dtype": 9
+      },
+      "operator_stats": {
+        "collective": {
+          "signatures": 2,
+          "invocations": 657,
+          "measured_ms": 92.73355699999999,
+          "roofline_ms": 56.386368,
+          "aggregate_correction_factor": 1.6446095091636332,
+          "roofline_mape_percent": 9.390163502833508,
+          "exact_profile_mape_percent": 2.613155090814652,
+          "exact_profile_systematic_bias_percent": -0.4238476474032446
+        },
+        "embedding": {
+          "signatures": 2,
+          "invocations": 9,
+          "measured_ms": 0.058688000000000004,
+          "roofline_ms": 0.17620504615384613,
+          "aggregate_correction_factor": 0.33306651132317183,
+          "roofline_mape_percent": 253.7285680941124,
+          "exact_profile_mape_percent": 2.0788084005660217,
+          "exact_profile_systematic_bias_percent": -1.811070783430815
+        },
+        "flash_attention": {
+          "signatures": 9,
+          "invocations": 324,
+          "measured_ms": 26.205212,
+          "roofline_ms": 26.788615418486152,
+          "aggregate_correction_factor": 0.9782219644661605,
+          "roofline_mape_percent": 30.305019436194293,
+          "exact_profile_mape_percent": 1.6300642360720232,
+          "exact_profile_systematic_bias_percent": -0.16558126915497445
+        },
+        "fused_add_rms_norm": {
+          "signatures": 2,
+          "invocations": 648,
+          "measured_ms": 11.597368,
+          "roofline_ms": 15.790144984615385,
+          "aggregate_correction_factor": 0.7344687468860811,
+          "roofline_mape_percent": 237.1635293955973,
+          "exact_profile_mape_percent": 1.9360328923855223,
+          "exact_profile_systematic_bias_percent": 0.5476721012320077
+        },
+        "mm": {
+          "signatures": 10,
+          "invocations": 1305,
+          "measured_ms": 193.285979,
+          "roofline_ms": 279.2248495423015,
+          "aggregate_correction_factor": 0.6922234153472716,
+          "roofline_mape_percent": 44.14754099086396,
+          "exact_profile_mape_percent": 1.1291903188181218,
+          "exact_profile_systematic_bias_percent": 0.01611391400329218
+        },
+        "rms_norm": {
+          "signatures": 2,
+          "invocations": 9,
+          "measured_ms": 0.149183,
+          "roofline_ms": 0.17620504615384613,
+          "aggregate_correction_factor": 0.8466443115922291,
+          "roofline_mape_percent": 188.38670944978364,
+          "exact_profile_mape_percent": 2.244576768074655,
+          "exact_profile_systematic_bias_percent": -1.5677403769525387
+        },
+        "rotary_embedding": {
+          "signatures": 2,
+          "invocations": 324,
+          "measured_ms": 2.472728,
+          "roofline_ms": 5.858478276923076,
+          "aggregate_correction_factor": 0.4220768402846581,
+          "roofline_mape_percent": 279.6359844185888,
+          "exact_profile_mape_percent": 1.6727129315111815,
+          "exact_profile_systematic_bias_percent": -0.05640027323626232
+        },
+        "silu_and_mul": {
+          "signatures": 2,
+          "invocations": 324,
+          "measured_ms": 11.822796,
+          "roofline_ms": 15.750507323076924,
+          "aggregate_correction_factor": 0.7506295357659863,
+          "roofline_mape_percent": 154.60475380472582,
+          "exact_profile_mape_percent": 2.165120608855735,
+          "exact_profile_systematic_bias_percent": -0.7733412945567045
+        },
+        "tensor_allocation": {
+          "signatures": 2,
+          "invocations": 324,
+          "measured_ms": 0.9863959999999999,
+          "roofline_ms": 4.015845415384615,
+          "aggregate_correction_factor": 0.2456259885455597,
+          "roofline_mape_percent": 673.6685436238826,
+          "exact_profile_mape_percent": 0.8615770190179719,
+          "exact_profile_systematic_bias_percent": 0.3543282210936674
+        }
+      },
+      "limitations": [
+        "CPU NVTX durations are not used as GPU latency.",
+        "TP ranks are reduced by max, never summed.",
+        "NCCL arrival skew is removed using raw GPU timestamps.",
+        "Framework-only broadcast/gather and request plumbing remain outside the layer cost model."
+      ]
+    },
+    "stage123": {
+      "dataset": "stage123",
+      "input_files": [
+        {
+          "name": "stage123_prefill.csv",
+          "bytes": 3491109,
+          "sha256": "a0999f98f8e1884516f66287f0d19aa38b02599acd8df04104e3333b86ed167c"
+        },
+        {
+          "name": "stage123_decode.csv",
+          "bytes": 6905767,
+          "sha256": "5555ca48e42719b605e52a0cd58b02d97f898243d3cc27213452b38d0a102b51"
+        }
+      ],
+      "kernel_files": [
+        {
+          "name": "kernel_instances.csv",
+          "bytes": 3503443,
+          "sha256": "dd694638b788e538ecb6ac16f6f7255727edbcc059647e3234de2898bd2d9dba"
+        }
+      ],
+      "raw_gpu_operator_calls": 10938,
+      "mapped_gpu_operator_calls": 10452,
+      "call_coverage": 0.9555677454744926,
+      "gpu_duration_coverage": 0.9829043703582028,
+      "critical_invocations": 5226,
+      "rank_width_histogram": {
+        "2": 5226
+      },
+      "collective_reductions": {
+        "raw_timestamp_intrinsic": 876
+      },
+      "collective_kernel_sum_critical_ms": 285.90807099999995,
+      "collective_intrinsic_ms": 100.41292099999994,
+      "profile_samples": 36,
+      "mapped_raw_operators": {
+        "aten.linear.default": 3474,
+        "pynccl.all_reduce": 1752,
+        "_C.fused_add_rms_norm.default": 1722,
+        "_C.rotary_embedding.default": 864,
+        "aten.zeros.default": 864,
+        "vllm.unified_attention_with_output.default": 864,
+        "_C.silu_and_mul.default": 864,
+        "aten.embedding.default": 24,
+        "_C.rms_norm.default": 24
+      },
+      "unmatched_raw_operators": {
+        "c10d.broadcast_.default": 96,
+        "aten.mul.Tensor": 72,
+        "aten.ge.Scalar": 48,
+        "aten.lt.Scalar": 48,
+        "aten.__and__.Tensor": 48,
+        "aten.add.Tensor": 24,
+        "aten.__or__.Tensor": 24,
+        "aten.sub.Tensor": 24,
+        "aten.bitwise_not.default": 24,
+        "aten.masked_fill_.Scalar": 24,
+        "aten.index_select.default": 18,
+        "c10d.gather_.default": 18,
+        "aten.cat.default": 9,
+        "aten.to.dtype": 9
+      },
+      "operator_stats": {
+        "collective": {
+          "signatures": 2,
+          "invocations": 876,
+          "measured_ms": 100.412921,
+          "roofline_ms": 58.138368,
+          "aggregate_correction_factor": 1.7271369055285486,
+          "roofline_mape_percent": 18.23278265697412,
+          "exact_profile_mape_percent": 2.5639736252577072,
+          "exact_profile_systematic_bias_percent": 0.335662979022331
+        },
+        "embedding": {
+          "signatures": 2,
+          "invocations": 12,
+          "measured_ms": 0.06038399999999999,
+          "roofline_ms": 0.20620504615384616,
+          "aggregate_correction_factor": 0.2928347347763182,
+          "roofline_mape_percent": 248.48545220210138,
+          "exact_profile_mape_percent": 2.618029885904784,
+          "exact_profile_systematic_bias_percent": -1.6949474370424749
+        },
+        "flash_attention": {
+          "signatures": 12,
+          "invocations": 432,
+          "measured_ms": 30.184726,
+          "roofline_ms": 27.868615418486158,
+          "aggregate_correction_factor": 1.0831082042194853,
+          "roofline_mape_percent": 25.911437328817517,
+          "exact_profile_mape_percent": 1.8237145892038054,
+          "exact_profile_systematic_bias_percent": -0.7683858542674087
+        },
+        "fused_add_rms_norm": {
+          "signatures": 2,
+          "invocations": 861,
+          "measured_ms": 10.150361,
+          "roofline_ms": 17.82335335384615,
+          "aggregate_correction_factor": 0.5694978267268446,
+          "roofline_mape_percent": 193.36866281250448,
+          "exact_profile_mape_percent": 1.4828198435492232,
+          "exact_profile_systematic_bias_percent": 0.0148766495284907
+        },
+        "mm": {
+          "signatures": 10,
+          "invocations": 1737,
+          "measured_ms": 190.64187499999997,
+          "roofline_ms": 283.54484954230156,
+          "aggregate_correction_factor": 0.6723517472023713,
+          "roofline_mape_percent": 48.17157754893604,
+          "exact_profile_mape_percent": 1.1929966748263365,
+          "exact_profile_systematic_bias_percent": -0.19172357213081148
+        },
+        "rms_norm": {
+          "signatures": 2,
+          "invocations": 12,
+          "measured_ms": 0.147199,
+          "roofline_ms": 0.20620504615384616,
+          "aggregate_correction_factor": 0.7138477100612624,
+          "roofline_mape_percent": 145.1161097383609,
+          "exact_profile_mape_percent": 0.31558403103064064,
+          "exact_profile_systematic_bias_percent": -0.08758482813606419
+        },
+        "rotary_embedding": {
+          "signatures": 2,
+          "invocations": 432,
+          "measured_ms": 2.3661440000000002,
+          "roofline_ms": 6.938478276923076,
+          "aggregate_correction_factor": 0.34101771390848623,
+          "roofline_mape_percent": 252.78404665824917,
+          "exact_profile_mape_percent": 2.0399635882688467,
+          "exact_profile_systematic_bias_percent": 0.020946863587450452
+        },
+        "silu_and_mul": {
+          "signatures": 2,
+          "invocations": 432,
+          "measured_ms": 12.212016,
+          "roofline_ms": 16.830507323076922,
+          "aggregate_correction_factor": 0.7255881100658006,
+          "roofline_mape_percent": 121.47963369084755,
+          "exact_profile_mape_percent": 1.902537211830693,
+          "exact_profile_systematic_bias_percent": 0.009821125176865425
+        },
+        "tensor_allocation": {
+          "signatures": 2,
+          "invocations": 432,
+          "measured_ms": 0.757281,
+          "roofline_ms": 5.095845415384614,
+          "aggregate_correction_factor": 0.14860752991323686,
+          "roofline_mape_percent": 642.8342436880381,
+          "exact_profile_mape_percent": 2.0007167488159157,
+          "exact_profile_systematic_bias_percent": 0.5006924531024192
+        }
+      },
+      "limitations": [
+        "CPU NVTX durations are not used as GPU latency.",
+        "TP ranks are reduced by max, never summed.",
+        "NCCL arrival skew is removed using raw GPU timestamps.",
+        "Framework-only broadcast/gather and request plumbing remain outside the layer cost model."
+      ]
+    }
+  }
+}

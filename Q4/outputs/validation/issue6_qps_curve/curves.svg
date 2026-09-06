@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+<rect width="100%" height="100%" fill="white"/>
+<style>text{font-family:system-ui,sans-serif;fill:#222}.axis{stroke:#444}.grid{stroke:#ddd}.actual{stroke:#2672d4}.sim{stroke:#d1495b}.mean{stroke-width:3;fill:none}.p99{stroke-width:2;fill:none;stroke-dasharray:7 5}.dot{stroke:none}</style>
+<text x="48" y="73" font-size="16" font-weight="600">baseline TTFT vs completed QPS</text>
+<line class="axis" x1="95" y1="80" x2="95" y2="280"/>
+<line class="axis" x1="95" y1="280" x2="545" y2="280"/>
+<line class="grid" x1="95" y1="230.0" x2="545" y2="230.0"/>
+<text x="90" y="234.0" text-anchor="end" font-size="10">3194</text>
+<text x="207.5" y="297" text-anchor="middle" font-size="10">0.33</text>
+<line class="grid" x1="95" y1="180.0" x2="545" y2="180.0"/>
+<text x="90" y="184.0" text-anchor="end" font-size="10">6387</text>
+<text x="320.0" y="297" text-anchor="middle" font-size="10">0.66</text>
+<line class="grid" x1="95" y1="130.0" x2="545" y2="130.0"/>
+<text x="90" y="134.0" text-anchor="end" font-size="10">9581</text>
+<text x="432.5" y="297" text-anchor="middle" font-size="10">0.99</text>
+<line class="grid" x1="95" y1="80.0" x2="545" y2="80.0"/>
+<text x="90" y="84.0" text-anchor="end" font-size="10">12774</text>
+<text x="545.0" y="297" text-anchor="middle" font-size="10">1.31</text>
+<polyline class="actual mean" points="197.6,267.4 258.0,260.9 323.0,249.7 413.5,228.4 448.6,205.2 468.8,180.9"/>
+<polyline class="actual p99" points="197.6,266.9 258.0,254.2 323.0,230.5 413.5,183.8 448.6,140.0 468.8,94.8"/>
+<polyline class="sim mean" points="237.7,268.6 311.9,268.6 391.8,268.6 460.3,268.6 494.5,268.6 511.7,268.6"/>
+<polyline class="sim p99" points="237.7,268.6 311.9,268.6 391.8,268.6 460.3,268.6 494.5,268.6 511.7,268.6"/>
+<text x="340" y="73" font-size="11" fill="#2672d4">blue=actual</text>
+<text x="415" y="73" font-size="11" fill="#d1495b">red=sim</text>
+<text x="485" y="73" font-size="11">solid=mean dash=P99</text>
+<text x="628" y="73" font-size="16" font-weight="600">baseline TPOT vs completed QPS</text>
+<line class="axis" x1="675" y1="80" x2="675" y2="280"/>
+<line class="axis" x1="675" y1="280" x2="1125" y2="280"/>
+<line class="grid" x1="675" y1="230.0" x2="1125" y2="230.0"/>
+<text x="670" y="234.0" text-anchor="end" font-size="10">48</text>
+<text x="787.5" y="297" text-anchor="middle" font-size="10">0.33</text>
+<line class="grid" x1="675" y1="180.0" x2="1125" y2="180.0"/>
+<text x="670" y="184.0" text-anchor="end" font-size="10">97</text>
+<text x="900.0" y="297" text-anchor="middle" font-size="10">0.66</text>
+<line class="grid" x1="675" y1="130.0" x2="1125" y2="130.0"/>
+<text x="670" y="134.0" text-anchor="end" font-size="10">145</text>
+<text x="1012.5" y="297" text-anchor="middle" font-size="10">0.99</text>
+<line class="grid" x1="675" y1="80.0" x2="1125" y2="80.0"/>
+<text x="670" y="84.0" text-anchor="end" font-size="10">194</text>
+<text x="1125.0" y="297" text-anchor="middle" font-size="10">1.31</text>
+<polyline class="actual mean" points="777.6,246.5 838.0,240.5 903.0,229.9 993.5,209.8 1028.6,189.5 1048.8,169.4"/>
+<polyline class="actual p99" points="777.6,244.9 838.0,235.0 903.0,213.8 993.5,172.9 1028.6,134.6 1048.8,94.8"/>
+<polyline class="sim mean" points="817.7,258.3 891.9,248.6 971.8,229.8 1040.3,192.3 1074.5,155.0 1091.7,118.0"/>
+<polyline class="sim p99" points="817.7,258.3 891.9,248.6 971.8,229.8 1040.3,192.3 1074.5,155.0 1091.7,118.0"/>
+<text x="920" y="73" font-size="11" fill="#2672d4">blue=actual</text>
+<text x="995" y="73" font-size="11" fill="#d1495b">red=sim</text>
+<text x="1065" y="73" font-size="11">solid=mean dash=P99</text>
+<text x="48" y="423" font-size="16" font-weight="600">stage123 TTFT vs completed QPS</text>
+<line class="axis" x1="95" y1="430" x2="95" y2="630"/>
+<line class="axis" x1="95" y1="630" x2="545" y2="630"/>
+<line class="grid" x1="95" y1="580.0" x2="545" y2="580.0"/>
+<text x="90" y="584.0" text-anchor="end" font-size="10">172</text>
+<text x="207.5" y="647" text-anchor="middle" font-size="10">0.87</text>
+<line class="grid" x1="95" y1="530.0" x2="545" y2="530.0"/>
+<text x="90" y="534.0" text-anchor="end" font-size="10">344</text>
+<text x="320.0" y="647" text-anchor="middle" font-size="10">1.75</text>
+<line class="grid" x1="95" y1="480.0" x2="545" y2="480.0"/>
+<text x="90" y="484.0" text-anchor="end" font-size="10">515</text>
+<text x="432.5" y="647" text-anchor="middle" font-size="10">2.62</text>
+<line class="grid" x1="95" y1="430.0" x2="545" y2="430.0"/>
+<text x="90" y="434.0" text-anchor="end" font-size="10">687</text>
+<text x="545.0" y="647" text-anchor="middle" font-size="10">3.49</text>
+<polyline class="actual mean" points="137.8,499.8 169.7,469.4 215.3,471.5 278.8,465.9 320.1,468.2 348.2,469.7"/>
+<polyline class="actual p99" points="137.8,494.7 169.7,465.3 215.3,453.8 278.8,444.8 320.1,454.4 348.2,464.6"/>
+<polyline class="sim mean" points="161.6,551.2 215.3,541.6 301.2,537.0 404.3,534.5 473.0,533.5 511.7,528.0"/>
+<polyline class="sim p99" points="161.6,551.2 215.3,532.3 301.2,532.0 404.3,531.8 473.0,531.6 511.7,466.9"/>
+<text x="340" y="423" font-size="11" fill="#2672d4">blue=actual</text>
+<text x="415" y="423" font-size="11" fill="#d1495b">red=sim</text>
+<text x="485" y="423" font-size="11">solid=mean dash=P99</text>
+<text x="628" y="423" font-size="16" font-weight="600">stage123 TPOT vs completed QPS</text>
+<line class="axis" x1="675" y1="430" x2="675" y2="630"/>
+<line class="axis" x1="675" y1="630" x2="1125" y2="630"/>
+<line class="grid" x1="675" y1="580.0" x2="1125" y2="580.0"/>
+<text x="670" y="584.0" text-anchor="end" font-size="10">26</text>
+<text x="787.5" y="647" text-anchor="middle" font-size="10">0.87</text>
+<line class="grid" x1="675" y1="530.0" x2="1125" y2="530.0"/>
+<text x="670" y="534.0" text-anchor="end" font-size="10">53</text>
+<text x="900.0" y="647" text-anchor="middle" font-size="10">1.75</text>
+<line class="grid" x1="675" y1="480.0" x2="1125" y2="480.0"/>
+<text x="670" y="484.0" text-anchor="end" font-size="10">79</text>
+<text x="1012.5" y="647" text-anchor="middle" font-size="10">2.62</text>
+<line class="grid" x1="675" y1="430.0" x2="1125" y2="430.0"/>
+<text x="670" y="434.0" text-anchor="end" font-size="10">106</text>
+<text x="1125.0" y="647" text-anchor="middle" font-size="10">3.49</text>
+<polyline class="actual mean" points="717.8,567.7 749.7,559.5 795.3,543.0 858.8,508.2 900.1,477.4 928.2,447.3"/>
+<polyline class="actual p99" points="717.8,567.3 749.7,559.0 795.3,540.7 858.8,497.3 900.1,473.3 928.2,444.8"/>
+<polyline class="sim mean" points="741.6,590.5 795.3,586.6 881.2,577.4 984.3,558.3 1053.0,539.5 1091.7,520.9"/>
+<polyline class="sim p99" points="741.6,590.5 795.3,585.8 881.2,576.3 984.3,557.0 1053.0,538.0 1091.7,519.4"/>
+<text x="920" y="423" font-size="11" fill="#2672d4">blue=actual</text>
+<text x="995" y="423" font-size="11" fill="#d1495b">red=sim</text>
+<text x="1065" y="423" font-size="11">solid=mean dash=P99</text>
+</svg>

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
-from split_serving_sim.config import parse_config
+from split_serving_sim.config import load_config, parse_config
 from split_serving_sim.core import Phase, Stage, WorkItem
 from split_serving_sim.performance import NetworkModel, RooflineModel
 
@@ -22,6 +23,88 @@ def item(item_id: int, tokens: int = 16) -> WorkItem:
 
 
 class PerformanceTest(unittest.TestCase):
+    def test_wan_calibration_interpolates_components_without_double_counting_rtt(self) -> None:
+        data = copied_toy_config()
+        # One token carries 128 bytes in the toy model. These knots bracket
+        # 8192 tokens == 1 MiB of activation payload.
+        data["data_path"] = {
+            "wan_calibration": {
+                "enabled": True,
+                "variant": "test",
+                "one_way_latency_ms": 5,
+                "knots": [
+                    {
+                        "activation_mib": 0.5,
+                        "upload_components_ms": {"host_pack": 1, "wan_path": 7},
+                        "download_components_ms": {"wan_path": 8, "host_unpack": 2},
+                    },
+                    {
+                        "activation_mib": 1.5,
+                        "upload_components_ms": {"host_pack": 3, "wan_path": 11},
+                        "download_components_ms": {"wan_path": 12, "host_unpack": 4},
+                    },
+                ],
+            }
+        }
+        estimate = NetworkModel(parse_config(data)).estimate(
+            Stage.WAN_UP, [item(0, 8192)]
+        )
+        self.assertAlmostEqual(estimate.total_time_s * 1000, 11.0)
+        self.assertEqual(
+            [operation.name for operation in estimate.sub_operations],
+            ["host_pack", "wan_serialization", "wan_propagation"],
+        )
+        self.assertAlmostEqual(estimate.sub_operations[-1].duration_s * 1000, 5.0)
+
+    def test_vllm_backend_matches_captured_fusion_counts(self) -> None:
+        config = load_config(
+            Path(__file__).parents[1] / "configs" / "issue6_stage123.json"
+        )
+        model = RooflineModel(config)
+        base = WorkItem(
+            id=0,
+            request_id=0,
+            phase=Phase.PREFILL,
+            stage=Stage.EDGE_FRONT,
+            token_start=0,
+            token_count=4096,
+            context_tokens=4096,
+            produces_logits=True,
+        )
+        estimates = {
+            stage: model.estimate(
+                stage,
+                [WorkItem(**{**base.__dict__, "stage": Stage(stage)})],
+            )
+            for stage in ("edge_front", "cloud_middle", "edge_tail")
+        }
+
+        def count(stage: str, kind: str) -> int:
+            return sum(
+                operation.profile_type == kind
+                for operation in estimates[stage].sub_operations
+            )
+
+        self.assertEqual(
+            [count(stage, "mm") for stage in estimates], [16, 108, 21]
+        )
+        self.assertEqual(
+            [count(stage, "collective") for stage in estimates], [9, 54, 10]
+        )
+        self.assertEqual(
+            [count(stage, "fused_add_rms_norm") for stage in estimates],
+            [7, 54, 11],
+        )
+        all_names = {
+            operation.name
+            for estimate in estimates.values()
+            for operation in estimate.sub_operations
+        }
+        self.assertIn("layer_00.qkv_proj", all_names)
+        self.assertNotIn("layer_00.q_proj", all_names)
+        self.assertIn("layer_00.gate_up_proj", all_names)
+        self.assertNotIn("layer_00.gate_proj", all_names)
+
     def test_stage1_data_path_switches_change_mechanical_costs(self) -> None:
         baseline_data = copied_toy_config()
         baseline_data["data_path"] = {

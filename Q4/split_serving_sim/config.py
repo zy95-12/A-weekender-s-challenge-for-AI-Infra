@@ -114,6 +114,22 @@ class NetworkConfig:
 
 
 @dataclass(frozen=True)
+class WanCalibrationKnot:
+    activation_mib: float
+    upload_components_ms: tuple[tuple[str, float], ...]
+    download_components_ms: tuple[tuple[str, float], ...]
+
+
+@dataclass(frozen=True)
+class WanCalibrationConfig:
+    enabled: bool = False
+    variant: str = ""
+    source: str = ""
+    one_way_latency_ms: float = 0.0
+    knots: tuple[WanCalibrationKnot, ...] = ()
+
+
+@dataclass(frozen=True)
 class DataPathConfig:
     """Host/device staging and transport options used around each WAN message."""
 
@@ -130,6 +146,9 @@ class DataPathConfig:
     wire_fast_pack_copies: float = 1.0
     copy_ipc_copies: float = 2.0
     shm_ipc_copies: float = 0.0
+    wan_calibration: WanCalibrationConfig = field(
+        default_factory=WanCalibrationConfig
+    )
 
 
 @dataclass(frozen=True)
@@ -172,6 +191,18 @@ class StaticPolicyConfig:
 @dataclass(frozen=True)
 class AttentionBackendConfig:
     mode: str = "unified"
+
+
+@dataclass(frozen=True)
+class OperatorBackendConfig:
+    """Physical operator plan used after framework/compiler fusion."""
+
+    name: str = "logical"
+    version: str = ""
+    fused_qkv: bool = False
+    fused_gate_up: bool = False
+    fused_silu_mul: bool = False
+    fused_add_rms_norm: bool = False
 
 
 @dataclass(frozen=True)
@@ -229,6 +260,7 @@ class WorkloadConfig:
     random_seed: int = 42
     concurrency: int = 0
     warmup_requests: int = 0
+    measurement_duration_s: float = 0.0
     requests: tuple[RequestSpec, ...] = ()
 
 
@@ -258,6 +290,7 @@ class SimulationConfig:
     performance_profile: PerformanceProfileConfig
     static_policy: StaticPolicyConfig
     attention_backend: AttentionBackendConfig
+    operator_backend: OperatorBackendConfig
     scheduler: SchedulerConfig
     workload: WorkloadConfig
     slo: SLOConfig | None = None
@@ -341,6 +374,31 @@ def load_config(path: str | Path) -> SimulationConfig:
         data["performance_profile"] = {
             **loaded_profile,
             **{key: value for key, value in profile_data.items() if key != "path"},
+        }
+    data_path = data.get("data_path", {})
+    calibration = data_path.get("wan_calibration", {})
+    calibration_path = calibration.get("path")
+    if calibration_path:
+        resolved = config_path.parent / str(calibration_path)
+        with resolved.open("r", encoding="utf-8") as handle:
+            loaded = json.load(handle)
+        variant = str(calibration.get("variant", ""))
+        variants = loaded.get("variants", {})
+        if variant not in variants:
+            raise ConfigError(
+                f"WAN calibration variant {variant!r} not found in {resolved}"
+            )
+        data["data_path"] = {
+            **data_path,
+            "wan_calibration": {
+                **variants[variant],
+                **{
+                    key: value
+                    for key, value in calibration.items()
+                    if key not in {"path"}
+                },
+                "source": loaded.get("source", ""),
+            },
         }
     return parse_config(data)
 
@@ -429,6 +487,21 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         receiver_overhead_ms=float(network_data.get("receiver_overhead_ms", 0.0)),
     )
     data_path_data = data.get("data_path", {})
+    calibration_data = data_path_data.get("wan_calibration", {})
+    calibration_knots = tuple(
+        WanCalibrationKnot(
+            activation_mib=float(_required(item, "activation_mib", "data_path.wan_calibration.knots[]")),
+            upload_components_ms=tuple(
+                (str(name), float(value))
+                for name, value in _required(item, "upload_components_ms", "data_path.wan_calibration.knots[]").items()
+            ),
+            download_components_ms=tuple(
+                (str(name), float(value))
+                for name, value in _required(item, "download_components_ms", "data_path.wan_calibration.knots[]").items()
+            ),
+        )
+        for item in calibration_data.get("knots", [])
+    )
     data_path = DataPathConfig(
         enabled=bool(data_path_data.get("enabled", False)),
         ipc_mode=str(data_path_data.get("ipc_mode", "copy")),
@@ -443,6 +516,15 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         wire_fast_pack_copies=float(data_path_data.get("wire_fast_pack_copies", 1.0)),
         copy_ipc_copies=float(data_path_data.get("copy_ipc_copies", 2.0)),
         shm_ipc_copies=float(data_path_data.get("shm_ipc_copies", 0.0)),
+        wan_calibration=WanCalibrationConfig(
+            enabled=bool(calibration_data.get("enabled", False)),
+            variant=str(calibration_data.get("variant", "")),
+            source=str(calibration_data.get("source", "")),
+            one_way_latency_ms=float(
+                calibration_data.get("one_way_latency_ms", network.rtt_ms / 2.0)
+            ),
+            knots=calibration_knots,
+        ),
     )
     execution_data = data.get("execution", {})
     execution_mode = str(execution_data.get("mode", "pipelined"))
@@ -515,6 +597,23 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
     attention_backend = AttentionBackendConfig(
         mode=str(data.get("attention_backend", {}).get("mode", "unified"))
     )
+    operator_backend_data = data.get("operator_backend", {})
+    operator_backend_name = str(operator_backend_data.get("name", "logical"))
+    vllm_defaults = operator_backend_name == "vllm"
+    operator_backend = OperatorBackendConfig(
+        name=operator_backend_name,
+        version=str(operator_backend_data.get("version", "")),
+        fused_qkv=bool(operator_backend_data.get("fused_qkv", vllm_defaults)),
+        fused_gate_up=bool(
+            operator_backend_data.get("fused_gate_up", vllm_defaults)
+        ),
+        fused_silu_mul=bool(
+            operator_backend_data.get("fused_silu_mul", vllm_defaults)
+        ),
+        fused_add_rms_norm=bool(
+            operator_backend_data.get("fused_add_rms_norm", vllm_defaults)
+        ),
+    )
     scheduler_data = data.get("scheduler", {})
     kv_data = scheduler_data.get("kv_cache", {})
     pd_data = scheduler_data.get("pd_disaggregation", {})
@@ -573,6 +672,9 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         random_seed=int(workload_data.get("random_seed", 42)),
         concurrency=int(workload_data.get("concurrency", 0)),
         warmup_requests=int(workload_data.get("warmup_requests", 0)),
+        measurement_duration_s=float(
+            workload_data.get("measurement_duration_s", 0.0)
+        ),
         requests=request_specs,
     )
 
@@ -606,6 +708,7 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         performance_profile=performance_profile,
         static_policy=policy,
         attention_backend=attention_backend,
+        operator_backend=operator_backend,
         scheduler=scheduler,
         workload=workload,
         slo=slo,
@@ -745,6 +848,21 @@ def validate_config(config: SimulationConfig) -> None:
         data_path.shm_ipc_copies,
     ) < 0:
         raise ConfigError("data path copy counts cannot be negative")
+    calibration = data_path.wan_calibration
+    if calibration.enabled:
+        if len(calibration.knots) < 2:
+            raise ConfigError("enabled WAN calibration requires at least two knots")
+        sizes = [knot.activation_mib for knot in calibration.knots]
+        if sizes != sorted(sizes) or len(sizes) != len(set(sizes)) or sizes[0] <= 0:
+            raise ConfigError("WAN calibration knot sizes must be unique and increasing")
+        if calibration.one_way_latency_ms < 0:
+            raise ConfigError("WAN calibration one_way_latency_ms cannot be negative")
+        if any(
+            value < 0
+            for knot in calibration.knots
+            for _, value in knot.upload_components_ms + knot.download_components_ms
+        ):
+            raise ConfigError("WAN calibration component latency cannot be negative")
     if config.execution.mode not in {"pipelined", "synchronous_rpc"}:
         raise ConfigError("execution.mode must be pipelined or synchronous_rpc")
     if (
@@ -809,6 +927,27 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("scheduler fairness limits cannot be negative")
     if config.attention_backend.mode not in {"unified", "separate"}:
         raise ConfigError("attention_backend.mode must be unified or separate")
+    if config.operator_backend.name not in {"logical", "vllm"}:
+        raise ConfigError("operator_backend.name must be logical or vllm")
+    if config.operator_backend.name == "vllm" and not all(
+        (
+            config.operator_backend.fused_qkv,
+            config.operator_backend.fused_gate_up,
+            config.operator_backend.fused_silu_mul,
+            config.operator_backend.fused_add_rms_norm,
+        )
+    ):
+        raise ConfigError(
+            "the current vllm backend requires the captured QKV, GateUp, "
+            "Silu+Mul, and Add+RMSNorm fusion plan"
+        )
+    if (
+        config.operator_backend.name == "vllm"
+        and config.attention_backend.mode != "unified"
+    ):
+        raise ConfigError(
+            "the current vllm physical backend requires unified attention"
+        )
     kv = config.scheduler.kv_cache
     if kv.enabled and kv.num_blocks <= 0:
         raise ConfigError("enabled KV cache requires positive num_blocks")
@@ -865,6 +1004,10 @@ def validate_config(config: SimulationConfig) -> None:
     )
     if not 0 <= workload.warmup_requests < request_count:
         raise ConfigError("warmup_requests must leave at least one measured request")
+    if workload.measurement_duration_s < 0:
+        raise ConfigError("workload.measurement_duration_s cannot be negative")
+    if workload.measurement_duration_s and workload.mode != "closed_loop":
+        raise ConfigError("measurement_duration_s is only supported for closed_loop")
     if config.slo is not None and not 0 < config.slo.target_attainment <= 1:
         raise ConfigError("slo.target_attainment must be in (0, 1]")
 

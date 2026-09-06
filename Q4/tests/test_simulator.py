@@ -2,14 +2,55 @@ from __future__ import annotations
 
 import unittest
 from copy import deepcopy
+from pathlib import Path
 
-from split_serving_sim.config import parse_config
+from split_serving_sim.config import load_config, parse_config
 from split_serving_sim.simulator import Simulator
 
 from tests.helpers import copied_toy_config
 
 
 class SimulatorTest(unittest.TestCase):
+    def test_downstream_can_rebatch_dispatch_groups_when_not_preserved(self) -> None:
+        config = load_config(
+            Path(__file__).parents[1] / "configs" / "example.json"
+        )
+        result = Simulator(config).run()
+        self.assertEqual(result.summary["num_requests"], 4)
+        self.assertTrue(
+            any(
+                row["stage"] != "edge_front"
+                and row["batch_size"] > 1
+                and row["transaction_id"] is None
+                for row in result.trace
+            )
+        )
+
+    def test_fixed_closed_loop_window_excludes_warmup_and_drain(self) -> None:
+        data = copied_toy_config()
+        data["workload"] = {
+            "mode": "closed_loop",
+            "num_requests": 50,
+            "concurrency": 2,
+            "warmup_requests": 2,
+            "measurement_duration_s": 0.1,
+            "input_tokens": 16,
+            "output_tokens": 2,
+        }
+        result = Simulator(parse_config(data)).run()
+        window = result.summary["measurement_window"]
+        self.assertEqual(window["mode"], "fixed_duration_excluding_warmup_and_drain")
+        self.assertAlmostEqual(window["duration_ms"], 100.0)
+        measured = [row for row in result.requests if row["measured"]]
+        self.assertTrue(measured)
+        self.assertTrue(
+            all(
+                window["start_ms"] <= row["finish_time_ms"] <= window["end_ms"]
+                for row in measured
+            )
+        )
+        self.assertTrue(any(not row["measured"] for row in result.requests))
+
     def test_closed_loop_refills_slots_and_reports_joint_slo_goodput(self) -> None:
         data = copied_toy_config()
         data["workload"] = {
@@ -32,7 +73,10 @@ class SimulatorTest(unittest.TestCase):
 
     def test_pipeline_transaction_limit_applies_backpressure(self) -> None:
         data = copied_toy_config()
-        data["execution"] = {"max_inflight_transactions": 1}
+        data["execution"] = {
+            "max_inflight_transactions": 1,
+            "preserve_batch_across_stages": True,
+        }
         data["workload"] = {
             "mode": "synthetic",
             "num_requests": 3,
@@ -43,6 +87,21 @@ class SimulatorTest(unittest.TestCase):
         result = Simulator(parse_config(data)).run()
         self.assertEqual(
             result.summary["execution"]["max_inflight_transactions_observed"], 1
+        )
+        first_transaction = next(
+            row["transaction_id"]
+            for row in result.trace
+            if row["stage"] == "edge_front" and row["batch_size"] > 1
+        )
+        transaction_rows = [
+            row for row in result.trace if row["transaction_id"] == first_transaction
+        ]
+        self.assertEqual(
+            [row["stage"] for row in transaction_rows],
+            ["edge_front", "wan_up", "cloud_middle", "wan_down", "edge_tail"],
+        )
+        self.assertEqual(
+            {tuple(row["request_ids"]) for row in transaction_rows}, {(0, 1)}
         )
         self.assertTrue(all(len(row["token_timestamps_ms"]) == 2 for row in result.requests))
 
@@ -71,6 +130,40 @@ class SimulatorTest(unittest.TestCase):
             and row["chunk_indices"] == [1]
         )
         self.assertGreaterEqual(second_front["start_time_ms"], first_tail["end_time_ms"])
+
+    def test_wan_window_overlaps_propagation_but_serializes_link_bytes(self) -> None:
+        data = copied_toy_config()
+        data["static_policy"]["max_batch_size"] = 1
+        data["static_policy"]["pipeline_depth"] = 2
+        data["scheduler"] = {"max_num_seqs": 2}
+        data["network"]["rtt_ms"] = 100
+        data["workload"] = {
+            "mode": "synthetic",
+            "num_requests": 2,
+            "arrival_interval_ms": 0,
+            "input_tokens": 16,
+            "output_tokens": 1,
+        }
+        result = Simulator(parse_config(data)).run()
+        uploads = sorted(
+            (row for row in result.trace if row["stage"] == "wan_up"),
+            key=lambda row: row["start_time_ms"],
+        )
+        self.assertGreaterEqual(len(uploads), 2)
+        first, second = uploads[:2]
+        self.assertLess(second["start_time_ms"], first["end_time_ms"])
+        serializations = []
+        for row in (first, second):
+            operation = next(
+                op
+                for op in row["sub_operations"]
+                if op["name"] == "wan_serialization"
+            )
+            serializations.append(operation)
+        serializations.sort(key=lambda operation: operation["start_time_ms"])
+        self.assertGreaterEqual(
+            serializations[1]["start_time_ms"], serializations[0]["end_time_ms"]
+        )
 
     def test_trace_limits_keep_coarse_batches_without_operator_details(self) -> None:
         data = copied_toy_config()

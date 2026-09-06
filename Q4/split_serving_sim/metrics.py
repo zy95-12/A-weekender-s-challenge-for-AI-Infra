@@ -101,11 +101,13 @@ def build_summary(
             total_output_tokens / duration if duration else None
         ),
         "ttft_ms": {
+            "mean": sum(ttfts) / len(ttfts) if ttfts else None,
             "p50": percentile(ttfts, 0.50),
             "p95": percentile(ttfts, 0.95),
             "p99": percentile(ttfts, 0.99),
         },
         "tpot_ms": {
+            "mean": sum(tpots) / len(tpots) if tpots else None,
             "p50": percentile(tpots, 0.50),
             "p95": percentile(tpots, 0.95),
             "p99": percentile(tpots, 0.99),
@@ -117,6 +119,7 @@ def build_summary(
             "max": max(itls) if itls else None,
         },
         "e2e_ms": {
+            "mean": sum(e2es) / len(e2es) if e2es else None,
             "p50": percentile(e2es, 0.50),
             "p95": percentile(e2es, 0.95),
             "p99": percentile(e2es, 0.99),

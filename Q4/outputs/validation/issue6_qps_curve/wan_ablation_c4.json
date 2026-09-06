@@ -1,0 +1,40 @@
+{
+  "kind": "issue5_wan_calibration_ablation",
+  "concurrency": 4,
+  "measurement_duration_s": 60,
+  "baseline": {
+    "without_wan_calibration": {
+      "completed_qps": 1.3166666666666667,
+      "mean_ttft_ms": 375.9571714943254,
+      "mean_tpot_ms": 33.64678167870873
+    },
+    "with_wan_calibration": {
+      "completed_qps": 0.8666666666666667,
+      "mean_ttft_ms": 728.0165845336486,
+      "mean_tpot_ms": 48.61301187499859
+    },
+    "actual": {
+      "completed_qps": 0.6657207880696372,
+      "mean_ttft_ms": 1937.364228450042,
+      "mean_tpot_ms": 48.48231887371862
+    }
+  },
+  "stage123": {
+    "without_wan_calibration": {
+      "completed_qps": 1.7333333333333334,
+      "mean_ttft_ms": 297.24520597386396,
+      "mean_tpot_ms": 25.71077790209137
+    },
+    "with_wan_calibration": {
+      "completed_qps": 1.6,
+      "mean_ttft_ms": 319.6020412491807,
+      "mean_tpot_ms": 27.74124049925552
+    },
+    "actual": {
+      "completed_qps": 0.9332868454444858,
+      "mean_ttft_ms": 544.6852561783869,
+      "mean_tpot_ms": 45.92808789514896
+    }
+  },
+  "note": "Issue #5 WAN data is independent calibration input; Issue #6 actual values are holdout only."
+}

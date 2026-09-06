@@ -1,0 +1,28 @@
+{
+  "kind": "behavioral_smoke_test_not_accuracy_holdout",
+  "config": "configs/issue6_stage123.json",
+  "profile": "profiles/issue5_a10_tp2_stage123.json",
+  "measured_requests": 20,
+  "warmup_requests": 4,
+  "observed_request_throughput_qps": 1.7197953706701234,
+  "ttft_ms": {
+    "p50": 311.81807490103444,
+    "p95": 671.9018438692955,
+    "p99": 827.183965159538
+  },
+  "tpot_ms": {
+    "p50": 25.52394624917408,
+    "p95": 26.272174779381977,
+    "p99": 26.272174779381977
+  },
+  "average_batch_size": 3.6444444444444444,
+  "transactions": 544,
+  "max_inflight_transactions_observed": 2,
+  "all_transactions_preserved_batch_membership": true,
+  "process": {
+    "elapsed_seconds": 4.78,
+    "max_rss_kib": 82092,
+    "virtual_memory_limit_kib": 786432
+  },
+  "note": "Absolute TTFT/TPOT/QPS are not accuracy claims until the data path is calibrated and compared with ordinary-run holdout measurements."
+}

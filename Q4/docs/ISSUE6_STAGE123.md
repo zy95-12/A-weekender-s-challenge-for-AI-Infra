@@ -16,11 +16,17 @@ unpacking and host to device copy. The following switches change modeled work:
 - `tcp_buffer_mib>0` limits effective throughput to
   `min(link_rate, tcp_window / RTT)`, making the BDP effect explicit.
 
-The entire direction currently owns one serialized uplink/downlink resource.
-The sub-operations are visible in the Gantt detail view, but host CPU/PCIe/IPC
-are not yet independently concurrent servers. This is conservative for overlap
-and cannot predict CPU saturation. Exact-shape network profiles can replace the
-analytical total; profile matching also receives a `data_path` variant string.
+Each direction has a finite RPC worker window equal to `pipeline_depth` and one
+serialized link. Sender staging completes before link admission; only
+`wan_serialization` holds link bandwidth, so propagation and receiver staging
+can overlap a following transfer. Link bytes remain serialized and therefore
+cannot exceed configured bandwidth. WAN utilization in the summary is link
+serialization utilization, not the fraction of time with any RPC in flight.
+
+Host CPU/PCIe/IPC are not yet independently capacity-limited servers. The model
+therefore preserves RPC/link ordering and window pressure but cannot predict
+CPU saturation. Exact-shape network profiles can replace the analytical total;
+profile matching also receives a `data_path` variant string.
 
 ## Stage 2: chunking and fair FCFS
 
@@ -35,16 +41,27 @@ waits `max_prefill_wait_ms`. `max_decode_tokens_per_batch` bounds decode work;
 the existing prefill and total-token budgets remain active. Mixed batches use
 the configured unified or sequential attention backend.
 
+The checked-in issue #6 configuration reproduces PR #14's concrete policy:
+`max_consecutive_decode_batches=1` is the `decode_quota=1` round counter,
+`max_decode_tokens_per_batch=0` leaves the ready decode group unbounded, and
+`max_prefill_wait_ms=0` disables the simulator-only wait threshold. The
+pipeline transaction/chunk window is 2. KV admission preallocates the full
+request rather than growing blocks on demand.
+
 This models scheduler behavior, not numerical logits. PR #11's unresolved
 numerical acceptance gate therefore remains an external implementation issue.
 
 ## Stage 3: pipeline and backpressure
 
 `execution.mode=pipelined` independently schedules edge GPU, uplink, cloud GPU,
-downlink and the shared edge GPU tail. A transaction owns a buffer reservation
-from its first Edge Front dispatch through its final Edge Tail completion.
+downlink and the shared edge GPU tail. A batch formed at Edge Front is assigned
+one transaction ID and, with `preserve_batch_across_stages=true`, keeps exactly
+the same request members through WAN Up, Cloud, WAN Down and Edge Tail. A
+transaction owns a buffer reservation from its first Edge Front dispatch
+through completion of every member at Edge Tail.
 
-- `max_inflight_transactions` bounds the number of live chunk/decode steps.
+- `max_inflight_transactions` bounds live batch/RPC jobs, not requests inside a
+  job. This matches PR #14's pipeline window semantics.
 - `buffer_pool_mib` bounds their combined bidirectional activation bytes.
 - Zero means unlimited for backward compatibility.
 
@@ -81,3 +98,6 @@ QPS search or a fixed-duration production capacity certificate.
   or CUDA-event granular.
 - Stage 1 absolute values require ordinary-run profiles for each optimization
   variant; Nsight alone is insufficient for WAN/HTTP/IPC wall time.
+- GPU stage costs use the issue #5 vLLM physical operator profile. NCCL uses
+  the raw per-rank kernel timestamps and starts its intrinsic interval at the
+  final rank arrival, rather than charging early-rank waiting time.

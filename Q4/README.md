@@ -5,7 +5,9 @@
 和离散事件资源模型，模拟一个 Split-LLM Serving 实例的端到端行为。
 
 本版本的目标是验证调度、资源竞争和请求间流水逻辑，不进行最大 QPS 搜索。模型结构和
-shape 来自 Hugging Face Qwen2/Qwen3 配置，耗时仍是未经 profiling 校准的 analytical Roofline。
+shape 来自 Hugging Face Qwen2/Qwen3 配置；Issue #6 示例采用 vLLM 实际融合执行图，并由
+Issue #5 的逐算子 GPU capture 修正 analytical Roofline。未被 profile 覆盖的 shape 仍回退到
+同类算子平均修正或原始 Roofline。
 
 ## 系统路径
 
@@ -31,7 +33,8 @@ python -m split_serving_sim \
 
 [`configs/issue6_stage123.json`](configs/issue6_stage123.json) 使用 Qwen2.5-3B、
 4/27/5 split、端云 TP2+2，打开数据路径优化、1024-token chunked prefill、
-有界 decode-first FCFS、跨请求流水和闭环并发 4：
+decode-first FCFS、window=2 的跨请求流水和闭环并发 4。该配置加载
+`profiles/issue5_a10_tp2_stage123.json`，并使用采集到的 vLLM 融合执行图：
 
 ```bash
 python -m split_serving_sim \
@@ -47,11 +50,41 @@ python -m split_serving_sim \
 - `execution.max_inflight_transactions`、`buffer_pool_mib`；
 - `workload.mode=closed_loop`、`concurrency` 和 `warmup_requests`；
 - `slo.target_attainment`，输出逐请求联合达标率与 goodput。
+- `operator_backend.name=vllm`，使用 fused QKV、GateUp、Silu+Mul 和 Add+RMSNorm。
 
-数据路径参数是可解释的分析模型；示例中的 PCIe、内存和 IPC 带宽不是 PR #9/#10
-实测拟合结果。用于容量结论前应通过 `performance_profile` 导入对应开关、payload 和
-并发下的普通运行数据。完整语义与边界见
-[`docs/ISSUE6_STAGE123.md`](docs/ISSUE6_STAGE123.md)。
+受 768 MiB 虚拟内存上限保护的校准 smoke run 结果见
+[`outputs/validation/issue5_stage123_smoke.json`](outputs/validation/issue5_stage123_smoke.json)。
+它用于证明执行图、batch lineage 和 window 行为可运行，不是普通运行数据上的精度结论。
+
+未命中采集区间的数据路径仍使用可解释的分析模型；Issue #6 配置在 8 KiB–128 MiB
+范围内加载 Issue #5 的 WAN 分项采集并做分段插值。用于容量结论前仍需补充并发 WAN
+和 CPU scheduler 数据。完整语义与边界见
+[`docs/ISSUE6_STAGE123.md`](docs/ISSUE6_STAGE123.md)；算子数据转换、覆盖率和限制见
+[`docs/ISSUE5_OPERATOR_CALIBRATION.md`](docs/ISSUE5_OPERATOR_CALIBRATION.md)。Issue #5 WAN
+分项校准、Issue #6 闭环并发扫描和当前量化误差见
+[`docs/ISSUE6_QPS_VALIDATION.md`](docs/ISSUE6_QPS_VALIDATION.md)。
+
+完整 TTFT/TPOT–QPS 曲线可从 `Q4` 目录复现：
+
+```bash
+PYTHONPATH=. python tools/simulate_issue6_qps_curve.py \
+  --config configs/issue6_qps_sweep.json
+```
+
+并发扫描、测量窗口、单点请求上限、内存上限、基础配置和输出目录都由
+[`configs/issue6_qps_sweep.json`](configs/issue6_qps_sweep.json) 控制。单点模拟则直接修改
+`configs/issue6_stage123.json` 中的 `workload.concurrency`。核心输出字段位于
+`summary.json`：
+
+```text
+observed_request_throughput_qps
+ttft_ms.mean / p50 / p95 / p99
+tpot_ms.mean / p50 / p95 / p99
+```
+
+当前提交的实测/仿真对照图：
+
+![Issue #6 TTFT/TPOT–QPS curve](outputs/validation/issue6_qps_curve/curves.svg)
 
 ### 复现 PR #8 baseline 行为
 
@@ -97,6 +130,7 @@ baseline 使用 `execution.mode=synchronous_rpc` 和
 
 命令输出：
 
+- `metrics.json`：精简的 QPS、TTFT 和 TPOT Mean/P50/P95/P99；
 - `summary.json`：整体 TTFT、请求级 TPOT、逐 token ITL、吞吐、SLO goodput 和利用率；
 - `requests.jsonl`：逐请求指标和 token 时间戳；
 - `trace.jsonl`：逐 batch/resource 的流水区间；
@@ -166,8 +200,9 @@ JSON Config
 - Edge Front 和 Edge Tail 共享 topology 中配置的 Edge GPU；
 - prefill chunk 在每个模型 stage 上保持因果顺序，同时允许跨 stage overlap；
 - decode DAG 在上一个 token ready 后懒生成；
-- WAN uplink/downlink 是两个独立的单服务器资源；
-- `pipeline_depth` 限制单请求在途 prefill chunk；
+- WAN uplink/downlink 是两个独立方向，每个方向有有限 RPC worker window；字节序列化占用
+  方向链路，传播延迟可以与其他 RPC 重叠；
+- `pipeline_depth` 控制 RPC window，`max_outstanding_prefill_chunks` 约束 Prefill chunk；
 - `max_outstanding_prefill_chunks` 提供全局 backpressure。
 - `max_inflight_transactions` 和 `buffer_pool_mib` 从 Edge Front 到 Edge Tail
   限制所有 prefill/decode step 的在途数量与激活内存。
@@ -250,6 +285,41 @@ dispatch 时。
 `roofline_ms` 和 `match`。`match` 可限制 `phase`、`tp_degree`、`stage`、
 `dtype`、网络方向或 `data_path` 变体。trace 会记录最终使用的 profile source 和修正系数。
 
+对于 vLLM，HF decoder 结构仍决定层数和 tensor 维度，但实际 cost DAG 由
+`operator_backend` 决定：
+
+```json
+{
+  "attention_backend": {"mode": "unified"},
+  "operator_backend": {
+    "name": "vllm",
+    "version": "0.10.x",
+    "fused_qkv": true,
+    "fused_gate_up": true,
+    "fused_silu_mul": true,
+    "fused_add_rms_norm": true
+  }
+}
+```
+
+该执行图按照 capture 中的 4 个 GEMM/层建模，不会把 fused QKV 或 GateUp 的延迟重新摊回
+多个 HF 逻辑算子。物理 signature 包含 raw op、所有输入 shape 和 dtype；attention 还包含
+每个 request 的 position/query length，collective 还包含 TP degree。
+
+Issue #5 的 CSV 可生成已提交的两个 profile 与映射报告：
+
+```bash
+PYTHONPATH=. python tools/build_issue5_profile.py \
+  --config configs/issue6_stage123.json \
+  --baseline-prefill /path/to/baseline_prefill.csv \
+  --baseline-decode /path/to/baseline_decode.csv \
+  --baseline-kernels /path/to/baseline/kernel_instances.csv \
+  --stage123-prefill /path/to/stage123_prefill.csv \
+  --stage123-decode /path/to/stage123_decode.csv \
+  --stage123-kernels /path/to/stage123/kernel_instances.csv \
+  --output-dir profiles
+```
+
 PR #8 profile 可通过以下命令重新生成和验证：
 
 ```bash
@@ -309,6 +379,21 @@ tokens × hidden_size × dtype_bytes × activation_tensor_count
 
 `sender_overhead_ms` 和 `receiver_overhead_ms` 可用于加入 D2H、NumPy/HTTP pack、unpack/H2D
 等固定 staging 开销。默认是 0，避免在没有实测校准时伪造精度。
+
+Issue #6 配置通过 `data_path.wan_calibration` 加载 Issue #5 的实测分项节点：
+
+```json
+{
+  "wan_calibration": {
+    "enabled": true,
+    "path": "../profiles/issue5_wan_calibration.json",
+    "variant": "stage1"
+  }
+}
+```
+
+命中 8 KiB–128 MiB 时分别插值 D2H、pack、HTTP path、IPC/unpack 和 H2D；HTTP path
+已包含单向传播，因此不会再次叠加 RTT。超出采集范围时回退到上述分析模型，不外推曲线。
 
 ### 并行语义
 

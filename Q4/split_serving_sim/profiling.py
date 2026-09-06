@@ -21,12 +21,25 @@ def operator_type(name: str, category: str) -> str:
     if leaf in {
         "q_proj", "k_proj", "v_proj", "o_proj",
         "gate_proj", "up_proj", "down_proj", "lm_head",
+        "qkv_proj", "gate_up_proj",
     } or name == "lm_head":
         return "mm"
     if leaf in {"attention", "mix attention", "prefill attention", "decode attention"}:
         return "flash_attention"
     if leaf.endswith("all_reduce"):
         return "collective"
+    if leaf in {"input_rms_norm", "final_rms_norm"}:
+        return "rms_norm"
+    if leaf.endswith("add_rms_norm"):
+        return "fused_add_rms_norm"
+    if leaf == "rope":
+        return "rotary_embedding"
+    if leaf == "silu_and_mul":
+        return "silu_and_mul"
+    if leaf == "attention_output_alloc":
+        return "tensor_allocation"
+    if leaf == "embed_tokens":
+        return "embedding"
     if category == "communication":
         return "communication"
     return "elementwise"
@@ -46,6 +59,12 @@ def workload_signature(
         sort_keys=True,
         separators=(",", ":"),
     )
+
+
+def physical_signature(**fields: Any) -> str:
+    """Stable JSON signature shared by vLLM traces and the physical DAG."""
+
+    return json.dumps(fields, sort_keys=True, separators=(",", ":"))
 
 
 def network_signature(payload_bytes: float, input_shape: str) -> str:

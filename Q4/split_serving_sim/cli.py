@@ -41,6 +41,15 @@ def main(argv: list[str] | None = None) -> int:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     _write_json(output_dir / "summary.json", result.summary)
+    _write_json(
+        output_dir / "metrics.json",
+        {
+            "requests": result.summary["num_requests"],
+            "qps": result.summary["observed_request_throughput_qps"],
+            "ttft_ms": result.summary["ttft_ms"],
+            "tpot_ms": result.summary["tpot_ms"],
+        },
+    )
     _write_jsonl(output_dir / "requests.jsonl", result.requests)
     _write_jsonl(output_dir / "trace.jsonl", result.trace)
     if config.simulation.trace_enabled:
