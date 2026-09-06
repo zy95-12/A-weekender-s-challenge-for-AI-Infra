@@ -1,0 +1,317 @@
+role,rank,phase,operator,input_shapes,input_dtypes,calls,gpu_kernel_count,gpu_total_us,gpu_mean_us,gpu_min_us,gpu_max_us
+cloud,0,prefill,aten.lift_fresh.default,[[4096]],"[""torch.int64""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.detach_.default,[[4096]],"[""torch.int64""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.lift_fresh.default,[[1]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.detach_.default,[[1]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.empty.memory_format,[],[],28,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.lift_fresh.default,[[2]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.detach_.default,[[2]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.lift_fresh.default,"[[4096, 2048]]","[""torch.float16""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.to.dtype_layout,"[[4096, 2048]]","[""torch.float16""]",6,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,c10d.broadcast_.default,"[[4096, 2048]]","[""torch.float16""]",2,2,1325.21,662.605,661.469,663.741
+cloud,0,prefill,aten.detach.default,[[2048]],"[""torch.float16""]",54,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,_C.fused_add_rms_norm.default,"[[4096, 2048], [4096, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",54,54,7492.412,138.74837037037037,133.503,140.384
+cloud,0,prefill,aten.linear.default,"[[4096, 2048], [1280, 2048], [1280]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",27,27,8573.852,317.5500740740741,290.591,331.806
+cloud,0,prefill,aten.split_with_sizes.default,"[[4096, 1280]]","[""torch.float16""]",27,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,_C.rotary_embedding.default,"[[4096], [4096, 1024], [4096, 128], [32768, 128]]","[""torch.int64"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",27,27,1330.62,49.28222222222222,46.624,50.88
+cloud,0,prefill,aten.zeros.default,[],[],27,27,484.158,17.93177777777778,17.6,18.271
+cloud,0,prefill,aten.view.default,"[[4096, 1024]]","[""torch.float16""]",54,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.view.default,"[[4096, 128]]","[""torch.float16""]",54,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,vllm.unified_attention_with_output.default,"[[4096, 8, 128], [4096, 1, 128], [4096, 1, 128], [4096, 8, 128]]","[""torch.float16"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",27,54,14638.561,542.1689259259259,490.174,579.646
+cloud,0,prefill,aten.view.default,"[[4096, 8, 128]]","[""torch.float16""]",27,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.linear.default,"[[4096, 1024], [2048, 1024]]","[""torch.float16"", ""torch.float16""]",27,27,5962.854,220.84644444444444,196.575,233.823
+cloud,0,prefill,vllm.all_reduce.default,"[[4096, 2048]]","[""torch.float16""]",54,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,pynccl.all_reduce,"[[4096, 2048]]","[""torch.float16""]",54,54,67826.527,1256.0467962962964,1228.539,1332.986
+cloud,0,prefill,aten.linear.default,"[[4096, 2048], [11008, 2048]]","[""torch.float16"", ""torch.float16""]",27,27,59917.956,2219.1835555555554,2068.599,2302.518
+cloud,0,prefill,_C.silu_and_mul.default,"[[4096, 5504], [4096, 11008]]","[""torch.float16"", ""torch.float16""]",27,27,8072.827,298.99359259259256,291.486,303.487
+cloud,0,prefill,aten.linear.default,"[[4096, 5504], [2048, 5504]]","[""torch.float16"", ""torch.float16""]",27,27,28186.186,1043.9328148148147,962.396,1092.795
+cloud,0,prefill,aten.detach.default,"[[4096, 2048]]","[""torch.float16""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.resolve_conj.default,"[[4096, 2048]]","[""torch.float16""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,prefill,aten.resolve_neg.default,"[[4096, 2048]]","[""torch.float16""]",2,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.lift_fresh.default,[[1]],"[""torch.int64""]",16,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.detach_.default,[[1]],"[""torch.int64""]",16,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.lift_fresh.default,[[1]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.detach_.default,[[1]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.lift_fresh.default,"[[1, 257]]","[""torch.int32""]",8,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.detach_.default,"[[1, 257]]","[""torch.int32""]",8,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.lift_fresh.default,[[2]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.detach_.default,[[2]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.lift_fresh.default,"[[1, 2048]]","[""torch.float16""]",16,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.to.dtype_layout,"[[1, 2048]]","[""torch.float16""]",48,0,0.0,0.0,0.0,0.0
+cloud,0,decode,c10d.broadcast_.default,"[[1, 2048]]","[""torch.float16""]",16,16,95.04,5.94,5.248,6.848
+cloud,0,decode,aten.detach.default,[[2048]],"[""torch.float16""]",432,0,0.0,0.0,0.0,0.0
+cloud,0,decode,_C.fused_add_rms_norm.default,"[[1, 2048], [1, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",432,432,1170.622,2.709773148148148,2.592,2.911
+cloud,0,decode,aten.linear.default,"[[1, 2048], [1280, 2048], [1280]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",216,216,3031.031,14.032550925925925,13.632,14.624
+cloud,0,decode,aten.split_with_sizes.default,"[[1, 1280]]","[""torch.float16""]",216,0,0.0,0.0,0.0,0.0
+cloud,0,decode,_C.rotary_embedding.default,"[[1], [1, 1024], [1, 128], [32768, 128]]","[""torch.int64"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",216,216,524.862,2.4299166666666667,2.336,2.528
+cloud,0,decode,aten.zeros.default,[],[],216,216,252.192,1.1675555555555557,1.152,1.184
+cloud,0,decode,aten.view.default,"[[1, 1024]]","[""torch.float16""]",432,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.view.default,"[[1, 128]]","[""torch.float16""]",432,0,0.0,0.0,0.0,0.0
+cloud,0,decode,vllm.unified_attention_with_output.default,"[[1, 8, 128], [1, 1, 128], [1, 1, 128], [1, 8, 128]]","[""torch.float16"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",216,656,4869.23,22.542731481481482,22.048,24.384
+cloud,0,decode,aten.view.default,"[[1, 8, 128]]","[""torch.float16""]",216,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.linear.default,"[[1, 1024], [2048, 1024]]","[""torch.float16"", ""torch.float16""]",216,216,2777.049,12.856708333333334,12.672,14.56
+cloud,0,decode,vllm.all_reduce.default,"[[1, 2048]]","[""torch.float16""]",432,0,0.0,0.0,0.0,0.0
+cloud,0,decode,pynccl.all_reduce,"[[1, 2048]]","[""torch.float16""]",432,432,78198.132,181.01419444444443,8.16,1324.411
+cloud,0,decode,aten.linear.default,"[[1, 2048], [11008, 2048]]","[""torch.float16"", ""torch.float16""]",216,216,20206.825,93.55011574074075,93.119,97.088
+cloud,0,decode,aten.empty.memory_format,[],[],216,0,0.0,0.0,0.0,0.0
+cloud,0,decode,_C.silu_and_mul.default,"[[1, 5504], [1, 11008]]","[""torch.float16"", ""torch.float16""]",216,216,795.035,3.680717592592593,3.52,3.968
+cloud,0,decode,aten.linear.default,"[[1, 5504], [2048, 5504]]","[""torch.float16"", ""torch.float16""]",216,432,12505.384,57.8952962962963,57.056,58.88
+cloud,0,decode,aten.detach.default,"[[1, 2048]]","[""torch.float16""]",16,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.resolve_conj.default,"[[1, 2048]]","[""torch.float16""]",16,0,0.0,0.0,0.0,0.0
+cloud,0,decode,aten.resolve_neg.default,"[[1, 2048]]","[""torch.float16""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.lift_fresh.default,[[4096]],"[""torch.int64""]",3,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.detach_.default,[[4096]],"[""torch.int64""]",3,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.lift_fresh.default,[[1]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.detach_.default,[[1]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.empty.memory_format,[],[],10,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.lift_fresh.default,[[2]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.detach_.default,[[2]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.ge.Scalar,[[4096]],"[""torch.int64""]",2,2,3.328,1.664,1.568,1.76
+enterprise,0,prefill,aten.lt.Scalar,[[4096]],"[""torch.int64""]",2,2,3.264,1.632,1.568,1.696
+enterprise,0,prefill,aten.__and__.Tensor,"[[4096], [4096]]","[""torch.bool"", ""torch.bool""]",2,2,2.72,1.36,1.344,1.376
+enterprise,0,prefill,aten.mul.Tensor,[[4096]],"[""torch.bool""]",2,2,5.44,2.72,2.56,2.88
+enterprise,0,prefill,aten.add.Tensor,"[[4096], [4096]]","[""torch.int64"", ""torch.int64""]",1,1,1.728,1.728,1.728,1.728
+enterprise,0,prefill,aten.__or__.Tensor,"[[4096], [4096]]","[""torch.bool"", ""torch.bool""]",1,1,1.376,1.376,1.376,1.376
+enterprise,0,prefill,aten.sub.Tensor,"[[4096], [4096]]","[""torch.int64"", ""torch.int64""]",1,1,1.728,1.728,1.728,1.728
+enterprise,0,prefill,aten.mul.Tensor,"[[4096], [4096]]","[""torch.bool"", ""torch.int64""]",1,1,3.456,3.456,3.456,3.456
+enterprise,0,prefill,aten.bitwise_not.default,[[4096]],"[""torch.bool""]",1,1,1.376,1.376,1.376,1.376
+enterprise,0,prefill,aten.to.dtype,[[4096]],"[""torch.int64""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.embedding.default,"[[75968, 2048], [4096]]","[""torch.float16"", ""torch.int64""]",1,1,36.672,36.672,36.672,36.672
+enterprise,0,prefill,aten.unsqueeze.default,[[4096]],"[""torch.bool""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.masked_fill_.Scalar,"[[4096, 2048], [4096, 1]]","[""torch.float16"", ""torch.bool""]",1,1,76.415,76.415,76.415,76.415
+enterprise,0,prefill,vllm.all_reduce.default,"[[4096, 2048]]","[""torch.float16""]",19,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,pynccl.all_reduce,"[[4096, 2048]]","[""torch.float16""]",19,19,22264.175,1171.7986842105263,1098.238,2006.46
+enterprise,0,prefill,aten.detach.default,[[2048]],"[""torch.float16""]",19,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.empty_like.default,"[[4096, 2048]]","[""torch.float16""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,_C.rms_norm.default,"[[4096, 2048], [4096, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",1,1,123.167,123.167,123.167,123.167
+enterprise,0,prefill,aten.linear.default,"[[4096, 2048], [1280, 2048], [1280]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",9,9,2648.122,294.23577777777774,292.864,299.775
+enterprise,0,prefill,aten.split_with_sizes.default,"[[4096, 1280]]","[""torch.float16""]",9,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,_C.rotary_embedding.default,"[[4096], [4096, 1024], [4096, 128], [32768, 128]]","[""torch.int64"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",9,9,421.984,46.88711111111111,46.4,47.872
+enterprise,0,prefill,aten.zeros.default,[],[],9,9,158.015,17.557222222222222,17.376,17.696
+enterprise,0,prefill,aten.view.default,"[[4096, 1024]]","[""torch.float16""]",18,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.view.default,"[[4096, 128]]","[""torch.float16""]",18,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,vllm.unified_attention_with_output.default,"[[4096, 8, 128], [4096, 1, 128], [4096, 1, 128], [4096, 8, 128]]","[""torch.float16"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",9,18,4603.895,511.5438888888889,500.351,522.431
+enterprise,0,prefill,aten.view.default,"[[4096, 8, 128]]","[""torch.float16""]",9,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.linear.default,"[[4096, 1024], [2048, 1024]]","[""torch.float16"", ""torch.float16""]",9,9,1806.429,200.71433333333334,198.944,210.079
+enterprise,0,prefill,_C.fused_add_rms_norm.default,"[[4096, 2048], [4096, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",18,18,2498.685,138.81583333333333,134.336,140.288
+enterprise,0,prefill,aten.linear.default,"[[4096, 2048], [11008, 2048]]","[""torch.float16"", ""torch.float16""]",9,9,18871.254,2096.806,2072.284,2120.859
+enterprise,0,prefill,_C.silu_and_mul.default,"[[4096, 5504], [4096, 11008]]","[""torch.float16"", ""torch.float16""]",9,9,2631.035,292.33722222222224,291.231,296.447
+enterprise,0,prefill,aten.linear.default,"[[4096, 5504], [2048, 5504]]","[""torch.float16"", ""torch.float16""]",9,9,8725.772,969.5302222222223,958.046,993.982
+enterprise,0,prefill,aten.to.dtype_layout,"[[4096, 2048]]","[""torch.float16""]",6,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.detach.default,"[[4096, 2048]]","[""torch.float16""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.resolve_conj.default,"[[4096, 2048]]","[""torch.float16""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.resolve_neg.default,"[[4096, 2048]]","[""torch.float16""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.lift_fresh.default,"[[4096, 2048]]","[""torch.float16""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,c10d.broadcast_.default,"[[4096, 2048]]","[""torch.float16""]",2,2,1328.956,664.478,663.358,665.598
+enterprise,0,prefill,aten.lift_fresh.default,[[1]],"[""torch.int64""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.to.device,[[1]],"[""torch.int64""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.detach_.default,[[1]],"[""torch.int64""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.index_select.default,"[[4096, 2048], [1]]","[""torch.float16"", ""torch.int64""]",1,1,3.04,3.04,3.04,3.04
+enterprise,0,prefill,aten.linear.default,"[[1, 2048], [75968, 2048]]","[""torch.float16"", ""torch.float16""]",1,1,644.446,644.446,644.446,644.446
+enterprise,0,prefill,aten.empty_like.default,"[[1, 75968]]","[""torch.float16""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,c10d.gather_.default,"[[1, 75968], [1, 75968], [1, 75968]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",1,1,44.608,44.608,44.608,44.608
+enterprise,0,prefill,aten.cat.default,"[[1, 75968], [1, 75968]]","[""torch.float16"", ""torch.float16""]",1,1,3.136,3.136,3.136,3.136
+enterprise,0,prefill,aten.alias.default,"[[1, 151936]]","[""torch.float16""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.to.dtype,"[[1, 151936]]","[""torch.float16""]",1,1,3.744,3.744,3.744,3.744
+enterprise,0,prefill,aten.to.dtype_layout,"[[1, 151936]]","[""torch.float32""]",2,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.detach.default,"[[1, 151936]]","[""torch.float32""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.resolve_conj.default,"[[1, 151936]]","[""torch.float32""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,prefill,aten.resolve_neg.default,"[[1, 151936]]","[""torch.float32""]",1,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.lift_fresh.default,[[1]],"[""torch.int64""]",32,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.detach_.default,[[1]],"[""torch.int64""]",32,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.lift_fresh.default,[[1]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.detach_.default,[[1]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.lift_fresh.default,"[[1, 257]]","[""torch.int32""]",8,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.detach_.default,"[[1, 257]]","[""torch.int32""]",8,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.lift_fresh.default,[[2]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.detach_.default,[[2]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.ge.Scalar,[[1]],"[""torch.int64""]",16,16,27.68,1.73,1.44,2.144
+enterprise,0,decode,aten.lt.Scalar,[[1]],"[""torch.int64""]",16,16,23.776,1.486,1.44,1.632
+enterprise,0,decode,aten.__and__.Tensor,"[[1], [1]]","[""torch.bool"", ""torch.bool""]",16,16,27.936,1.746,1.536,2.048
+enterprise,0,decode,aten.mul.Tensor,[[1]],"[""torch.bool""]",16,16,32.48,2.03,1.632,2.592
+enterprise,0,decode,aten.add.Tensor,"[[1], [1]]","[""torch.int64"", ""torch.int64""]",8,8,12.928,1.616,1.568,1.76
+enterprise,0,decode,aten.__or__.Tensor,"[[1], [1]]","[""torch.bool"", ""torch.bool""]",8,8,12.544,1.568,1.536,1.728
+enterprise,0,decode,aten.sub.Tensor,"[[1], [1]]","[""torch.int64"", ""torch.int64""]",8,8,12.416,1.552,1.472,1.856
+enterprise,0,decode,aten.mul.Tensor,"[[1], [1]]","[""torch.bool"", ""torch.int64""]",8,8,19.168,2.396,2.336,2.656
+enterprise,0,decode,aten.bitwise_not.default,[[1]],"[""torch.bool""]",8,8,12.992,1.624,1.568,1.792
+enterprise,0,decode,aten.to.dtype,[[1]],"[""torch.int64""]",8,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.embedding.default,"[[75968, 2048], [1]]","[""torch.float16"", ""torch.int64""]",8,8,21.472,2.684,2.56,3.04
+enterprise,0,decode,aten.unsqueeze.default,[[1]],"[""torch.bool""]",8,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.masked_fill_.Scalar,"[[1, 2048], [1, 1]]","[""torch.float16"", ""torch.bool""]",8,8,20.8,2.6,2.528,2.88
+enterprise,0,decode,vllm.all_reduce.default,"[[1, 2048]]","[""torch.float16""]",152,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,pynccl.all_reduce,"[[1, 2048]]","[""torch.float16""]",152,152,6174.385,40.62095394736842,8.224,683.103
+enterprise,0,decode,aten.detach.default,[[2048]],"[""torch.float16""]",152,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.empty_like.default,"[[1, 2048]]","[""torch.float16""]",8,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,_C.rms_norm.default,"[[1, 2048], [1, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",8,8,25.792,3.224,3.136,3.488
+enterprise,0,decode,aten.linear.default,"[[1, 2048], [1280, 2048], [1280]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",72,72,1020.894,14.179083333333335,13.728,14.816
+enterprise,0,decode,aten.split_with_sizes.default,"[[1, 1280]]","[""torch.float16""]",72,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,_C.rotary_embedding.default,"[[1], [1, 1024], [1, 128], [32768, 128]]","[""torch.int64"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",72,72,180.32,2.5044444444444443,2.4,2.752
+enterprise,0,decode,aten.zeros.default,[],[],72,72,85.152,1.1826666666666668,1.152,1.312
+enterprise,0,decode,aten.view.default,"[[1, 1024]]","[""torch.float16""]",144,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.view.default,"[[1, 128]]","[""torch.float16""]",144,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,vllm.unified_attention_with_output.default,"[[1, 8, 128], [1, 1, 128], [1, 1, 128], [1, 8, 128]]","[""torch.float16"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",72,224,1658.878,23.03997222222222,22.304,26.656
+enterprise,0,decode,aten.view.default,"[[1, 8, 128]]","[""torch.float16""]",72,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.linear.default,"[[1, 1024], [2048, 1024]]","[""torch.float16"", ""torch.float16""]",72,72,939.904,13.054222222222222,12.704,14.624
+enterprise,0,decode,_C.fused_add_rms_norm.default,"[[1, 2048], [1, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",144,144,398.016,2.764,2.56,3.072
+enterprise,0,decode,aten.linear.default,"[[1, 2048], [11008, 2048]]","[""torch.float16"", ""torch.float16""]",72,72,6753.514,93.79880555555556,93.344,95.327
+enterprise,0,decode,aten.empty.memory_format,[],[],72,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,_C.silu_and_mul.default,"[[1, 5504], [1, 11008]]","[""torch.float16"", ""torch.float16""]",72,72,263.838,3.6644166666666664,3.552,4.064
+enterprise,0,decode,aten.linear.default,"[[1, 5504], [2048, 5504]]","[""torch.float16"", ""torch.float16""]",72,144,4169.719,57.91276388888889,57.376,59.712
+enterprise,0,decode,aten.to.dtype_layout,"[[1, 2048]]","[""torch.float16""]",48,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.detach.default,"[[1, 2048]]","[""torch.float16""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.resolve_conj.default,"[[1, 2048]]","[""torch.float16""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.resolve_neg.default,"[[1, 2048]]","[""torch.float16""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.lift_fresh.default,"[[1, 2048]]","[""torch.float16""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,c10d.broadcast_.default,"[[1, 2048]]","[""torch.float16""]",16,16,96.8,6.05,5.376,6.88
+enterprise,0,decode,aten.to.device,[[1]],"[""torch.int64""]",8,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.index_select.default,"[[1, 2048], [1]]","[""torch.float16"", ""torch.int64""]",8,8,19.264,2.408,2.4,2.432
+enterprise,0,decode,aten.linear.default,"[[1, 2048], [75968, 2048]]","[""torch.float16"", ""torch.float16""]",8,8,5084.883,635.610375,634.815,636.894
+enterprise,0,decode,aten.empty_like.default,"[[1, 75968]]","[""torch.float16""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,c10d.gather_.default,"[[1, 75968], [1, 75968], [1, 75968]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",8,8,190.144,23.768,23.36,24.48
+enterprise,0,decode,aten.cat.default,"[[1, 75968], [1, 75968]]","[""torch.float16"", ""torch.float16""]",8,8,22.559,2.819875,2.751,2.88
+enterprise,0,decode,aten.alias.default,"[[1, 151936]]","[""torch.float16""]",8,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.to.dtype,"[[1, 151936]]","[""torch.float16""]",8,8,26.784,3.348,3.264,3.392
+enterprise,0,decode,aten.to.dtype_layout,"[[1, 151936]]","[""torch.float32""]",16,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.detach.default,"[[1, 151936]]","[""torch.float32""]",8,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.resolve_conj.default,"[[1, 151936]]","[""torch.float32""]",8,0,0.0,0.0,0.0,0.0
+enterprise,0,decode,aten.resolve_neg.default,"[[1, 151936]]","[""torch.float32""]",8,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,aten.lift_fresh.default,[[4096]],"[""torch.int64""]",2,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,aten.detach_.default,[[4096]],"[""torch.int64""]",2,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,aten.lift_fresh.default,[[1]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,aten.detach_.default,[[1]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,aten.empty.memory_format,[],[],30,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,aten.lift_fresh.default,[[2]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,aten.detach_.default,[[2]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,c10d.broadcast_.default,"[[4096, 2048]]","[""torch.float16""]",2,2,8577.79,4288.895,2251.383,6326.407
+cloud,1,prefill,aten.detach.default,[[2048]],"[""torch.float16""]",54,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,_C.fused_add_rms_norm.default,"[[4096, 2048], [4096, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",54,54,7502.693,138.93875925925926,137.92,140.063
+cloud,1,prefill,aten.linear.default,"[[4096, 2048], [1280, 2048], [1280]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",27,27,8664.061,320.89114814814815,297.407,333.631
+cloud,1,prefill,aten.split_with_sizes.default,"[[4096, 1280]]","[""torch.float16""]",27,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,_C.rotary_embedding.default,"[[4096], [4096, 1024], [4096, 128], [32768, 128]]","[""torch.int64"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",27,27,1336.604,49.503851851851856,46.559,51.072
+cloud,1,prefill,aten.zeros.default,[],[],27,27,485.342,17.97562962962963,17.536,18.4
+cloud,1,prefill,aten.view.default,"[[4096, 1024]]","[""torch.float16""]",54,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,aten.view.default,"[[4096, 128]]","[""torch.float16""]",54,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,vllm.unified_attention_with_output.default,"[[4096, 8, 128], [4096, 1, 128], [4096, 1, 128], [4096, 8, 128]]","[""torch.float16"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",27,54,14918.115,552.5227777777777,503.198,598.878
+cloud,1,prefill,aten.view.default,"[[4096, 8, 128]]","[""torch.float16""]",27,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,aten.linear.default,"[[4096, 1024], [2048, 1024]]","[""torch.float16"", ""torch.float16""]",27,27,6060.679,224.4695925925926,202.879,235.807
+cloud,1,prefill,vllm.all_reduce.default,"[[4096, 2048]]","[""torch.float16""]",54,0,0.0,0.0,0.0,0.0
+cloud,1,prefill,pynccl.all_reduce,"[[4096, 2048]]","[""torch.float16""]",54,54,66394.138,1229.5210740740742,1187.035,1266.779
+cloud,1,prefill,aten.linear.default,"[[4096, 2048], [11008, 2048]]","[""torch.float16"", ""torch.float16""]",27,27,60350.324,2235.1971851851854,2109.208,2315.063
+cloud,1,prefill,_C.silu_and_mul.default,"[[4096, 5504], [4096, 11008]]","[""torch.float16"", ""torch.float16""]",27,27,8113.691,300.5070740740741,292.19,306.399
+cloud,1,prefill,aten.linear.default,"[[4096, 5504], [2048, 5504]]","[""torch.float16"", ""torch.float16""]",27,27,28612.4,1059.7185185185185,988.381,1104.251
+cloud,1,decode,aten.lift_fresh.default,[[1]],"[""torch.int64""]",16,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.detach_.default,[[1]],"[""torch.int64""]",16,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.lift_fresh.default,[[1]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.detach_.default,[[1]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.lift_fresh.default,"[[1, 257]]","[""torch.int32""]",8,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.detach_.default,"[[1, 257]]","[""torch.int32""]",8,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.lift_fresh.default,[[2]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.detach_.default,[[2]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.empty.memory_format,[],[],232,0,0.0,0.0,0.0,0.0
+cloud,1,decode,c10d.broadcast_.default,"[[1, 2048]]","[""torch.float16""]",16,16,3412.242,213.265125,6.752,1967.8
+cloud,1,decode,aten.detach.default,[[2048]],"[""torch.float16""]",432,0,0.0,0.0,0.0,0.0
+cloud,1,decode,_C.fused_add_rms_norm.default,"[[1, 2048], [1, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",432,432,1170.779,2.710136574074074,2.592,2.88
+cloud,1,decode,aten.linear.default,"[[1, 2048], [1280, 2048], [1280]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",216,216,3038.707,14.068087962962963,13.696,14.656
+cloud,1,decode,aten.split_with_sizes.default,"[[1, 1280]]","[""torch.float16""]",216,0,0.0,0.0,0.0,0.0
+cloud,1,decode,_C.rotary_embedding.default,"[[1], [1, 1024], [1, 128], [32768, 128]]","[""torch.int64"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",216,216,525.822,2.4343611111111114,2.336,2.592
+cloud,1,decode,aten.zeros.default,[],[],216,216,252.414,1.1685833333333333,1.151,1.184
+cloud,1,decode,aten.view.default,"[[1, 1024]]","[""torch.float16""]",432,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.view.default,"[[1, 128]]","[""torch.float16""]",432,0,0.0,0.0,0.0,0.0
+cloud,1,decode,vllm.unified_attention_with_output.default,"[[1, 8, 128], [1, 1, 128], [1, 1, 128], [1, 8, 128]]","[""torch.float16"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",216,656,4876.878,22.57813888888889,22.176,24.352
+cloud,1,decode,aten.view.default,"[[1, 8, 128]]","[""torch.float16""]",216,0,0.0,0.0,0.0,0.0
+cloud,1,decode,aten.linear.default,"[[1, 1024], [2048, 1024]]","[""torch.float16"", ""torch.float16""]",216,216,2780.339,12.871939814814816,12.704,14.784
+cloud,1,decode,vllm.all_reduce.default,"[[1, 2048]]","[""torch.float16""]",432,0,0.0,0.0,0.0,0.0
+cloud,1,decode,pynccl.all_reduce,"[[1, 2048]]","[""torch.float16""]",432,432,55096.042,127.53713425925926,8.064,1186.331
+cloud,1,decode,aten.linear.default,"[[1, 2048], [11008, 2048]]","[""torch.float16"", ""torch.float16""]",216,216,20204.655,93.54006944444444,93.088,96.96
+cloud,1,decode,_C.silu_and_mul.default,"[[1, 5504], [1, 11008]]","[""torch.float16"", ""torch.float16""]",216,216,789.341,3.6543564814814813,3.52,3.968
+cloud,1,decode,aten.linear.default,"[[1, 5504], [2048, 5504]]","[""torch.float16"", ""torch.float16""]",216,432,12494.737,57.846004629629626,57.344,58.944
+enterprise,1,prefill,aten.lift_fresh.default,[[4096]],"[""torch.int64""]",3,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.detach_.default,[[4096]],"[""torch.int64""]",3,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.lift_fresh.default,[[1]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.detach_.default,[[1]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.empty.memory_format,[],[],12,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.lift_fresh.default,[[2]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.detach_.default,[[2]],"[""torch.int32""]",2,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.ge.Scalar,[[4096]],"[""torch.int64""]",2,2,3.52,1.76,1.568,1.952
+enterprise,1,prefill,aten.lt.Scalar,[[4096]],"[""torch.int64""]",2,2,3.232,1.616,1.536,1.696
+enterprise,1,prefill,aten.__and__.Tensor,"[[4096], [4096]]","[""torch.bool"", ""torch.bool""]",2,2,2.72,1.36,1.344,1.376
+enterprise,1,prefill,aten.mul.Tensor,[[4096]],"[""torch.bool""]",2,2,5.472,2.736,2.528,2.944
+enterprise,1,prefill,aten.add.Tensor,"[[4096], [4096]]","[""torch.int64"", ""torch.int64""]",1,1,1.696,1.696,1.696,1.696
+enterprise,1,prefill,aten.__or__.Tensor,"[[4096], [4096]]","[""torch.bool"", ""torch.bool""]",1,1,1.408,1.408,1.408,1.408
+enterprise,1,prefill,aten.sub.Tensor,"[[4096], [4096]]","[""torch.int64"", ""torch.int64""]",1,1,1.696,1.696,1.696,1.696
+enterprise,1,prefill,aten.mul.Tensor,"[[4096], [4096]]","[""torch.bool"", ""torch.int64""]",1,1,3.488,3.488,3.488,3.488
+enterprise,1,prefill,aten.bitwise_not.default,[[4096]],"[""torch.bool""]",1,1,1.376,1.376,1.376,1.376
+enterprise,1,prefill,aten.to.dtype,[[4096]],"[""torch.int64""]",1,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.embedding.default,"[[75968, 2048], [4096]]","[""torch.float16"", ""torch.int64""]",1,1,34.591,34.591,34.591,34.591
+enterprise,1,prefill,aten.unsqueeze.default,[[4096]],"[""torch.bool""]",1,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.masked_fill_.Scalar,"[[4096, 2048], [4096, 1]]","[""torch.float16"", ""torch.bool""]",1,1,67.296,67.296,67.296,67.296
+enterprise,1,prefill,vllm.all_reduce.default,"[[4096, 2048]]","[""torch.float16""]",19,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,pynccl.all_reduce,"[[4096, 2048]]","[""torch.float16""]",19,19,21318.272,1122.0143157894738,1099.226,1139.865
+enterprise,1,prefill,aten.detach.default,[[2048]],"[""torch.float16""]",19,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.empty_like.default,"[[4096, 2048]]","[""torch.float16""]",1,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,_C.rms_norm.default,"[[4096, 2048], [4096, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",1,1,123.199,123.199,123.199,123.199
+enterprise,1,prefill,aten.linear.default,"[[4096, 2048], [1280, 2048], [1280]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",9,9,2645.745,293.9716666666667,292.254,296.447
+enterprise,1,prefill,aten.split_with_sizes.default,"[[4096, 1280]]","[""torch.float16""]",9,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,_C.rotary_embedding.default,"[[4096], [4096, 1024], [4096, 128], [32768, 128]]","[""torch.int64"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",9,9,420.669,46.741,46.4,46.975
+enterprise,1,prefill,aten.zeros.default,[],[],9,9,159.455,17.717222222222222,17.44,18.015
+enterprise,1,prefill,aten.view.default,"[[4096, 1024]]","[""torch.float16""]",18,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.view.default,"[[4096, 128]]","[""torch.float16""]",18,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,vllm.unified_attention_with_output.default,"[[4096, 8, 128], [4096, 1, 128], [4096, 1, 128], [4096, 8, 128]]","[""torch.float16"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",9,18,4583.877,509.3196666666667,492.893,519.805
+enterprise,1,prefill,aten.view.default,"[[4096, 8, 128]]","[""torch.float16""]",9,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.linear.default,"[[4096, 1024], [2048, 1024]]","[""torch.float16"", ""torch.float16""]",9,9,1804.245,200.47166666666666,198.943,202.847
+enterprise,1,prefill,_C.fused_add_rms_norm.default,"[[4096, 2048], [4096, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",18,18,2496.049,138.66938888888888,137.727,139.616
+enterprise,1,prefill,aten.linear.default,"[[4096, 2048], [11008, 2048]]","[""torch.float16"", ""torch.float16""]",9,9,18782.768,2086.974222222222,2077.747,2101.971
+enterprise,1,prefill,_C.silu_and_mul.default,"[[4096, 5504], [4096, 11008]]","[""torch.float16"", ""torch.float16""]",9,9,2630.161,292.2401111111111,291.326,292.926
+enterprise,1,prefill,aten.linear.default,"[[4096, 5504], [2048, 5504]]","[""torch.float16"", ""torch.float16""]",9,9,8741.387,971.2652222222223,960.091,989.786
+enterprise,1,prefill,c10d.broadcast_.default,"[[4096, 2048]]","[""torch.float16""]",2,2,4663.397,2331.6985,2290.291,2373.106
+enterprise,1,prefill,aten.lift_fresh.default,[[1]],"[""torch.int64""]",1,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.to.device,[[1]],"[""torch.int64""]",1,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.detach_.default,[[1]],"[""torch.int64""]",1,0,0.0,0.0,0.0,0.0
+enterprise,1,prefill,aten.index_select.default,"[[4096, 2048], [1]]","[""torch.float16"", ""torch.int64""]",1,1,2.88,2.88,2.88,2.88
+enterprise,1,prefill,aten.linear.default,"[[1, 2048], [75968, 2048]]","[""torch.float16"", ""torch.float16""]",1,1,643.068,643.068,643.068,643.068
+enterprise,1,prefill,c10d.gather_.default,"[[1, 75968]]","[""torch.float16""]",1,1,23.328,23.328,23.328,23.328
+enterprise,1,decode,aten.lift_fresh.default,[[1]],"[""torch.int64""]",32,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.detach_.default,[[1]],"[""torch.int64""]",32,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.lift_fresh.default,[[1]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.detach_.default,[[1]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.lift_fresh.default,"[[1, 257]]","[""torch.int32""]",8,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.detach_.default,"[[1, 257]]","[""torch.int32""]",8,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.lift_fresh.default,[[2]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.detach_.default,[[2]],"[""torch.int32""]",16,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.ge.Scalar,[[1]],"[""torch.int64""]",16,16,30.624,1.914,1.44,2.4
+enterprise,1,decode,aten.lt.Scalar,[[1]],"[""torch.int64""]",16,16,23.488,1.468,1.44,1.504
+enterprise,1,decode,aten.__and__.Tensor,"[[1], [1]]","[""torch.bool"", ""torch.bool""]",16,16,27.296,1.706,1.536,1.952
+enterprise,1,decode,aten.mul.Tensor,[[1]],"[""torch.bool""]",16,16,30.655,1.9159375,1.631,2.432
+enterprise,1,decode,aten.add.Tensor,"[[1], [1]]","[""torch.int64"", ""torch.int64""]",8,8,12.704,1.588,1.568,1.632
+enterprise,1,decode,aten.__or__.Tensor,"[[1], [1]]","[""torch.bool"", ""torch.bool""]",8,8,12.384,1.548,1.536,1.568
+enterprise,1,decode,aten.sub.Tensor,"[[1], [1]]","[""torch.int64"", ""torch.int64""]",8,8,12.288,1.536,1.504,1.728
+enterprise,1,decode,aten.mul.Tensor,"[[1], [1]]","[""torch.bool"", ""torch.int64""]",8,8,19.488,2.436,2.368,2.752
+enterprise,1,decode,aten.bitwise_not.default,[[1]],"[""torch.bool""]",8,8,13.056,1.632,1.6,1.856
+enterprise,1,decode,aten.to.dtype,[[1]],"[""torch.int64""]",8,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.embedding.default,"[[75968, 2048], [1]]","[""torch.float16"", ""torch.int64""]",8,8,21.952,2.744,2.656,3.168
+enterprise,1,decode,aten.unsqueeze.default,[[1]],"[""torch.bool""]",8,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.masked_fill_.Scalar,"[[1, 2048], [1, 1]]","[""torch.float16"", ""torch.bool""]",8,8,20.416,2.552,2.464,2.848
+enterprise,1,decode,vllm.all_reduce.default,"[[1, 2048]]","[""torch.float16""]",152,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,pynccl.all_reduce,"[[1, 2048]]","[""torch.float16""]",152,152,14399.338,94.73248684210526,8.095,1649.207
+enterprise,1,decode,aten.detach.default,[[2048]],"[""torch.float16""]",152,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.empty_like.default,"[[1, 2048]]","[""torch.float16""]",8,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,_C.rms_norm.default,"[[1, 2048], [1, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",8,8,25.887,3.235875,3.135,3.648
+enterprise,1,decode,aten.linear.default,"[[1, 2048], [1280, 2048], [1280]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",72,72,1023.418,14.214138888888888,13.696,14.944
+enterprise,1,decode,aten.split_with_sizes.default,"[[1, 1280]]","[""torch.float16""]",72,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,_C.rotary_embedding.default,"[[1], [1, 1024], [1, 128], [32768, 128]]","[""torch.int64"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",72,72,180.83,2.511527777777778,2.4,2.88
+enterprise,1,decode,aten.zeros.default,[],[],72,72,85.344,1.1853333333333333,1.152,1.376
+enterprise,1,decode,aten.view.default,"[[1, 1024]]","[""torch.float16""]",144,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.view.default,"[[1, 128]]","[""torch.float16""]",144,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,vllm.unified_attention_with_output.default,"[[1, 8, 128], [1, 1, 128], [1, 1, 128], [1, 8, 128]]","[""torch.float16"", ""torch.float16"", ""torch.float16"", ""torch.float16""]",72,224,1658.232,23.031,22.304,27.36
+enterprise,1,decode,aten.view.default,"[[1, 8, 128]]","[""torch.float16""]",72,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.linear.default,"[[1, 1024], [2048, 1024]]","[""torch.float16"", ""torch.float16""]",72,72,932.28,12.948333333333334,12.672,13.76
+enterprise,1,decode,_C.fused_add_rms_norm.default,"[[1, 2048], [1, 2048], [2048]]","[""torch.float16"", ""torch.float16"", ""torch.float16""]",144,144,396.285,2.7519791666666666,2.56,3.2
+enterprise,1,decode,aten.linear.default,"[[1, 2048], [11008, 2048]]","[""torch.float16"", ""torch.float16""]",72,72,6738.163,93.58559722222222,93.215,94.56
+enterprise,1,decode,aten.empty.memory_format,[],[],88,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,_C.silu_and_mul.default,"[[1, 5504], [1, 11008]]","[""torch.float16"", ""torch.float16""]",72,72,265.28,3.6844444444444444,3.552,4.192
+enterprise,1,decode,aten.linear.default,"[[1, 5504], [2048, 5504]]","[""torch.float16"", ""torch.float16""]",72,144,4182.339,58.08804166666666,57.503,60.16
+enterprise,1,decode,c10d.broadcast_.default,"[[1, 2048]]","[""torch.float16""]",16,16,1866.423,116.6514375,63.808,172.735
+enterprise,1,decode,aten.to.device,[[1]],"[""torch.int64""]",8,0,0.0,0.0,0.0,0.0
+enterprise,1,decode,aten.index_select.default,"[[1, 2048], [1]]","[""torch.float16"", ""torch.int64""]",8,8,19.424,2.428,2.4,2.464
+enterprise,1,decode,aten.linear.default,"[[1, 2048], [75968, 2048]]","[""torch.float16"", ""torch.float16""]",8,8,5082.05,635.25625,634.652,635.708
+enterprise,1,decode,c10d.gather_.default,"[[1, 75968]]","[""torch.float16""]",8,8,181.791,22.723875,22.304,23.008

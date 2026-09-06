@@ -1,0 +1,14 @@
+{
+  "stage123/decode_operators.csv": "5555ca48e42719b605e52a0cd58b02d97f898243d3cc27213452b38d0a102b51",
+  "stage123/source_hashes.json": "c208fd12794a9d2df649181271ac039172cc905c885e3221e41651e7e5d74d03",
+  "stage123/audit.json": "db8db2e779020a2863b10336ef1d33e42fad2f2e5939bf16b14353412a7881d5",
+  "stage123/prefill_operators.csv": "a0999f98f8e1884516f66287f0d19aa38b02599acd8df04104e3333b86ed167c",
+  "stage123/operator_summary.csv": "9007b3c243a59d0fe7fa27c737eae5343a60d8b8756d1e7ed136bbecf087038d",
+  "stage123/raw_capture.zip": "ef2629a47de0f009ba851a60eeae136accdcf32933aedf74fa231cfd585647ca",
+  "baseline/decode_operators.csv": "c91dce4309c06e56328d5afc72fe1cafb855e1d97e643b39be2140efc18cc206",
+  "baseline/source_hashes.json": "e53bfda64b1c660e1714f16785565358996542340a74b5b982890e1649d069ea",
+  "baseline/audit.json": "b401b1099c7d7da539fbae0685000d86712834895f747d0d10a127e40979633e",
+  "baseline/prefill_operators.csv": "8022b1a9a5d9b6cf03167381fe468b30afb521ee9b8c77e31b8daabe3c34e3e6",
+  "baseline/operator_summary.csv": "40b89e134d77862993564c839b950698bb5ac71d2db621c1c6cc0bd60e87c5b2",
+  "baseline/raw_capture.zip": "496c017dac3974367ad6d5f614ae098ec682adf23173fb57a39ad67539281b72"
+}

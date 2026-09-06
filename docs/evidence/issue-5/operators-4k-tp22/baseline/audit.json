@@ -1,0 +1,42 @@
+{
+  "operator_count": 16394,
+  "matched_kernels": 10058,
+  "unmatched_kernels": 0,
+  "matched_gpu_ns": 844573792,
+  "unmatched_gpu_ns": 0,
+  "gpu_operator_types": [
+    "_C.fused_add_rms_norm.default",
+    "_C.rms_norm.default",
+    "_C.rotary_embedding.default",
+    "_C.silu_and_mul.default",
+    "aten.__and__.Tensor",
+    "aten.__or__.Tensor",
+    "aten.add.Tensor",
+    "aten.bitwise_not.default",
+    "aten.cat.default",
+    "aten.embedding.default",
+    "aten.ge.Scalar",
+    "aten.index_select.default",
+    "aten.linear.default",
+    "aten.lt.Scalar",
+    "aten.masked_fill_.Scalar",
+    "aten.mul.Tensor",
+    "aten.sub.Tensor",
+    "aten.to.dtype",
+    "aten.zeros.default",
+    "c10d.broadcast_.default",
+    "c10d.gather_.default",
+    "pynccl.all_reduce",
+    "vllm.unified_attention_with_output.default"
+  ],
+  "operators_by_role_rank_phase": {
+    "cloud/rank0/prefill": 650,
+    "cloud/rank0/decode": 5208,
+    "enterprise/rank0/prefill": 276,
+    "enterprise/rank0/decode": 2216,
+    "cloud/rank1/prefill": 638,
+    "cloud/rank1/decode": 5112,
+    "enterprise/rank1/prefill": 254,
+    "enterprise/rank1/decode": 2040
+  }
+}
