@@ -1,0 +1,546 @@
+{
+  "version": 1,
+  "enabled": true,
+  "metadata": {
+    "source_issue": 5,
+    "source_evidence_commit": "670d3fc7d9d3ad042bef1933a37285eb47a5b3a1",
+    "stage123_implementation_commit": "b7d1b3c44d2cb817937a91cbe430853e9e9a5d17",
+    "dataset": "baseline",
+    "operator_backend": "vllm",
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "dtype": "float16",
+    "tp_degree": 2,
+    "reduction": "median across invocations after max across TP ranks",
+    "collective_reduction": "max(gpu_end_rank) - max(gpu_start_rank) after last-rank arrival"
+  },
+  "samples": [
+    {
+      "operator_type": "collective",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,2048]],\"op\":\"pynccl.all_reduce\",\"tp_degree\":2}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.008576,
+      "roofline_ms": 0.008170666666666666,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 584,
+      "p10_ms": 0.00832,
+      "p90_ms": 0.009024
+    },
+    {
+      "operator_type": "embedding",
+      "signature": "{\"dtype\":\"float16\",\"index_dtype\":\"int64\",\"inputs\":[[75968,2048],[1]],\"op\":\"aten.embedding\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.002688,
+      "roofline_ms": 0.010021005128205128,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 8,
+      "p10_ms": 0.002688,
+      "p90_ms": 0.00272
+    },
+    {
+      "operator_type": "flash_attention",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,8,128],[1,1,128],[1,1,128],[1,8,128]],\"items\":[{\"position\":4096,\"query_len\":1}],\"op\":\"vllm.unified_attention\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.0227355,
+      "roofline_ms": 0.015387815384615384,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 36,
+      "p10_ms": 0.0224,
+      "p90_ms": 0.025407
+    },
+    {
+      "operator_type": "flash_attention",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,8,128],[1,1,128],[1,1,128],[1,8,128]],\"items\":[{\"position\":4097,\"query_len\":1}],\"op\":\"vllm.unified_attention\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.022624,
+      "roofline_ms": 0.015389128205128203,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 36,
+      "p10_ms": 0.0224,
+      "p90_ms": 0.023136
+    },
+    {
+      "operator_type": "flash_attention",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,8,128],[1,1,128],[1,1,128],[1,8,128]],\"items\":[{\"position\":4098,\"query_len\":1}],\"op\":\"vllm.unified_attention\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.022624,
+      "roofline_ms": 0.015390441025641025,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 36,
+      "p10_ms": 0.0224,
+      "p90_ms": 0.023136
+    },
+    {
+      "operator_type": "flash_attention",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,8,128],[1,1,128],[1,1,128],[1,8,128]],\"items\":[{\"position\":4099,\"query_len\":1}],\"op\":\"vllm.unified_attention\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.022656,
+      "roofline_ms": 0.015391753846153844,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 36,
+      "p10_ms": 0.022368,
+      "p90_ms": 0.02304
+    },
+    {
+      "operator_type": "flash_attention",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,8,128],[1,1,128],[1,1,128],[1,8,128]],\"items\":[{\"position\":4100,\"query_len\":1}],\"op\":\"vllm.unified_attention\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.022576,
+      "roofline_ms": 0.015393066666666667,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 36,
+      "p10_ms": 0.022368,
+      "p90_ms": 0.022912
+    },
+    {
+      "operator_type": "flash_attention",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,8,128],[1,1,128],[1,1,128],[1,8,128]],\"items\":[{\"position\":4101,\"query_len\":1}],\"op\":\"vllm.unified_attention\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.022608,
+      "roofline_ms": 0.015394379487179486,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 36,
+      "p10_ms": 0.022432,
+      "p90_ms": 0.022912
+    },
+    {
+      "operator_type": "flash_attention",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,8,128],[1,1,128],[1,1,128],[1,8,128]],\"items\":[{\"position\":4102,\"query_len\":1}],\"op\":\"vllm.unified_attention\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.02256,
+      "roofline_ms": 0.015395692307692308,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 36,
+      "p10_ms": 0.0224,
+      "p90_ms": 0.022879
+    },
+    {
+      "operator_type": "flash_attention",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,8,128],[1,1,128],[1,1,128],[1,8,128]],\"items\":[{\"position\":4103,\"query_len\":1}],\"op\":\"vllm.unified_attention\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.022608,
+      "roofline_ms": 0.015397005128205127,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 36,
+      "p10_ms": 0.022432,
+      "p90_ms": 0.02288
+    },
+    {
+      "operator_type": "fused_add_rms_norm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,2048],[1,2048],[2048]],\"op\":\"vllm.fused_add_rms_norm\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.002752,
+      "roofline_ms": 0.01003150769230769,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 576,
+      "p10_ms": 0.002624,
+      "p90_ms": 0.002816
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,1024],[2048,1024]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.012896,
+      "roofline_ms": 0.020770379487179486,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 288,
+      "p10_ms": 0.0128,
+      "p90_ms": 0.013056
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,2048],[11008,2048]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.093632,
+      "roofline_ms": 0.12567917948717947,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 288,
+      "p10_ms": 0.093408,
+      "p90_ms": 0.09392
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,2048],[1280,2048],[1280]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.014144,
+      "roofline_ms": 0.02346691282051282,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 288,
+      "p10_ms": 0.01392,
+      "p90_ms": 0.014496
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,2048],[75968,2048]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.635629,
+      "roofline_ms": 0.8082588717948718,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 8,
+      "p10_ms": 0.635326,
+      "p90_ms": 0.636191
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,5504],[2048,5504]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.057984,
+      "roofline_ms": 0.06784484102564102,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 288,
+      "p10_ms": 0.057696,
+      "p90_ms": 0.0584
+    },
+    {
+      "operator_type": "rms_norm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,2048],[1,2048],[2048]],\"op\":\"vllm.rms_norm\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.003184,
+      "roofline_ms": 0.010021005128205128,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 8,
+      "p10_ms": 0.003168,
+      "p90_ms": 0.003264
+    },
+    {
+      "operator_type": "rotary_embedding",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1],[1,1024],[1,128],[32768,128]],\"op\":\"vllm.rotary_embedding\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.002464,
+      "roofline_ms": 0.010017723076923075,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 288,
+      "p10_ms": 0.0024,
+      "p90_ms": 0.002528
+    },
+    {
+      "operator_type": "silu_and_mul",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,5504],[1,11008]],\"op\":\"vllm.silu_and_mul\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.00368,
+      "roofline_ms": 0.010084676923076921,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 288,
+      "p10_ms": 0.003616,
+      "p90_ms": 0.003872
+    },
+    {
+      "operator_type": "tensor_allocation",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[],\"op\":\"aten.zeros\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.001184,
+      "roofline_ms": 0.010005251282051281,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "decode",
+      "sample_count": 288,
+      "p10_ms": 0.001152,
+      "p90_ms": 0.001184
+    },
+    {
+      "operator_type": "collective",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096,2048]],\"op\":\"pynccl.all_reduce\",\"tp_degree\":2}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 1.224475,
+      "roofline_ms": 0.7070506666666666,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 73,
+      "p10_ms": 1.118745,
+      "p90_ms": 1.241403
+    },
+    {
+      "operator_type": "embedding",
+      "signature": "{\"dtype\":\"float16\",\"index_dtype\":\"int64\",\"inputs\":[[75968,2048],[4096]],\"op\":\"aten.embedding\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.036672,
+      "roofline_ms": 0.09603700512820512,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 1,
+      "p10_ms": 0.036672,
+      "p90_ms": 0.036672
+    },
+    {
+      "operator_type": "flash_attention",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096,8,128],[4096,1,128],[4096,1,128],[4096,8,128]],\"items\":[{\"position\":0,\"query_len\":4096}],\"op\":\"vllm.unified_attention\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.5596455,
+      "roofline_ms": 0.6209889240177778,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 36,
+      "p10_ms": 0.51139,
+      "p90_ms": 0.584893
+    },
+    {
+      "operator_type": "fused_add_rms_norm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096,2048],[4096,2048],[2048]],\"op\":\"vllm.fused_add_rms_norm\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.1391515,
+      "roofline_ms": 0.1390555076923077,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 72,
+      "p10_ms": 0.138528,
+      "p90_ms": 0.13984
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[1,2048],[75968,2048]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.644446,
+      "roofline_ms": 0.8082588717948718,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 1,
+      "p10_ms": 0.644446,
+      "p90_ms": 0.644446
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096,1024],[2048,1024]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.224751,
+      "roofline_ms": 0.31541989660444447,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 36,
+      "p10_ms": 0.20048,
+      "p90_ms": 0.233887
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096,2048],[11008,2048]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 2.2154475,
+      "roofline_ms": 3.2932638884977776,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 36,
+      "p10_ms": 2.101339,
+      "p90_ms": 2.306935
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096,2048],[1280,2048],[1280]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.3169425,
+      "roofline_ms": 0.39177487075555556,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 36,
+      "p10_ms": 0.294079,
+      "p90_ms": 0.332671
+    },
+    {
+      "operator_type": "mm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096,5504],[2048,5504]],\"op\":\"aten.linear\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 1.0638040000000002,
+      "roofline_ms": 1.651631944248889,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 36,
+      "p10_ms": 0.96915,
+      "p90_ms": 1.092348
+    },
+    {
+      "operator_type": "rms_norm",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096,2048],[4096,2048],[2048]],\"op\":\"vllm.rms_norm\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.123199,
+      "roofline_ms": 0.09603700512820512,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 1,
+      "p10_ms": 0.123199,
+      "p90_ms": 0.123199
+    },
+    {
+      "operator_type": "rotary_embedding",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096],[4096,1024],[4096,128],[32768,128]],\"op\":\"vllm.rotary_embedding\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.0491995,
+      "roofline_ms": 0.08259372307692307,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 36,
+      "p10_ms": 0.046848,
+      "p90_ms": 0.05088
+    },
+    {
+      "operator_type": "silu_and_mul",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[[4096,5504],[4096,11008]],\"op\":\"vllm.silu_and_mul\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.30001449999999996,
+      "roofline_ms": 0.35683667692307697,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 36,
+      "p10_ms": 0.292287,
+      "p90_ms": 0.304543
+    },
+    {
+      "operator_type": "tensor_allocation",
+      "signature": "{\"dtype\":\"float16\",\"inputs\":[],\"op\":\"aten.zeros\"}",
+      "match": {
+        "tp_degree": 2,
+        "dtype": "float16",
+        "operator_backend": "vllm"
+      },
+      "latency_ms": 0.017952,
+      "roofline_ms": 0.03150925128205128,
+      "source": "issue5 baseline vLLM GPU kernels, TP critical rank",
+      "captured_phase": "prefill",
+      "sample_count": 36,
+      "p10_ms": 0.017664,
+      "p90_ms": 0.018271
+    }
+  ]
+}

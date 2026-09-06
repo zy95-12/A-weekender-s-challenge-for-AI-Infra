@@ -1,0 +1,99 @@
+{
+  "num_requests": 476,
+  "simulation_start_ms": 13541.841287575115,
+  "simulation_end_ms": 103541.84128757511,
+  "simulation_duration_ms": 90000.0,
+  "observed_request_throughput_qps": 5.288888888888889,
+  "observed_output_throughput_tokens_s": 417.8222222222222,
+  "ttft_ms": {
+    "mean": 716.9798402618661,
+    "p50": 697.1471369695923,
+    "p95": 936.0121456503614,
+    "p99": 1173.6007720823802
+  },
+  "tpot_ms": {
+    "mean": 87.04805186751045,
+    "p50": 87.13571025214716,
+    "p95": 90.82284403318019,
+    "p99": 92.00041920970666
+  },
+  "itl_ms": {
+    "p50": 84.08262806356652,
+    "p95": 133.19245161418948,
+    "p99": 158.73887315566176,
+    "max": 172.84626387154822
+  },
+  "e2e_ms": {
+    "mean": 7506.727885927682,
+    "p50": 7503.051655228468,
+    "p95": 7845.952508122444,
+    "p99": 8145.07977289784
+  },
+  "average_batch_size": null,
+  "resource_utilization": {},
+  "slo": {
+    "ttft_limit_ms": 3000.0,
+    "tpot_limit_ms": 100.0,
+    "target_attainment": 0.99,
+    "ttft_pass": true,
+    "tpot_pass": true,
+    "compliant_requests": 476,
+    "attainment": 1.0,
+    "goodput_qps": 5.288888888888889,
+    "pass": true
+  },
+  "scheduler_backend": "serving_source",
+  "serving_source": {
+    "repository": "https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra",
+    "commit": "34c809ca88b8b796f07cccfe55066db0b74cf7f8",
+    "files": {
+      "pipeline.py": "df620c1436494e24e255b7b1fac95ed7f7b6c0c2123fe7bc8752cedb48091c40",
+      "pd_scheduler.py": "1b1d6d78f929e36a76baaddb8e0ae21366c1ceba6070f1e8c51c9519888b2637",
+      "pipeline_state.py": "ad033a7b42659611b0e02f7b85a982ecfac228b705bbbaaaa11317841d62304b",
+      "scheduling.py": "61da5943304f3283f1f57bd3adad004f3b8cde1b48daf33115b75d64154f3534",
+      "server.py": "7f731731801374b9856cc5fc700069271602951de00e139a70c1ec5d98bcc8f4"
+    }
+  },
+  "command_cost_coverage": {
+    "edge_front/prefill/tp1": {
+      "command_exact_batch": 1112
+    },
+    "cloud_middle/prefill/tp1": {
+      "command_exact_batch": 1112
+    },
+    "edge_tail/prefill/tp1": {
+      "command_exact_batch": 1112
+    },
+    "edge_front/decode/tp1": {
+      "command_exact_batch": 1171,
+      "command_interpolated_batch": 133
+    },
+    "cloud_middle/decode/tp1": {
+      "command_exact_batch": 1171,
+      "command_interpolated_batch": 133
+    },
+    "edge_tail/decode/tp1": {
+      "command_exact_batch": 1171,
+      "command_interpolated_batch": 133
+    }
+  },
+  "command_sampling": "empirical",
+  "cost_seed": 17,
+  "residual_coverage": {
+    "exact_batch": 6849,
+    "nearest_batch_relative_residual": 399
+  },
+  "measurement_window": {
+    "start_ms": 13541.841287575115,
+    "end_ms": 103541.84128757511
+  },
+  "lifecycle_drained": true,
+  "serving_host_work": {
+    "enabled": true,
+    "coverage": {
+      "exact_batch": 41852,
+      "nearest_batch_per_request": 2628
+    },
+    "total_ms": 4647.261574750593
+  }
+}

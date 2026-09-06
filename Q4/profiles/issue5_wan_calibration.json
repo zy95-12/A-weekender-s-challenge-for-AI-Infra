@@ -1,0 +1,522 @@
+{
+  "schema_version": 1,
+  "source": "https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/366b71a4c516095d19993397f1410847c550cafb/docs/evidence/issue-5/wan-calibration/curves.csv",
+  "scope": "C1 persistent HTTP, TP2+2, 10Gbps, 5ms one-way; no model compute",
+  "interpolation": "piecewise linear in activation MiB; analytical fallback outside range",
+  "variants": {
+    "baseline": {
+      "one_way_latency_ms": 5.0,
+      "knots": [
+        {
+          "activation_mib": 0.0078125,
+          "upload_components_ms": {
+            "device_to_host": 0.06462174999999999,
+            "host_pack": 0.032924875000000006,
+            "wan_path": 5.3840798125000005,
+            "cloud_unpack": 0.031803,
+            "cloud_dispatch": 0.03843675,
+            "host_to_device": 0.2010016875
+          },
+          "download_components_ms": {
+            "device_to_host": 0.04666075,
+            "cloud_ipc": 0.26937275,
+            "host_pack": 0.028828375,
+            "wan_path": 5.3329717500000005,
+            "host_unpack": 0.036400625,
+            "host_to_device": 0.2335390625
+          },
+          "observed_gpu_ready_rtt_ms": 11.7029361875,
+          "reconstructed_gpu_ready_rtt_ms": 11.7006411875
+        },
+        {
+          "activation_mib": 0.03125,
+          "upload_components_ms": {
+            "device_to_host": 0.06772881250000001,
+            "host_pack": 0.0381116875,
+            "wan_path": 5.365900875,
+            "cloud_unpack": 0.032323624999999995,
+            "cloud_dispatch": 0.0381603125,
+            "host_to_device": 0.214666875
+          },
+          "download_components_ms": {
+            "device_to_host": 0.04549875,
+            "cloud_ipc": 0.26194531249999997,
+            "host_pack": 0.030371062499999997,
+            "wan_path": 5.3565811875,
+            "host_unpack": 0.0377326875,
+            "host_to_device": 0.2480776875
+          },
+          "observed_gpu_ready_rtt_ms": 11.7392215625,
+          "reconstructed_gpu_ready_rtt_ms": 11.737098875000001
+        },
+        {
+          "activation_mib": 0.125,
+          "upload_components_ms": {
+            "device_to_host": 0.07992356249999999,
+            "host_pack": 0.084985,
+            "wan_path": 5.4320795625,
+            "cloud_unpack": 0.040720687500000005,
+            "cloud_dispatch": 0.048259750000000004,
+            "host_to_device": 0.206721125
+          },
+          "download_components_ms": {
+            "device_to_host": 0.056469624999999996,
+            "cloud_ipc": 0.32418525,
+            "host_pack": 0.0416239375,
+            "wan_path": 5.464320375,
+            "host_unpack": 0.045433,
+            "host_to_device": 0.2755664375
+          },
+          "observed_gpu_ready_rtt_ms": 12.102740687499999,
+          "reconstructed_gpu_ready_rtt_ms": 12.1002883125
+        },
+        {
+          "activation_mib": 0.5,
+          "upload_components_ms": {
+            "device_to_host": 0.12656418749999998,
+            "host_pack": 0.42016775,
+            "wan_path": 5.6344518125,
+            "cloud_unpack": 0.067866375,
+            "cloud_dispatch": 0.0502208125,
+            "host_to_device": 0.27248206249999996
+          },
+          "download_components_ms": {
+            "device_to_host": 0.13449743749999998,
+            "cloud_ipc": 0.9161596875,
+            "host_pack": 0.2146976875,
+            "wan_path": 5.681978375,
+            "host_unpack": 0.07587068749999999,
+            "host_to_device": 0.31150806249999996
+          },
+          "observed_gpu_ready_rtt_ms": 13.909364687499998,
+          "reconstructed_gpu_ready_rtt_ms": 13.906464937500001
+        },
+        {
+          "activation_mib": 1.0,
+          "upload_components_ms": {
+            "device_to_host": 0.1928344375,
+            "host_pack": 0.36882725,
+            "wan_path": 6.0298416875,
+            "cloud_unpack": 0.234373375,
+            "cloud_dispatch": 0.0551218125,
+            "host_to_device": 0.352094
+          },
+          "download_components_ms": {
+            "device_to_host": 0.2368424375,
+            "cloud_ipc": 1.9854353125,
+            "host_pack": 0.6148190625000001,
+            "wan_path": 6.021774687500001,
+            "host_unpack": 0.1360485,
+            "host_to_device": 0.3998745625
+          },
+          "observed_gpu_ready_rtt_ms": 16.63075975,
+          "reconstructed_gpu_ready_rtt_ms": 16.627887125
+        },
+        {
+          "activation_mib": 2.0,
+          "upload_components_ms": {
+            "device_to_host": 0.31063925,
+            "host_pack": 1.1006002499999998,
+            "wan_path": 6.8657068125,
+            "cloud_unpack": 0.47314475,
+            "cloud_dispatch": 0.0615455625,
+            "host_to_device": 0.4943369375000001
+          },
+          "download_components_ms": {
+            "device_to_host": 0.3554621875,
+            "cloud_ipc": 3.9804120625,
+            "host_pack": 1.200505625,
+            "wan_path": 6.94997425,
+            "host_unpack": 0.26938325,
+            "host_to_device": 0.5185354375
+          },
+          "observed_gpu_ready_rtt_ms": 22.5838131875,
+          "reconstructed_gpu_ready_rtt_ms": 22.580246375
+        },
+        {
+          "activation_mib": 4.0,
+          "upload_components_ms": {
+            "device_to_host": 0.5767407499999999,
+            "host_pack": 2.1304716875,
+            "wan_path": 15.79794825,
+            "cloud_unpack": 0.6851946874999999,
+            "cloud_dispatch": 0.066065625,
+            "host_to_device": 0.73626375
+          },
+          "download_components_ms": {
+            "device_to_host": 0.65304175,
+            "cloud_ipc": 8.216471,
+            "host_pack": 2.4957409999999998,
+            "wan_path": 16.3171770625,
+            "host_unpack": 0.519598125,
+            "host_to_device": 0.7785758125
+          },
+          "observed_gpu_ready_rtt_ms": 48.9765689375,
+          "reconstructed_gpu_ready_rtt_ms": 48.97328950000001
+        },
+        {
+          "activation_mib": 8.0,
+          "upload_components_ms": {
+            "device_to_host": 0.7971268125,
+            "host_pack": 4.2824093125,
+            "wan_path": 26.767200312499998,
+            "cloud_unpack": 1.0412250625,
+            "cloud_dispatch": 0.0844835,
+            "host_to_device": 1.2659603750000001
+          },
+          "download_components_ms": {
+            "device_to_host": 0.942774,
+            "cloud_ipc": 18.513254437500002,
+            "host_pack": 5.0299376875,
+            "wan_path": 29.829879,
+            "host_unpack": 1.196204,
+            "host_to_device": 1.332521875
+          },
+          "observed_gpu_ready_rtt_ms": 91.0874186875,
+          "reconstructed_gpu_ready_rtt_ms": 91.08297637499999
+        },
+        {
+          "activation_mib": 16.0,
+          "upload_components_ms": {
+            "device_to_host": 1.3822418125,
+            "host_pack": 8.9589035625,
+            "wan_path": 49.533416125,
+            "cloud_unpack": 2.9256624374999998,
+            "cloud_dispatch": 0.1032135625,
+            "host_to_device": 2.2764075625
+          },
+          "download_components_ms": {
+            "device_to_host": 2.2581264374999996,
+            "cloud_ipc": 47.7090911875,
+            "host_pack": 12.163085875,
+            "wan_path": 49.6981091875,
+            "host_unpack": 2.5664370624999995,
+            "host_to_device": 2.4450675625000002
+          },
+          "observed_gpu_ready_rtt_ms": 182.0254561875,
+          "reconstructed_gpu_ready_rtt_ms": 182.01976237500003
+        },
+        {
+          "activation_mib": 32.0,
+          "upload_components_ms": {
+            "device_to_host": 2.6306408125000003,
+            "host_pack": 32.0852713125,
+            "wan_path": 103.975277125,
+            "cloud_unpack": 6.2105781874999995,
+            "cloud_dispatch": 0.13697631249999997,
+            "host_to_device": 4.6214811875
+          },
+          "download_components_ms": {
+            "device_to_host": 4.6169570625,
+            "cloud_ipc": 137.77041874999998,
+            "host_pack": 44.1935830625,
+            "wan_path": 109.5114300625,
+            "host_unpack": 5.32730825,
+            "host_to_device": 5.032985812500001
+          },
+          "observed_gpu_ready_rtt_ms": 456.11970268749997,
+          "reconstructed_gpu_ready_rtt_ms": 456.1129079374999
+        },
+        {
+          "activation_mib": 64.0,
+          "upload_components_ms": {
+            "device_to_host": 11.302075437500001,
+            "host_pack": 88.96972825,
+            "wan_path": 296.0895933125,
+            "cloud_unpack": 13.100085499999999,
+            "cloud_dispatch": 0.1301095625,
+            "host_to_device": 9.044229625
+          },
+          "download_components_ms": {
+            "device_to_host": 28.7298979375,
+            "cloud_ipc": 320.0685888125,
+            "host_pack": 100.80973999999999,
+            "wan_path": 248.562303375,
+            "host_unpack": 11.893368437500001,
+            "host_to_device": 9.3793098125
+          },
+          "observed_gpu_ready_rtt_ms": 1138.085755125,
+          "reconstructed_gpu_ready_rtt_ms": 1138.0790300625001
+        },
+        {
+          "activation_mib": 128.0,
+          "upload_components_ms": {
+            "device_to_host": 40.8252189375,
+            "host_pack": 193.46692543749998,
+            "wan_path": 1135.6278406875,
+            "cloud_unpack": 38.474777624999994,
+            "cloud_dispatch": 0.173710125,
+            "host_to_device": 17.536421625000003
+          },
+          "download_components_ms": {
+            "device_to_host": 68.03503112499999,
+            "cloud_ipc": 670.7317564375,
+            "host_pack": 202.805135875,
+            "wan_path": 522.8405648749999,
+            "host_unpack": 33.181099437499995,
+            "host_to_device": 18.3569255
+          },
+          "observed_gpu_ready_rtt_ms": 2942.0651625,
+          "reconstructed_gpu_ready_rtt_ms": 2942.0554076875
+        }
+      ]
+    },
+    "stage1": {
+      "one_way_latency_ms": 5.0,
+      "knots": [
+        {
+          "activation_mib": 0.0078125,
+          "upload_components_ms": {
+            "device_to_host": 0.06491250000000001,
+            "host_pack": 0.0329665625,
+            "wan_path": 5.576663999999999,
+            "cloud_unpack": 0.0348978125,
+            "cloud_dispatch": 0.0429453125,
+            "host_to_device": 0.21464556250000003
+          },
+          "download_components_ms": {
+            "device_to_host": 0.045220125,
+            "cloud_ipc": 0.1993040625,
+            "host_pack": 0.0328070625,
+            "wan_path": 5.3631043125,
+            "host_unpack": 0.036353625,
+            "host_to_device": 0.234297875
+          },
+          "observed_gpu_ready_rtt_ms": 11.880470500000001,
+          "reconstructed_gpu_ready_rtt_ms": 11.878118812499999
+        },
+        {
+          "activation_mib": 0.03125,
+          "upload_components_ms": {
+            "device_to_host": 0.06731137499999999,
+            "host_pack": 0.039076625000000004,
+            "wan_path": 5.3720265,
+            "cloud_unpack": 0.0355101875,
+            "cloud_dispatch": 0.0429144375,
+            "host_to_device": 0.22863475
+          },
+          "download_components_ms": {
+            "device_to_host": 0.046060625,
+            "cloud_ipc": 0.2380878125,
+            "host_pack": 0.038809625,
+            "wan_path": 5.366521125,
+            "host_unpack": 0.038163125,
+            "host_to_device": 0.22942081250000002
+          },
+          "observed_gpu_ready_rtt_ms": 11.7452304375,
+          "reconstructed_gpu_ready_rtt_ms": 11.742536999999999
+        },
+        {
+          "activation_mib": 0.125,
+          "upload_components_ms": {
+            "device_to_host": 0.077738375,
+            "host_pack": 0.0552170625,
+            "wan_path": 5.3972865,
+            "cloud_unpack": 0.040720000000000006,
+            "cloud_dispatch": 0.0495504375,
+            "host_to_device": 0.24730256250000002
+          },
+          "download_components_ms": {
+            "device_to_host": 0.055337750000000005,
+            "cloud_ipc": 0.2486584375,
+            "host_pack": 0.04142675,
+            "wan_path": 5.447253125,
+            "host_unpack": 0.0421095,
+            "host_to_device": 0.253145625
+          },
+          "observed_gpu_ready_rtt_ms": 11.9584654375,
+          "reconstructed_gpu_ready_rtt_ms": 11.955746125
+        },
+        {
+          "activation_mib": 0.5,
+          "upload_components_ms": {
+            "device_to_host": 0.1884305,
+            "host_pack": 0.18485775,
+            "wan_path": 5.5698485,
+            "cloud_unpack": 0.0684054375,
+            "cloud_dispatch": 0.047970562499999994,
+            "host_to_device": 0.286174625
+          },
+          "download_components_ms": {
+            "device_to_host": 0.09773781250000001,
+            "cloud_ipc": 0.3519259375,
+            "host_pack": 0.0647935625,
+            "wan_path": 5.7595068750000005,
+            "host_unpack": 0.0747091875,
+            "host_to_device": 0.2918303125
+          },
+          "observed_gpu_ready_rtt_ms": 12.9889905625,
+          "reconstructed_gpu_ready_rtt_ms": 12.986191062500001
+        },
+        {
+          "activation_mib": 1.0,
+          "upload_components_ms": {
+            "device_to_host": 0.1865154375,
+            "host_pack": 0.159819,
+            "wan_path": 5.917871375,
+            "cloud_unpack": 0.19092643750000002,
+            "cloud_dispatch": 0.049428625000000004,
+            "host_to_device": 0.343514875
+          },
+          "download_components_ms": {
+            "device_to_host": 0.1587576875,
+            "cloud_ipc": 0.4878808125,
+            "host_pack": 0.11297506250000001,
+            "wan_path": 6.015506374999999,
+            "host_unpack": 0.1382816875,
+            "host_to_device": 0.3706615
+          },
+          "observed_gpu_ready_rtt_ms": 14.136597250000001,
+          "reconstructed_gpu_ready_rtt_ms": 14.132138874999999
+        },
+        {
+          "activation_mib": 2.0,
+          "upload_components_ms": {
+            "device_to_host": 0.542903875,
+            "host_pack": 0.6201869375,
+            "wan_path": 6.92364375,
+            "cloud_unpack": 0.3959580625,
+            "cloud_dispatch": 0.05553118750000001,
+            "host_to_device": 0.4912324375
+          },
+          "download_components_ms": {
+            "device_to_host": 0.27897425,
+            "cloud_ipc": 0.7902279375,
+            "host_pack": 0.1979975625,
+            "wan_path": 6.8120880625,
+            "host_unpack": 0.2435970625,
+            "host_to_device": 0.5160835
+          },
+          "observed_gpu_ready_rtt_ms": 17.87189025,
+          "reconstructed_gpu_ready_rtt_ms": 17.868424625000003
+        },
+        {
+          "activation_mib": 4.0,
+          "upload_components_ms": {
+            "device_to_host": 0.5362499375,
+            "host_pack": 0.6218580625000001,
+            "wan_path": 8.0199520625,
+            "cloud_unpack": 1.0837104375000002,
+            "cloud_dispatch": 0.07248225,
+            "host_to_device": 0.7577352500000001
+          },
+          "download_components_ms": {
+            "device_to_host": 0.3958873125,
+            "cloud_ipc": 1.6775088125,
+            "host_pack": 0.4461849375,
+            "wan_path": 7.9104741875,
+            "host_unpack": 0.5589934999999999,
+            "host_to_device": 0.8172309375
+          },
+          "observed_gpu_ready_rtt_ms": 22.9019975625,
+          "reconstructed_gpu_ready_rtt_ms": 22.898267687500002
+        },
+        {
+          "activation_mib": 8.0,
+          "upload_components_ms": {
+            "device_to_host": 1.7009566875000002,
+            "host_pack": 2.4167218124999996,
+            "wan_path": 11.3142331875,
+            "cloud_unpack": 2.009865125,
+            "cloud_dispatch": 0.0901815625,
+            "host_to_device": 1.29662725
+          },
+          "download_components_ms": {
+            "device_to_host": 0.6653370000000001,
+            "cloud_ipc": 3.598325125,
+            "host_pack": 0.9904962500000001,
+            "wan_path": 13.5181464375,
+            "host_unpack": 1.4165588125,
+            "host_to_device": 1.4156400000000002
+          },
+          "observed_gpu_ready_rtt_ms": 40.43822125,
+          "reconstructed_gpu_ready_rtt_ms": 40.433089249999995
+        },
+        {
+          "activation_mib": 16.0,
+          "upload_components_ms": {
+            "device_to_host": 2.326037875,
+            "host_pack": 2.8239430624999997,
+            "wan_path": 17.836008,
+            "cloud_unpack": 2.3025849375,
+            "cloud_dispatch": 0.0970413125,
+            "host_to_device": 2.312664
+          },
+          "download_components_ms": {
+            "device_to_host": 1.188495375,
+            "cloud_ipc": 6.9987954375,
+            "host_pack": 2.0877169999999996,
+            "wan_path": 21.506811,
+            "host_unpack": 3.0726703125,
+            "host_to_device": 2.382634125
+          },
+          "observed_gpu_ready_rtt_ms": 64.9408745625,
+          "reconstructed_gpu_ready_rtt_ms": 64.9354024375
+        },
+        {
+          "activation_mib": 32.0,
+          "upload_components_ms": {
+            "device_to_host": 2.5055466875,
+            "host_pack": 14.727609750000001,
+            "wan_path": 39.0732195,
+            "cloud_unpack": 7.6938098749999995,
+            "cloud_dispatch": 0.0975025625,
+            "host_to_device": 4.609964375000001
+          },
+          "download_components_ms": {
+            "device_to_host": 2.0610079375,
+            "cloud_ipc": 14.070707500000001,
+            "host_pack": 15.0785075625,
+            "wan_path": 54.871534249999996,
+            "host_unpack": 5.097162624999999,
+            "host_to_device": 4.69606025
+          },
+          "observed_gpu_ready_rtt_ms": 164.58831650000002,
+          "reconstructed_gpu_ready_rtt_ms": 164.582632875
+        },
+        {
+          "activation_mib": 64.0,
+          "upload_components_ms": {
+            "device_to_host": 7.3834155625,
+            "host_pack": 28.183802875,
+            "wan_path": 76.3603545,
+            "cloud_unpack": 12.0686338125,
+            "cloud_dispatch": 0.0914673125,
+            "host_to_device": 8.903951375
+          },
+          "download_components_ms": {
+            "device_to_host": 19.1072141875,
+            "cloud_ipc": 24.9443631875,
+            "host_pack": 33.776916125,
+            "wan_path": 94.79122881250001,
+            "host_unpack": 12.188333875000001,
+            "host_to_device": 9.03374475
+          },
+          "observed_gpu_ready_rtt_ms": 326.8391578125,
+          "reconstructed_gpu_ready_rtt_ms": 326.83342637500004
+        },
+        {
+          "activation_mib": 128.0,
+          "upload_components_ms": {
+            "device_to_host": 38.8647626875,
+            "host_pack": 66.929125,
+            "wan_path": 173.3318534375,
+            "cloud_unpack": 39.014286437500004,
+            "cloud_dispatch": 0.12305312500000001,
+            "host_to_device": 17.290803187500003
+          },
+          "download_components_ms": {
+            "device_to_host": 68.1779391875,
+            "cloud_ipc": 64.58415868750001,
+            "host_pack": 67.44182918749999,
+            "wan_path": 199.0554209375,
+            "host_unpack": 25.0527945,
+            "host_to_device": 17.995934125
+          },
+          "observed_gpu_ready_rtt_ms": 777.8685673125,
+          "reconstructed_gpu_ready_rtt_ms": 777.8619605
+        }
+      ]
+    }
+  }
+}

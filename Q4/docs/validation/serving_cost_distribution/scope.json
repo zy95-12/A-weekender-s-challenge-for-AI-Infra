@@ -1,0 +1,10 @@
+{
+  "source": "/root/issue6-pd-replicas/results/pd_replicas/c40-performance-replicas",
+  "method": "Empirical independent per-command resampling, mean preserved per shape; no scheduler changes",
+  "limitations": "Same-run calibration; no temporal/cross-stage correlations; sparse/missing batch residuals uncertain; command durations may include worker waits",
+  "seeds": [
+    17,
+    29,
+    43
+  ]
+}

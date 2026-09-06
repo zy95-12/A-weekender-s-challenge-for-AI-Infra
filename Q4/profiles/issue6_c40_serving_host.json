@@ -1,0 +1,140 @@
+{
+  "scope": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "dtype": "float16",
+    "layers": [
+      [
+        0,
+        4
+      ],
+      [
+        4,
+        31
+      ],
+      [
+        31,
+        36
+      ]
+    ],
+    "ipc_mode": "shm",
+    "wire_fast": true,
+    "hardware": {
+      "edge_front": [
+        125.0,
+        600.0,
+        23.0
+      ],
+      "cloud_middle": [
+        125.0,
+        600.0,
+        23.0
+      ],
+      "edge_tail": [
+        125.0,
+        600.0,
+        23.0
+      ]
+    }
+  },
+  "operation": "scheduler_back_post",
+  "samples": [
+    {
+      "phase": "decode",
+      "batch_size": 1,
+      "emits_token": true,
+      "sample_count": 20,
+      "latency_ms": 0.0550155,
+      "trace_ms": 0.03199425,
+      "token_events_ms": 0.00707445,
+      "other_ms": 0.0159468
+    },
+    {
+      "phase": "decode",
+      "batch_size": 2,
+      "emits_token": true,
+      "sample_count": 2,
+      "latency_ms": 0.0745595,
+      "trace_ms": 0.0421085,
+      "token_events_ms": 0.0114105,
+      "other_ms": 0.0210405
+    },
+    {
+      "phase": "decode",
+      "batch_size": 34,
+      "emits_token": true,
+      "sample_count": 22,
+      "latency_ms": 3.8482533181818184,
+      "trace_ms": 3.4782100909090907,
+      "token_events_ms": 0.17676690909090909,
+      "other_ms": 0.19327631818181812
+    },
+    {
+      "phase": "decode",
+      "batch_size": 35,
+      "emits_token": true,
+      "sample_count": 26,
+      "latency_ms": 3.2165667307692307,
+      "trace_ms": 2.8715188076923077,
+      "token_events_ms": 0.1686988076923077,
+      "other_ms": 0.17634911538461542
+    },
+    {
+      "phase": "decode",
+      "batch_size": 36,
+      "emits_token": true,
+      "sample_count": 131,
+      "latency_ms": 3.9065478244274807,
+      "trace_ms": 3.541524564885496,
+      "token_events_ms": 0.17611909160305345,
+      "other_ms": 0.18890416793893128
+    },
+    {
+      "phase": "decode",
+      "batch_size": 37,
+      "emits_token": true,
+      "sample_count": 114,
+      "latency_ms": 3.864027894736842,
+      "trace_ms": 3.472352254385965,
+      "token_events_ms": 0.1864143245614035,
+      "other_ms": 0.2052613157894737
+    },
+    {
+      "phase": "decode",
+      "batch_size": 38,
+      "emits_token": true,
+      "sample_count": 37,
+      "latency_ms": 4.274608702702703,
+      "trace_ms": 3.883211054054054,
+      "token_events_ms": 0.18733756756756756,
+      "other_ms": 0.20406008108108104
+    },
+    {
+      "phase": "prefill",
+      "batch_size": 1,
+      "emits_token": false,
+      "sample_count": 152,
+      "latency_ms": 0.05375423026315789,
+      "trace_ms": 0.037397138157894735,
+      "token_events_ms": 0.0,
+      "other_ms": 0.01635709210526316
+    },
+    {
+      "phase": "prefill",
+      "batch_size": 1,
+      "emits_token": true,
+      "sample_count": 154,
+      "latency_ms": 0.09709316883116884,
+      "trace_ms": 0.06888723376623376,
+      "token_events_ms": 0.009521071428571429,
+      "other_ms": 0.018684863636363635
+    }
+  ],
+  "provenance": {
+    "run": "/root/issue7-precompute-probe/results/20260907-001232",
+    "point": "/root/issue7-precompute-probe/results/host-post-c40",
+    "measurement_start": 18640.585605588,
+    "measurement_end": 18670.80190339,
+    "boundary": "enterprise back executor return to complete_back body end; trace/event/state work only",
+    "limitations": "CPU wall time includes GIL/I/O scheduling; spread across rows; same hardware and logging implementation required"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "points": [
+    {
+      "status": "ok",
+      "engine": "Q4",
+      "point": {
+        "concurrency": 1,
+        "qps": 0.8,
+        "ttft_mean_ms": 122.35959019528936,
+        "ttft_p99_ms": 122.35959019529027,
+        "tpot_mean_ms": 81.26005452307663,
+        "tpot_p99_ms": 81.26005452307673,
+        "measured_requests": 4
+      }
+    },
+    {
+      "status": "ok",
+      "engine": "Q4",
+      "point": {
+        "concurrency": 2,
+        "qps": 1.6,
+        "ttft_mean_ms": 217.8620626469891,
+        "ttft_p99_ms": 217.86206264698916,
+        "tpot_mean_ms": 81.4059049435893,
+        "tpot_p99_ms": 81.40590494358952,
+        "measured_requests": 8
+      }
+    }
+  ],
+  "unsupported_model_http_status": 422
+}
