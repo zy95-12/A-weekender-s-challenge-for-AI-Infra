@@ -26,26 +26,39 @@ class KVTransfer:
         self.runner=runner;self.args=runner.args
         self.role=self.args['pd_role'];self.rank=runner.rank
         self.p=self.args['prefill_tp'];self.d=self.args['decode_tp']
-        global_rank=self.rank if self.role=='prefill' else self.p+self.rank
-        self.group=StatelessProcessGroup.create(host='127.0.0.1',port=self.args['pd_kv_port'],
-            rank=global_rank,world_size=self.p+self.d,store_timeout=120)
-        self.comm=PyNcclCommunicator(self.group,device=self.rank)
-        if not self.comm.available or self.comm.disabled:
-            raise RuntimeError('vLLM NCCL KV communicator unavailable')
-        self.stream=torch.cuda.Stream(device=self.rank)
-        self.thread=concurrent.futures.ThreadPoolExecutor(max_workers=1,thread_name_prefix='kv-copy')
+        self.replica=self.args.get('prefill_replica',0)
+        self.replicas=self.args.get('prefill_replicas',1)
+        self.groups={};self.comms={};self.streams={};self.threads={}
+        peers=[self.replica] if self.role=='prefill' else range(self.replicas)
+        for peer in peers:
+            global_rank=self.rank if self.role=='prefill' else self.p+self.rank
+            group=StatelessProcessGroup.create(host='127.0.0.1',port=self.args['pd_kv_port']+peer,
+                rank=global_rank,world_size=self.p+self.d,store_timeout=120)
+            comm=PyNcclCommunicator(group,device=self.rank)
+            if not comm.available or comm.disabled:
+                raise RuntimeError('vLLM NCCL KV communicator unavailable')
+            self.groups[peer]=group;self.comms[peer]=comm
+            self.streams[peer]=torch.cuda.Stream(device=self.rank)
+            self.threads[peer]=concurrent.futures.ThreadPoolExecutor(max_workers=1,thread_name_prefix=f'kv-copy-{peer}')
+        self.group=self.groups[self.replica];self.comm=self.comms[self.replica]
+        self.stream=self.streams[self.replica];self.thread=self.threads[self.replica]
         self.records={};self.released=set();self.lock=threading.RLock()
 
-    def reserve(self, request_id, prompt_len, max_len):
+    def reserve(self, request_id, prompt_len, max_len, replica=None):
+        replica=self.args.get('prefill_replica',0) if replica is None else replica
+        if type(replica) is not int or not 0<=replica<self.args.get('prefill_replicas',1):
+            raise ValueError('Invalid source replica')
+        if self.role=='prefill' and replica!=self.args.get('prefill_replica',0):
+            raise ValueError('Wrong source replica')
         signature=(prompt_len,max_len)
         if request_id in self.released:
             raise ValueError('Released request cannot be resurrected')
         if request_id in self.records:
-            if self.records[request_id]['signature']!=signature:
+            if self.records[request_id]['signature']!=signature or self.records[request_id]['prefill_replica']!=replica:
                 raise ValueError('Conflicting KV reservation')
             return
         self.runner.pool.reserve(request_id,prompt_len if self.role=='prefill' else max_len)
-        self.records[request_id]=dict(signature=signature,state='reserved',future=None,enqueued_until=0,ranges={},computed_until=0,event=None)
+        self.records[request_id]=dict(signature=signature,prefill_replica=replica,state='reserved',future=None,enqueued_until=0,ranges={},computed_until=0,event=None)
 
     def note_computed(self, items):
         # Record on the actual forward stream, never on the control thread.
@@ -67,19 +80,22 @@ class KVTransfer:
             raise ValueError('Export before computed prefix')
         ready=record['event'] if self.role=='prefill' else None
         record['state']='copying'
-        future=self.thread.submit(self.copy,request_id,ready,start,end)
+        thread=self.threads[record['prefill_replica']] if hasattr(self,'threads') else self.thread
+        future=thread.submit(self.copy,request_id,ready,start,end)
         record['ranges'][start,end]=future
         record.update(future=future,enqueued_until=end)
 
     @torch.inference_mode()
     def copy(self, request_id, ready, start_position, end_position):
         torch.cuda.set_device(self.rank)
+        peer=self.records[request_id]['prefill_replica']
+        stream=self.streams[peer];comm=self.comms[peer]
         length=end_position-start_position
         blocks=self.runner.pool.requests[request_id]['blocks'][start_position//16:(end_position+15)//16]
         layers=list(self.runner.model.model.layers.values())
         start=time.perf_counter_ns();checksums={}
-        with torch.cuda.stream(self.stream):
-            if ready is not None:self.stream.wait_event(ready)
+        with torch.cuda.stream(stream):
+            if ready is not None:stream.wait_event(ready)
             ids=torch.tensor(blocks,device='cuda',dtype=torch.long)
             shape=(len(layers),2,len(blocks),16,128)
             if self.role=='prefill':
@@ -91,13 +107,13 @@ class KVTransfer:
                     tensor=pages[:,:,:,:,local_src,:].contiguous();sends.append(tensor)
                     if self.args.get('pd_verify_kv'):
                         checksums[str(head)]=hashlib.sha256(tensor.cpu().numpy().tobytes()).hexdigest()
-                    self.comm.send(tensor,self.p+dst,self.stream)
+                    comm.send(tensor,self.p+dst,stream)
             else:
                 receives=[]
                 for head,src,local_src,dst,local_dst in head_routes(self.p,self.d):
                     if dst!=self.rank:continue
                     tensor=torch.empty(shape,device='cuda',dtype=torch.float16)
-                    self.comm.recv(tensor,src,self.stream);receives.append((head,local_dst,tensor))
+                    comm.recv(tensor,src,stream);receives.append((head,local_dst,tensor))
                 for head,local_dst,tensor in receives:
                     for index,layer in enumerate(layers):
                         # Use an explicit single-head view; index_copy_ scatters
@@ -158,7 +174,11 @@ class KVTransfer:
 
     def _execute(self, command):
         op=command['op'];ids=command.get('ids',[])
-        if op=='pd_reserve':self.reserve(command['request_id'],command['prompt_len'],command['max_len'])
+        replica=command.get('prefill_replica',self.args.get('prefill_replica',0))
+        for rid in ([command['request_id']] if 'request_id' in command else ids):
+            if rid in self.records and self.records[rid]['prefill_replica']!=replica:
+                raise ValueError('KV request belongs to another P replica')
+        if op=='pd_reserve':self.reserve(command['request_id'],command['prompt_len'],command['max_len'],replica)
         elif op=='pd_start':self.start(command['request_id'],command.get('start',0),command.get('end'))
         elif op=='pd_status':return self.status(ids)
         elif op=='pd_commit':self.commit(command['request_id'])

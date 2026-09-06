@@ -381,7 +381,7 @@ def worker(rank, args, pipe, pd_pipe=None):
         operator_capture = None
         if os.environ.get("SPLIT_OPERATOR_CAPTURE") == "1":
             from split_poc.operator_capture import Capture
-            operator_capture = Capture(args["role"]+('_'+args['pd_role'] if args.get('pd_role') else ''), rank, args["results"])
+            operator_capture = Capture(args["role"]+('_'+args['pd_role'] if args.get('pd_role') else '')+(f"_{args['prefill_replica']}" if args.get('pd_role')=='prefill' and args.get('prefill_replica') else ''), rank, args["results"])
             if communicator is not None:
                 operator_capture.wrap_communicator(communicator)
         pipe.send({"ready": True, "rank": rank, "audit": {

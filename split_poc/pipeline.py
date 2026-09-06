@@ -7,6 +7,8 @@ release. No target GPU worker waits for HTTP in this mode.
 import concurrent.futures
 import contextlib
 import json
+import logging
+from pathlib import Path
 import queue
 import time
 import uuid
@@ -23,7 +25,7 @@ from split_poc.wire import pack, unpack
 class PipelineScheduler(Scheduler):
     def __init__(self, executor, args, eos):
         self.window = args.pipeline_window
-        self.transfers = concurrent.futures.ThreadPoolExecutor(max_workers=self.window + ((getattr(args,'pd_prefill_window',0) or self.window) if getattr(args,'pd',False) else 0))
+        self.transfers = concurrent.futures.ThreadPoolExecutor(max_workers=self.window + ((getattr(args,'pd_prefill_window',0) or self.window)*getattr(args,'prefill_replicas',1) if getattr(args,'pd',False) else 0))
         self.inflight = []
         self.admission = KVAdmission(args.kv_blocks)
         self.waiting_admission = None
@@ -146,6 +148,7 @@ class PipelineScheduler(Scheduler):
                     job.logits.append(result["logits"][index])
             row = {"request_id":job.id,"client_request_id":job.client_id,
                    "batch_id":command["batch_id"],"batch_size":len(batch),
+                   "prefill_replica":getattr(job,"prefill_replica",None),
                    "time_ns":time.time_ns(),"phase":command["phase"],
                    "token_idx":len(job.tokens)-1,"emits_token":emits,
                    "query_len":item["query_len"],"position_start":item["position"],
@@ -227,6 +230,13 @@ class PipelineScheduler(Scheduler):
             self.release(self.active)
             self.active=[]
         except BaseException as exc:
+            logging.getLogger(__name__).exception('Pipeline scheduler failed')
+            try:request=getattr(exc,'request',None)
+            except RuntimeError:request=None
+            (Path(self.args.results)/'pipeline_failure.json').write_text(json.dumps({
+                'error_type':type(exc).__name__,'error':str(exc),
+                'url':str(request.url) if request is not None else None,
+                'inflight':[t['command'] for t in self.inflight]},indent=2))
             self.executor.healthy=False
             self.fail_pending(exc)
             for job in self.active:

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import HTTPException
+from split_poc.transport import post_control
 
 
 class PDControl:
@@ -15,13 +16,14 @@ class PDControl:
         self.records={};self.condition=threading.Condition()
         self.dispatch=threading.Lock()
         self.tasks=concurrent.futures.ThreadPoolExecutor(max_workers=2,thread_name_prefix='pd-handoff')
-        self.http=httpx.Client(base_url=args.cloud_decode,timeout=45,trust_env=False)
+        self.http=httpx.Client(base_url=args.cloud_decode,timeout=45,trust_env=False,limits=httpx.Limits(keepalive_expiry=1))
         self.failed=None
-        self.trace=open(Path(args.results)/'pd_kv_trace.jsonl','a',buffering=1)
+        suffix=f'_{args.prefill_replica}' if getattr(args,'prefill_replica',0) else ''
+        self.trace=open(Path(args.results)/f'pd_kv_trace{suffix}.jsonl','a',buffering=1)
 
     def remote(self, command):
-        response=self.http.post('/pd/local',json={'epoch':self.args.pd_epoch,**command})
-        response.raise_for_status();return response.json()
+        return post_control(self.http,self.args.cloud_decode,'/pd/local',
+            {'epoch':self.args.pd_epoch,'prefill_replica':getattr(self.args,'prefill_replica',0),**command})
 
     def reserve(self, body):
         rid=body.get('request_id');length=body.get('prompt_len');maximum=body.get('max_len')
@@ -39,7 +41,7 @@ class PDControl:
             try:self.executor.call(command)
             except BaseException:
                 self.remote({'op':'pd_release','ids':[rid]});raise
-            self.records[rid]={'signature':(length,maximum),'state':'prefill','future':None,'enqueued_until':0,'chunks':[]}
+            self.records[rid]={'signature':(length,maximum),'prefill_replica':getattr(self.args,'prefill_replica',0),'state':'prefill','future':None,'enqueued_until':0,'chunks':[]}
         return {'ok':True}
 
     def after_forward(self, command):

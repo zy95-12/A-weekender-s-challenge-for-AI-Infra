@@ -5,6 +5,7 @@ connect/listen so TCP window scaling is negotiated with the larger window.
 httpcore's ordinary socket_options run after connect in the pinned version.
 """
 import socket
+import logging
 import httpx
 from httpcore._backends.sync import SyncBackend, SyncStream
 from httpcore import ConnectError, ConnectTimeout
@@ -48,7 +49,7 @@ class PreconnectBackend(SyncBackend):
 
 def http_client(mib=0,**kwargs):
     if mib:
-        transport=httpx.HTTPTransport(trust_env=False)
+        transport=httpx.HTTPTransport(trust_env=False,limits=kwargs.get("limits",httpx.Limits()))
         if not isinstance(transport._pool._network_backend,SyncBackend):
             raise RuntimeError("Unsupported httpcore backend; revalidate pinned transport")
         transport._pool._network_backend=PreconnectBackend(mib)
@@ -59,11 +60,31 @@ def http_client(mib=0,**kwargs):
 def serve(app,host,port,mib=0):
     import uvicorn
     if not mib:
-        return uvicorn.run(app,host=host,port=port,access_log=False)
+        return uvicorn.run(app,host=host,port=port,access_log=False,timeout_keep_alive=60)
     with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
         set_buffers(sock,mib)
         sock.bind((host,port))
-        config=uvicorn.Config(app,host=host,port=port,access_log=False)
+        config=uvicorn.Config(app,host=host,port=port,access_log=False,timeout_keep_alive=60)
         sock.listen(config.backlog)
         uvicorn.Server(config).run(sockets=[sock])
+
+
+def post_control(client, base_url, path, body, mib=0):
+    """Retry one ambiguous disconnect only for explicitly idempotent PD control.
+
+    A fresh connection prevents reusing a stale pooled socket. Model forward is
+    intentionally excluded: it advances KV and cannot safely be replayed.
+    """
+    allowed=path in {'/pd/reserve','/pd/wait','/release'} or (path=='/pd/local' and body.get('op') in {
+        'pd_reserve','pd_start','pd_status','pd_commit','pd_release'})
+    if not allowed:raise ValueError('Non-idempotent operation cannot use control retry')
+    try:
+        response=client.post(path,json=body)
+    except (httpx.RemoteProtocolError,httpx.ReadError,httpx.WriteError,httpx.ConnectError) as exc:
+        logging.getLogger(__name__).warning("Retrying idempotent PD control %s after %s",path,type(exc).__name__)
+        with http_client(mib,base_url=base_url,timeout=45,trust_env=False,
+                         limits=httpx.Limits(max_keepalive_connections=0)) as fresh:
+            response=fresh.post(path,json=body)
+    response.raise_for_status()
+    return response.json()

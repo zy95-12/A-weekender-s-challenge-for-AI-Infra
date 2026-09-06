@@ -158,7 +158,7 @@ class Scheduler:
 
 def optimization_config(args):
     return {key: getattr(args,key) for key in ("ipc_mode","wire_fast","tcp_buffer_mib",
-            "prefill_chunk_size","scheduler_policy","decode_quota","pipeline_window")}
+            "prefill_chunk_size","scheduler_policy","decode_quota","pipeline_window","pd_prefill_window","prefill_replicas")}
 
 
 def create_app(args):
@@ -192,6 +192,7 @@ def create_app(args):
               "runtime": "custom vLLM V0 partial runner", "split_layers": SPLITS[args.split]}
     config["clock_sample"] = {"wall_time_ns": time.time_ns(), "monotonic_ns": time.perf_counter_ns()}
     label=args.role+('_'+args.pd_role if args.pd_role else '')
+    if args.pd_role=='prefill' and args.prefill_replica:label+=f'_{args.prefill_replica}'
     (Path(args.results) / f"{label}_config.json").write_text(json.dumps(config, indent=2))
     scheduler = None
     if args.role == "enterprise":
@@ -205,6 +206,20 @@ def create_app(args):
                 c.get('pd_epoch')!=args.pd_epoch or c.get('layer_split')!=list(SPLITS[args.split])
                 or c.get('revision')!=REVISION for c in (remote_config,decode_config)):
                 raise RuntimeError('PD role/epoch/model handshake mismatch')
+            prefill_configs=[remote_config]
+            if args.prefill_replicas==2:
+                response=httpx.get(args.cloud_prefill_secondary+'/health',timeout=5,trust_env=False)
+                response.raise_for_status();prefill_configs.append(response.json())
+            for peer,config in enumerate(prefill_configs):
+                if (config.get('pd_role')!='prefill' or config.get('prefill_replica')!=peer
+                    or config.get('prefill_replicas')!=args.prefill_replicas
+                    or config.get('tp')!=args.prefill_tp or config.get('pd_epoch')!=args.pd_epoch
+                    or config.get('model_id')!=MODEL_ID or config.get('revision')!=REVISION
+                    or config.get('protocol')!=1 or config.get('layer_split')!=list(SPLITS[args.split])
+                    or config.get('optimizations')!=optimization_config(args)):
+                    raise RuntimeError('P replica handshake mismatch')
+            if decode_config.get('prefill_replicas')!=args.prefill_replicas or decode_config.get('tp')!=args.decode_tp:
+                raise RuntimeError('D replica topology mismatch')
             from split_poc.pd_scheduler import PDScheduler
             scheduler=PDScheduler(executor,args,eos)
         elif args.pipeline_window:
@@ -224,10 +239,14 @@ def create_app(args):
                 if args.pd:
                     reply=httpx.get(args.cloud_decode+'/health',timeout=2,trust_env=False)
                     reply.raise_for_status()
+                    if args.prefill_replicas==2:
+                        reply=httpx.get(args.cloud_prefill_secondary+'/health',timeout=2,trust_env=False)
+                        reply.raise_for_status()
             except Exception:
                 raise HTTPException(503, "Cloud unavailable")
         return {"status": "ready", "role": args.role, "split": args.split, "tp": args.tp,
                 "pd":args.pd,"pd_role":args.pd_role,"pd_epoch":args.pd_epoch,
+                "prefill_replicas":args.prefill_replicas,"prefill_replica":args.prefill_replica,
                 "pd_chunk_transfer":args.pd_chunk_transfer,"pd_control_channel":bool(args.pd_role),
                 "pd_reservations":len(pd_control.records) if pd_control else None,
                 "pd_reserving":len(scheduler.reserving) if scheduler and args.pd else 0,
@@ -271,16 +290,16 @@ def create_app(args):
     def start_profile():
         executor.call({"op": "profile_start"})
         if scheduler:
-            response = scheduler.http.post("/start_profile")
-            response.raise_for_status()
+            for client in (scheduler.prefill_clients if args.pd else [scheduler.http]):
+                response=client.post('/start_profile');response.raise_for_status()
         return {"profiling": True}
 
     @app.post("/stop_profile")
     def stop_profile():
         executor.call({"op": "profile_stop"})
         if scheduler:
-            response = scheduler.http.post("/stop_profile")
-            response.raise_for_status()
+            for client in (scheduler.prefill_clients if args.pd else [scheduler.http]):
+                response=client.post('/stop_profile');response.raise_for_status()
         return {"profiling": False}
 
     if args.role == "cloud":
@@ -580,7 +599,10 @@ def main():
     parser.add_argument("--phase-profile", action="store_true",
                         help="Detailed synchronous GPU stage timings; disable for baseline throughput")
     parser.add_argument('--pd',action='store_true')
+    parser.add_argument('--prefill-replica',type=int,choices=[0,1],default=0)
+    parser.add_argument('--cloud-prefill-secondary',default='')
     parser.add_argument('--pd-role',choices=['','prefill','decode'],default='')
+    parser.add_argument('--prefill-replicas',type=int,choices=[1,2],default=1)
     parser.add_argument('--prefill-tp',type=int,choices=[1,2],default=2)
     parser.add_argument('--decode-tp',type=int,choices=[1,2],default=1)
     parser.add_argument('--cloud-decode',default='http://10.205.0.2:8002')
@@ -589,6 +611,12 @@ def main():
     parser.add_argument('--pd-verify-kv',action='store_true')
     parser.add_argument('--pd-chunk-transfer',action='store_true',help='Migrate completed KV pages after each prefill chunk')
     args = parser.parse_args()
+    if args.prefill_replicas==2 and (not args.pd or args.prefill_tp!=1 or args.decode_tp!=1):
+        parser.error('Two P replicas require PD with P TP1 and D TP1')
+    if args.prefill_replica>=args.prefill_replicas:
+        parser.error('Invalid prefill replica index')
+    if args.role=='enterprise' and args.prefill_replicas==2 and not args.cloud_prefill_secondary:
+        parser.error('Two P replicas require the second P endpoint')
     if args.pd and (not args.pipeline_window or not args.pd_epoch):
         parser.error('PD requires pipelining and an explicit launch epoch')
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:

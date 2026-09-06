@@ -34,7 +34,7 @@ def spawn(name, command, env=None):
 
 
 def stop():
-    for name in ("proxy", "enterprise", "cloud", "cloud_prefill", "cloud_decode", "telemetry"):
+    for name in ("proxy", "enterprise", "cloud", "cloud_prefill", "cloud_prefill_1", "cloud_decode", "telemetry"):
         path = RUN / f"{name}.pid.json"
         if not path.exists():
             continue
@@ -131,7 +131,10 @@ def up(args):
         common += ["--tcp-buffer-mib", str(args.tcp_buffer_mib), "--pipeline-window", str(args.pipeline_window)]
         common += ["--max-active", str(args.max_active), "--kv-blocks", str(args.kv_blocks)]
         if args.pd:
-            common += ['--pd-prefill-window',str(args.pd_prefill_window)]
+            common += ['--pd-prefill-window',str(args.pd_prefill_window),'--prefill-replicas',str(args.prefill_replicas)]
+            if args.prefill_replicas==2:
+                common += ['--cloud-prefill-secondary','http://10.205.0.2:8003']
+            if role=='cloud_prefill_1':common += ['--prefill-replica','1']
             common += ['--pd','--pd-epoch',args.pd_epoch,'--prefill-tp',str(args.prefill_tp),
                        '--decode-tp',str(args.decode_tp),'--cloud-decode','http://10.205.0.2:8002']
             if role!='enterprise':common+=['--pd-role','decode' if role=='cloud_decode' else 'prefill']
@@ -154,10 +157,16 @@ def up(args):
             cloud=spawn('cloud_prefill',['ip','netns','exec','split-cloud',*command_for('cloud_prefill'),
                 '--role','cloud','--host','10.205.0.2','--port','8001','--dist-port','29502'],
                 {**env,'CUDA_VISIBLE_DEVICES':prefill_gpus})
+            if args.prefill_replicas==2:
+                second=spawn('cloud_prefill_1',['ip','netns','exec','split-cloud',*command_for('cloud_prefill_1'),
+                    '--role','cloud','--host','10.205.0.2','--port','8003','--dist-port','29504'],
+                    {**env,'CUDA_VISIBLE_DEVICES':'2'})
             decode=spawn('cloud_decode',['ip','netns','exec','split-cloud',*command_for('cloud_decode'),
                 '--role','cloud','--host','10.205.0.2','--port','8002','--dist-port','29503'],
                 {**env,'CUDA_VISIBLE_DEVICES':decode_gpus})
             wait_ready('http://10.205.0.2:8002/health',decode,'cloud_decode','split-enterprise')
+            if args.prefill_replicas==2:
+                wait_ready('http://10.205.0.2:8003/health',second,'cloud_prefill_1','split-enterprise')
         else:
             cloud = spawn("cloud", ["ip", "netns", "exec", "split-cloud", *command_for("cloud"), "--role", "cloud",
                        "--host", "10.205.0.2", "--port", "8001", "--dist-port", "29502"],
@@ -172,7 +181,7 @@ def up(args):
         wait_ready("http://127.0.0.1:8000/health", proxy, "proxy")
         subprocess.run([str(PYTHON), str(ROOT / "scripts/smoke.py")], check=True)
         (RUN / "launch.json").write_text(json.dumps(vars(args), indent=2))
-        topology=f'{enterprise_tp}+{cloud_tp}'+(f'+{args.decode_tp}' if args.pd else '')
+        topology=(f'E{enterprise_tp}+P({args.prefill_replicas}xTP{cloud_tp})+D{args.decode_tp}' if args.pd else f'{enterprise_tp}+{cloud_tp}')
         print(f"\nDemo ready: http://127.0.0.1:8000\nResults: {results}\nSplit: {args.split}; TP: {topology}", flush=True)
     except BaseException:
         stop()
@@ -203,13 +212,16 @@ if __name__ == "__main__":
     parser.add_argument('--pd-prefill-window',type=int,default=0,help='PD prefill in-flight limit; 0 inherits pipeline-window; decode keeps pipeline-window')
     parser.add_argument("--pipeline-window", type=int, default=0)
     parser.add_argument('--pd',action='store_true',help='Separate cloud prefill and decode GPU groups')
+    parser.add_argument('--prefill-replicas',type=int,choices=[1,2],default=1)
     parser.add_argument('--prefill-tp',type=int,choices=[1,2],default=2)
     parser.add_argument('--decode-tp',type=int,choices=[1,2],default=1)
     parser.add_argument('--pd-verify-kv',action='store_true',help='Diagnostic exact KV copy hashes; excluded from benchmarks')
     parser.add_argument('--pd-chunk-transfer',action='store_true',help='Migrate completed KV pages after each prefill chunk')
     args = parser.parse_args()
-    if args.pd and (args.prefill_tp+args.decode_tp!=3 or args.enterprise_tp not in (None,1) or not args.pipeline_window):
+    if args.pd and (args.prefill_tp*args.prefill_replicas+args.decode_tp!=3 or args.enterprise_tp not in (None,1) or not args.pipeline_window):
         parser.error('PD on this four-GPU host requires E1, P+D=3 and --pipeline-window')
+    if args.prefill_replicas==2 and (not args.pd or args.prefill_tp!=1 or args.decode_tp!=1):
+        parser.error('Two P replicas require PD with P TP1 and D TP1')
     if args.operator_profile and not args.profile:
         parser.error("--operator-profile requires --profile")
     if args.kv_blocks < 1:parser.error("KV blocks must be positive")
