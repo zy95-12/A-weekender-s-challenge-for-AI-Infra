@@ -28,6 +28,7 @@ class Job:
         self.ids, self.limit, self.ignore_eos = ids, limit, ignore_eos
         self.forced, self.capture = forced, capture
         self.tokens, self.logits = [], []
+        self.logits_rows = []
         self.events = queue.Queue()
         self.cancelled = False
         self.created = time.perf_counter()
@@ -118,6 +119,8 @@ class Scheduler:
                         job.tokens.append(token)
                     if job.capture and emits:
                         job.logits.append(result["logits"][i])
+                        if result.get('logits_rows'):
+                            job.logits_rows.append(result['logits_rows'][i])
                     trace = {"request_id": job.id, "client_request_id": job.client_id, "time_ns": time.time_ns(),
                         "batch_id": command["batch_id"], "batch_size": len(batch),
                         "phase": phase, "token_idx": len(job.tokens) - 1,
@@ -553,7 +556,8 @@ def create_app(args):
                     if event["done"]:
                         import io
                         buffer = io.BytesIO()
-                        np.savez(buffer, logits=np.stack(job.logits), tokens=np.array(job.tokens))
+                        np.savez(buffer, logits=np.stack(job.logits), tokens=np.array(job.tokens),
+                                 rows_json=np.array(json.dumps(job.logits_rows)))
                         return Response(buffer.getvalue(), media_type="application/octet-stream")
 
     @app.on_event("shutdown")

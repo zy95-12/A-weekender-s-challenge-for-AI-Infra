@@ -24,6 +24,7 @@ up)
   ;;
 down|status) exec python3 scripts/manage.py "$action" "$@";;
 demo) exec .venv/bin/python scripts/smoke.py;;
+validate-gsm8k) exec .venv/bin/python scripts/gsm8k_validate.py "$@";;
 wan|local) exec bash scripts/network.sh "$action" "$@";;
 network-check) exec bash scripts/network.sh check "$@";;
 *) echo 'Usage: ./poc setup|up [--split 1:3|1:1|3:1] [--wan --delay-ms 5 --bandwidth-gbps 10]|down|status|demo|wan [5] [--delay-ms 5 --bandwidth-gbps 10]|local|network-check [--output PATH]'; exit 1;;

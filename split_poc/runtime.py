@@ -355,7 +355,19 @@ class Runner:
                     logits = logits.float().cpu().numpy()
                     if not np.isfinite(logits).all():
                         raise RuntimeError("Non-finite logits; refusing to return a generated token")
+                    logits_rows = None
+                    if command.get('capture'):
+                        selected = indices.cpu().tolist()
+                        actual_positions = positions.cpu().tolist()
+                        logits_rows = [{'token_id': command['token_ids'][hidden_row],
+                            'absolute_position': actual_positions[hidden_row],
+                            'num_computed_tokens': item['position'], 'query_len': item['query_len'],
+                            'hidden_row_index': hidden_row, 'logits_row_index': row,
+                            'top1_token': int(logits[row].argmax()),
+                            'top1_logit': float(logits[row].max()), 'phase': phase}
+                            for row, (item, hidden_row) in enumerate(zip(items, selected))]
                     return {"tokens": logits.argmax(-1).tolist(), "timings": timings,
+                            "logits_rows": logits_rows,
                             "logits": logits if command.get("capture") else None,
                             "kv_used_blocks": self.args["kv_blocks"] - len(self.pool.free)}
         return None

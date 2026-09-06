@@ -1,6 +1,0 @@
-Real KV 1024/256 PASS
-Real KV 4096/256 PASS
-Real KV 8192/256 PASS
-Real concurrent=4 isolation PASS
-Needle QA target=4096: WILLOW-7319
-Needle QA target=8192: WILLOW-7319

@@ -1,8 +1,0 @@
-{"client_request_id": "qps-inf-1788594131746647716-0", "ttft_ms": 407.9899699972884, "tpot_ms": 29.61346507233544, "e2e_ms": 30702.564738996443, "output_tokens": 1024, "error": ""}
-{"client_request_id": "qps-inf-1788594131746647716-1", "ttft_ms": 389.7971719998168, "tpot_ms": 29.511760464319057, "e2e_ms": 30580.32812699821, "output_tokens": 1024, "error": ""}
-{"client_request_id": "qps-inf-1788594131746647716-2", "ttft_ms": 441.4619010021852, "tpot_ms": 29.64359563049685, "e2e_ms": 30766.860231000464, "output_tokens": 1024, "error": ""}
-{"client_request_id": "qps-inf-1788594131746647716-3", "ttft_ms": 373.3442869997816, "tpot_ms": 29.483249666666044, "e2e_ms": 30534.708695999143, "output_tokens": 1024, "error": ""}
-{"client_request_id": "qps-inf-1788594131746647716-4", "ttft_ms": 405.0590819970239, "tpot_ms": 29.561823510263526, "e2e_ms": 30646.80453299661, "output_tokens": 1024, "error": ""}
-{"client_request_id": "qps-inf-1788594131746647716-5", "ttft_ms": 387.26215200222214, "tpot_ms": 29.433945132944388, "e2e_ms": 30498.18802300433, "output_tokens": 1024, "error": ""}
-{"client_request_id": "qps-inf-1788594131746647716-6", "ttft_ms": 363.7532779976027, "tpot_ms": 29.49580155914053, "e2e_ms": 30537.958272998367, "output_tokens": 1024, "error": ""}
-{"client_request_id": "qps-inf-1788594131746647716-7", "ttft_ms": 408.9249380012916, "tpot_ms": 29.40436047409686, "e2e_ms": 30489.585703002376, "output_tokens": 1024, "error": ""}

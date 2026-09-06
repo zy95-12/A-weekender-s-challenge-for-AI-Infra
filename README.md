@@ -1,5 +1,14 @@
 # Split-vLLM 企业—云推理 POC
 
+当前集成入口：**[可回退的 serving、开关清单与 GSM8K 验证](docs/integrated-serving.md)**。
+
+```bash
+./poc up --preset optimized --wan   # 当前最佳已验证配置
+./poc up --preset baseline --wan    # 全关，回退到 split baseline 执行模式
+./poc validate-gsm8k --output results/gsm8k-new
+```
+
+
 本项目对应 [issue #4](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/issues/4)。
 Qwen2.5-3B-Instruct 的 Embedding、前后层、Final Norm 与 LM Head 在企业侧；中间层在独立 Cloud 进程执行。
 两侧使用 vLLM 0.10.2 的真实模型层、FlashAttention、Paged KV 与独立 NCCL TP group。

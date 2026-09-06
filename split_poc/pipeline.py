@@ -146,6 +146,8 @@ class PipelineScheduler(Scheduler):
                 job.tokens.append(token)
                 if job.capture:
                     job.logits.append(result["logits"][index])
+                    if result.get('logits_rows'):
+                        job.logits_rows.append(result['logits_rows'][index])
             row = {"request_id":job.id,"client_request_id":job.client_id,
                    "batch_id":command["batch_id"],"batch_size":len(batch),
                    "prefill_replica":getattr(job,"prefill_replica",None),
