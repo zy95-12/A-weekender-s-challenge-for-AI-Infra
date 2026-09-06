@@ -1,0 +1,13 @@
+{
+  "torch": "2.8.0+cu128",
+  "transformers": "4.55.2",
+  "safetensors": "0.8.0",
+  "python": "3.12.3",
+  "gpu": "NVIDIA A10",
+  "model_revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+  "model_dtype": "FP16",
+  "seed": [
+    42,
+    43
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "depth": 9,
+  "seed": 42,
+  "epochs": 4,
+  "train_tokens": 65536,
+  "validation_tokens": 8192,
+  "hidden_width": 512,
+  "input_width": 2048,
+  "vocab_size": 151936,
+  "optimizer": "AdamW lr0.001 weight_decay0.01",
+  "batch_size": 256,
+  "checkpoint_selection": "highest public-validation top1; target never used",
+  "history": [
+    {
+      "epoch": 1,
+      "training_loss": 3.3390125948935747,
+      "public_validation_accuracy": 0.7193603515625,
+      "elapsed_s": 4.59301197700006
+    },
+    {
+      "epoch": 2,
+      "training_loss": 0.8287766181165352,
+      "public_validation_accuracy": 0.7999267578125,
+      "elapsed_s": 9.340794504999849
+    },
+    {
+      "epoch": 3,
+      "training_loss": 0.14926867674512323,
+      "public_validation_accuracy": 0.8145751953125,
+      "elapsed_s": 15.102925187999972
+    },
+    {
+      "epoch": 4,
+      "training_loss": 0.0409445040695573,
+      "public_validation_accuracy": 0.8211669921875,
+      "elapsed_s": 20.476206458999968
+    }
+  ],
+  "evaluations": {
+    "public_test": {
+      "mlp": {
+        "positions": 8192,
+        "correct": 6544,
+        "token_accuracy": 0.798828125,
+        "distinct_token_types": 2172,
+        "macro_token_type_accuracy": 0.5494472590622395,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.798828125,
+        "exact_decoded_text_match": false
+      },
+      "cosine": {
+        "positions": 8192,
+        "correct": 117,
+        "token_accuracy": 0.0142822265625,
+        "distinct_token_types": 2172,
+        "macro_token_type_accuracy": 0.026040457062297365,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.0142822265625,
+        "exact_decoded_text_match": false
+      }
+    },
+    "current_prompt": {
+      "mlp": {
+        "positions": 4096,
+        "correct": 1785,
+        "token_accuracy": 0.435791015625,
+        "distinct_token_types": 92,
+        "macro_token_type_accuracy": 0.5783128770542959,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.4363236372525055,
+        "exact_decoded_text_match": false
+      },
+      "cosine": {
+        "positions": 4096,
+        "correct": 331,
+        "token_accuracy": 0.080810546875,
+        "distinct_token_types": 92,
+        "macro_token_type_accuracy": 0.02800231804808464,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.08090931312637496,
+        "exact_decoded_text_match": false
+      }
+    },
+    "current_output_inputs": {
+      "mlp": {
+        "positions": 78,
+        "correct": 57,
+        "token_accuracy": 0.7307692307692307,
+        "distinct_token_types": 57,
+        "macro_token_type_accuracy": 0.7543859649122807,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.7307692307692307,
+        "exact_decoded_text_match": false
+      },
+      "cosine": {
+        "positions": 78,
+        "correct": 1,
+        "token_accuracy": 0.01282051282051282,
+        "distinct_token_types": 57,
+        "macro_token_type_accuracy": 0.017543859649122806,
+        "exact_sequence_match": false,
+        "non_special_token_accuracy": 0.01282051282051282,
+        "exact_decoded_text_match": false
+      }
+    }
+  }
+}

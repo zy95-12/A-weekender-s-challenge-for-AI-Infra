@@ -1,0 +1,2 @@
+# Exact decoded text and generated CSV/log artifacts preserve original whitespace.
+Q1/results/** -whitespace

@@ -1,0 +1,7 @@
+# Tested Python3.12/CUDA12.8 environment. Install PyTorch for your CUDA platform.
+torch==2.8.0
+transformers==4.55.2
+safetensors==0.8.0
+pyarrow==25.0.1
+numpy>=1.26,<3
+matplotlib>=3.8,<4
