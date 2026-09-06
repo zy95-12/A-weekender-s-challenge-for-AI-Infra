@@ -80,3 +80,7 @@ table {width:100%;border-collapse:collapse;font-size:13px;margin:18px 0} th,td {
   .insight-grid {grid-template-columns:1fr}
   .insight-grid .insight-card {grid-column:auto}
 }
+
+.technology-rating {margin:16px 0 10px;font-size:13px;line-height:1.9}
+.technology-rating b {color:var(--cyan);white-space:nowrap;margin-left:8px}
+.insight-card small {color:var(--muted)}

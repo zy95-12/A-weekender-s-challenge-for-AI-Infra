@@ -67,8 +67,8 @@
           <div>
             <div class="eyebrow"><span>02</span> 业界洞察 / LANDSCAPE</div>
             <h2 id="insight-title">
-              TEE / Confidential Computing 应当成为 AI-Factory 的投入重点，<br />SplitInfer
-              是端云协同的核心方向，长期关注 FHE / MPC
+              TEE / Confidential Computing 应当成为 AI-Factory 的投入重点，<br />Split-Infer
+              是端云协同的核心方向，FHE / MPC 保持长期关注
             </h2>
           </div>
           <a
@@ -89,6 +89,11 @@
               联合证明，并明确各组件的保护范围。
             </p>
             <div class="tags"><span>运行时保护</span></div>
+            <div class="technology-rating">
+              <div>安全性 <b>★★★★☆</b></div>
+              <div>推理性能负面影响 <b>★★☆☆☆</b></div>
+            </div>
+            <small>依赖硬件可信边界、证明链与实现；仍需评估侧信道。</small>
           </article>
           <article class="insight-card">
             <span class="card-no">02</span>
@@ -97,15 +102,25 @@
               在请求进入云端之前，识别敏感字段并删除、脱敏或假名化；结合本地检索与上下文筛选，只上传完成任务所需的信息。需要同时验证信息暴露量与任务效果。
             </p>
             <div class="tags"><span>请求构造</span></div>
+            <div class="technology-rating">
+              <div>安全性 <b>★★☆☆☆</b></div>
+              <div>推理性能负面影响 <b>★☆☆☆☆</b></div>
+            </div>
+            <small>降低敏感信息暴露；保留下来的明文仍对云端可见。</small>
           </article>
           <article class="insight-card">
             <span class="card-no">03</span>
-            <h3>SplitInfer</h3>
+            <h3>Split-Infer</h3>
             <p>
               企业端与云端分担模型层，联合设计切分位置、激活传输、KV
               管理与调度，平衡端侧资源、时延和吞吐。中间激活仍可能被反演，需要用真实攻击评估暴露风险。
             </p>
             <div class="tags"><span>端云协同</span></div>
+            <div class="technology-rating">
+              <div>安全性 <b>★★★☆☆</b></div>
+              <div>推理性能负面影响 <b>★★★☆☆</b></div>
+            </div>
+            <small>取决于切分深度与攻击能力；通信和调度决定性能成本。</small>
           </article>
           <article class="insight-card">
             <span class="card-no">04</span>
@@ -114,6 +129,11 @@
               由客户端加密输入，云端执行密文计算，再由密钥持有者解密结果。关注矩阵运算加速、非线性近似与密文开销，先评估范围明确的高敏子任务。
             </p>
             <div class="tags"><span>密文计算</span></div>
+            <div class="technology-rating">
+              <div>安全性 <b>★★★★★</b></div>
+              <div>推理性能负面影响 <b>★★★★★</b></div>
+            </div>
+            <small>依赖密码学参数与密钥管理；完整模型密文推理成本高。</small>
           </article>
           <article class="insight-card">
             <span class="card-no">05</span>
@@ -122,8 +142,17 @@
               通过秘密共享等协议，让多方协同计算并限制单方获得完整数据。关注通信轮次、预处理成本和非线性算子协议；安全保障取决于参与方与合谋假设。
             </p>
             <div class="tags"><span>多方协作</span></div>
+            <div class="technology-rating">
+              <div>安全性 <b>★★★★★</b></div>
+              <div>推理性能负面影响 <b>★★★★☆–★★★★★</b></div>
+            </div>
+            <small>依赖协议与合谋假设；跨方通信轮次影响明显。</small>
           </article>
         </div>
+        <p class="fineprint">
+          评级沿用完整洞察报告，为指定威胁模型下的定性比较，不是实测分数或安全认证。安全性星数越多表示保护能力越强；性能负面影响星数越多表示额外成本越大。FHE
+          为全同态加密的标准缩写。
+        </p>
         <blockquote>
           核心判断：TLS
           在服务端终止后，明文仍可能进入运行时。安全方案应回答“防谁、保护什么、性能预算多少”，而不是只看技术标签。
@@ -134,7 +163,10 @@
         <div class="section-head">
           <div>
             <div class="eyebrow"><span>03</span> SPLIT-INFER 方案分析</div>
-            <h2 id="security-title">把模型切开，<br />也要看清暴露面。</h2>
+            <h2 id="security-title">
+              Hidden State 不安全，<br />加深企业侧的部署层数可降低 token
+              被恢复的概率
+            </h2>
           </div>
           <span class="research-label">Evidence from PR #15</span>
         </div>
@@ -155,7 +187,7 @@
 
         <div class="security-grid">
           <article class="card attack-lab">
-            <h3>真实激活生成与原文恢复</h3>
+            <h3>最邻近反演几乎可以完全恢复 Embedding 的 Hidden State</h3>
             <p>
               使用 PR #15 的 embedding-only 方案：生成 FP16 激活，再用公开
               embedding
@@ -175,33 +207,45 @@ Security inference should protect private prompts while preserving useful model 
             </div>
             <pre class="terminal-body" id="attack-output">等待实际运行…</pre>
             <div id="attack-download"></div>
+            <h4>本次恢复结果</h4>
+            <pre id="recovered-output">等待生成激活和恢复…</pre>
             <a
               href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/Q1/embedding_attack.py"
               >PR #15 原始攻击代码 ↗</a
             >
           </article>
           <article class="card defense-lab">
-            <h3>表示与恢复结果</h3>
+            <h3>安全性优化：增加企业侧部署层数</h3>
             <p>
-              攻击输入只有暴露的 embedding 张量和公开词表。原 token IDs
-              仅用于攻击完成后的评分。页面展示本次运行的
-              shape、dtype、张量片段、恢复文本与逐位置匹配率。
+              我们用简单的 MLP，在固定攻击预算下验证了更深的企业侧前层有助于降低
+              token
+              恢复率。它说明深度可以增加当前攻击的难度，不构成绝对安全证明。
             </p>
-            <pre id="recovered-output">等待生成激活和恢复…</pre>
-            <h3>增加前层深度 · 已归档实测</h3>
             <div id="security-depth"></div>
             <p>
-              固定预算 MLP
-              攻击，两种数据分布分别展示；这些历史结果不随上方输入变化，不是本次最近邻攻击的输出。
+              量化结果与数据分布强相关：同样的深度，在当前 4K
+              样本和独立公开测试集上的恢复率存在显著差异。表中为 PR #15
+              的真实归档结果，不随左侧输入变化；不能将某个样本的恢复率推广到所有业务数据。
             </p>
             <p>
-              增加企业端前层深度后的攻击实验见
+              已有研究通过学习有针对性的噪声分布、扰动中间表示来进一步增强隐私保护，例如
               <a
-                href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md"
-                >PR #15 安全报告</a
-              >。该报告的 MLP 攻击与此处 embedding
-              最近邻攻击不同，不混用恢复率。
+                href="https://arxiv.org/abs/1905.11814"
+                target="_blank"
+                rel="noreferrer"
+                >Shredder</a
+              >。这类方法需要同时验证隐私收益与模型精度；本项目尚未实现或测量噪声防护。
             </p>
+            <p>
+              若仅对现有激活做轻量加性扰动，不改变模型层数和传输张量规模，预计额外系统负载较小；带训练、去噪等步骤的方案需另行评估。因此，后续系统优化以企业侧保留前
+              4 层为起点，固定采用
+              <b>Split · 4 / 27 / 5</b
+              >。这是性能研究的配置选择，不是安全达标结论；当前实测未启用噪声。
+            </p>
+            <a
+              href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md"
+              >PR #15 安全报告与实验方法 ↗</a
+            >
           </article>
         </div>
       </section>
