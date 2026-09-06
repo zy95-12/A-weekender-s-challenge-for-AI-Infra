@@ -22,6 +22,48 @@ def item(item_id: int, tokens: int = 16) -> WorkItem:
 
 
 class PerformanceTest(unittest.TestCase):
+    def test_stage1_data_path_switches_change_mechanical_costs(self) -> None:
+        baseline_data = copied_toy_config()
+        baseline_data["data_path"] = {
+            "enabled": True,
+            "ipc_mode": "copy",
+            "wire_fast": False,
+            "tcp_buffer_mib": 16,
+        }
+        optimized_data = copied_toy_config()
+        optimized_data["data_path"] = {
+            "enabled": True,
+            "ipc_mode": "shm",
+            "wire_fast": True,
+            "tcp_buffer_mib": 16,
+        }
+        baseline = NetworkModel(parse_config(baseline_data)).estimate(
+            Stage.WAN_UP, [item(0)]
+        )
+        optimized = NetworkModel(parse_config(optimized_data)).estimate(
+            Stage.WAN_UP, [item(0)]
+        )
+        self.assertLess(optimized.total_time_s, baseline.total_time_s)
+        names = [operation.name for operation in optimized.sub_operations]
+        self.assertEqual(
+            names,
+            [
+                "sender_staging", "device_to_host", "host_pack",
+                "wan_serialization", "wan_propagation", "cloud_ipc",
+                "host_unpack", "host_to_device", "receiver_staging",
+            ],
+        )
+
+        small_window_data = copied_toy_config()
+        small_window_data["data_path"] = {
+            "enabled": True,
+            "tcp_buffer_mib": 0.001,
+        }
+        small_window = NetworkModel(parse_config(small_window_data)).estimate(
+            Stage.WAN_UP, [item(0)]
+        )
+        self.assertGreater(small_window.total_time_s, baseline.total_time_s)
+
     def test_qwen2_omits_qk_norm_and_network_can_send_hidden_and_residual(self) -> None:
         data = copied_toy_config()
         data["model"]["model_type"] = "qwen2"

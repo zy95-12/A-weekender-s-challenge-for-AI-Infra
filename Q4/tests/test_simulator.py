@@ -10,6 +10,68 @@ from tests.helpers import copied_toy_config
 
 
 class SimulatorTest(unittest.TestCase):
+    def test_closed_loop_refills_slots_and_reports_joint_slo_goodput(self) -> None:
+        data = copied_toy_config()
+        data["workload"] = {
+            "mode": "closed_loop",
+            "num_requests": 6,
+            "concurrency": 2,
+            "warmup_requests": 1,
+            "input_tokens": 16,
+            "output_tokens": 2,
+        }
+        result = Simulator(parse_config(data)).run()
+        arrivals = [row["arrival_time_ms"] for row in result.requests]
+        self.assertEqual(arrivals[0], 0.0)
+        self.assertTrue(all(value > 0 for value in arrivals[1:]))
+        self.assertEqual(arrivals[1], arrivals[2])
+        self.assertEqual(result.summary["num_requests"], 5)
+        self.assertEqual(result.summary["warmup_requests"], 1)
+        self.assertEqual(result.summary["slo"]["compliant_requests"], 5)
+        self.assertGreater(result.summary["slo"]["goodput_qps"], 0)
+
+    def test_pipeline_transaction_limit_applies_backpressure(self) -> None:
+        data = copied_toy_config()
+        data["execution"] = {"max_inflight_transactions": 1}
+        data["workload"] = {
+            "mode": "synthetic",
+            "num_requests": 3,
+            "arrival_interval_ms": 0,
+            "input_tokens": 16,
+            "output_tokens": 2,
+        }
+        result = Simulator(parse_config(data)).run()
+        self.assertEqual(
+            result.summary["execution"]["max_inflight_transactions_observed"], 1
+        )
+        self.assertTrue(all(len(row["token_timestamps_ms"]) == 2 for row in result.requests))
+
+    def test_pipeline_depth_one_makes_prefill_chunks_end_to_end_serial(self) -> None:
+        data = copied_toy_config()
+        data["static_policy"]["pipeline_depth"] = 1
+        data["static_policy"]["max_outstanding_batches"] = 1
+        data["workload"] = {
+            "mode": "synthetic",
+            "num_requests": 1,
+            "arrival_interval_ms": 0,
+            "input_tokens": 32,
+            "output_tokens": 1,
+        }
+        result = Simulator(parse_config(data)).run()
+        first_tail = next(
+            row for row in result.trace
+            if row["stage"] == "edge_tail"
+            and row["phases"] == ["prefill"]
+            and row["chunk_indices"] == [0]
+        )
+        second_front = next(
+            row for row in result.trace
+            if row["stage"] == "edge_front"
+            and row["phases"] == ["prefill"]
+            and row["chunk_indices"] == [1]
+        )
+        self.assertGreaterEqual(second_front["start_time_ms"], first_tail["end_time_ms"])
+
     def test_trace_limits_keep_coarse_batches_without_operator_details(self) -> None:
         data = copied_toy_config()
         data["simulation"] = {

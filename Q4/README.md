@@ -27,6 +27,32 @@ python -m split_serving_sim \
   --output-dir outputs/example
 ```
 
+### Issue #6 Stage 1+2+3 演示
+
+[`configs/issue6_stage123.json`](configs/issue6_stage123.json) 使用 Qwen2.5-3B、
+4/27/5 split、端云 TP2+2，打开数据路径优化、1024-token chunked prefill、
+有界 decode-first FCFS、跨请求流水和闭环并发 4：
+
+```bash
+python -m split_serving_sim \
+  --config configs/issue6_stage123.json \
+  --output-dir outputs/issue6-stage123
+```
+
+对应控制项为：
+
+- `data_path.ipc_mode=copy|shm`、`wire_fast` 和 `tcp_buffer_mib`；
+- `scheduler.decode_first`、`max_consecutive_decode_batches`、
+  `max_decode_tokens_per_batch` 和 `max_prefill_wait_ms`；
+- `execution.max_inflight_transactions`、`buffer_pool_mib`；
+- `workload.mode=closed_loop`、`concurrency` 和 `warmup_requests`；
+- `slo.target_attainment`，输出逐请求联合达标率与 goodput。
+
+数据路径参数是可解释的分析模型；示例中的 PCIe、内存和 IPC 带宽不是 PR #9/#10
+实测拟合结果。用于容量结论前应通过 `performance_profile` 导入对应开关、payload 和
+并发下的普通运行数据。完整语义与边界见
+[`docs/ISSUE6_STAGE123.md`](docs/ISSUE6_STAGE123.md)。
+
 ### 复现 PR #8 baseline 行为
 
 以下配置对应 [PR #8](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/8)
@@ -71,7 +97,7 @@ baseline 使用 `execution.mode=synchronous_rpc` 和
 
 命令输出：
 
-- `summary.json`：整体 TTFT、TPOT、E2E、吞吐和利用率；
+- `summary.json`：整体 TTFT、请求级 TPOT、逐 token ITL、吞吐、SLO goodput 和利用率；
 - `requests.jsonl`：逐请求指标和 token 时间戳；
 - `trace.jsonl`：逐 batch/resource 的流水区间；
 - `gantt.html`：独立、可交互的流水甘特图。
@@ -134,6 +160,8 @@ JSON Config
 - `prefill_token_budget` 限制单次调度注入的 prefill token，避免 prefill 洪峰长期阻塞 decode；
 - Scheduler 先推进 running requests，再按 `fcfs`、`priority` 或实验性的
   `shortest_prefill` 顺序接纳 waiting requests；`split_poc_naive` 用于复现 PR #8；
+- `decode_first=true` 在 FCFS 内优先选择 ready decode，并由连续 decode batch 数、
+  decode token 上限和 prefill 最大等待时间保证长 prompt 获得推进机会；
 - 一个 GPU batch 只包含同一 stage，但可以混合 ready 的 prefill/decode work；
 - Edge Front 和 Edge Tail 共享 topology 中配置的 Edge GPU；
 - prefill chunk 在每个模型 stage 上保持因果顺序，同时允许跨 stage overlap；
@@ -141,6 +169,8 @@ JSON Config
 - WAN uplink/downlink 是两个独立的单服务器资源；
 - `pipeline_depth` 限制单请求在途 prefill chunk；
 - `max_outstanding_prefill_chunks` 提供全局 backpressure。
+- `max_inflight_transactions` 和 `buffer_pool_mib` 从 Edge Front 到 Edge Tail
+  限制所有 prefill/decode step 的在途数量与激活内存。
 
 ### Continuous batching 开关
 
@@ -218,7 +248,7 @@ dispatch 时。
 
 每个 sample 可以包含 `operator_type`、`signature`、`latency_ms`、
 `roofline_ms` 和 `match`。`match` 可限制 `phase`、`tp_degree`、`stage`、
-`dtype` 或网络方向。trace 会记录最终使用的 profile source 和修正系数。
+`dtype`、网络方向或 `data_path` 变体。trace 会记录最终使用的 profile source 和修正系数。
 
 PR #8 profile 可通过以下命令重新生成和验证：
 

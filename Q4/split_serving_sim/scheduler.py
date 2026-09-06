@@ -28,6 +28,7 @@ class VLLMScheduler:
     def __init__(self, static: StaticPolicyConfig, scheduler: SchedulerConfig | None = None):
         self.static = static
         self.scheduler = scheduler or SchedulerConfig(max_num_seqs=static.max_batch_size)
+        self.consecutive_decode_batches = 0
 
     def _request_key(self, item: WorkItem, snapshot: SchedulerSnapshot) -> tuple:
         arrival = (snapshot.request_arrival_times or {}).get(item.request_id, item.ready_time)
@@ -60,10 +61,31 @@ class VLLMScheduler:
                 compatible = prefills[:1] if prefills else [
                     item for item in compatible if item.phase == Phase.DECODE
                 ]
+            elif self.scheduler.decode_first:
+                prefills = [item for item in compatible if item.phase == Phase.PREFILL]
+                decodes = [item for item in compatible if item.phase == Phase.DECODE]
+                waited_too_long = bool(
+                    prefills
+                    and self.scheduler.max_prefill_wait_ms > 0
+                    and (snapshot.current_time - min(item.ready_time for item in prefills)) * 1000.0
+                    >= self.scheduler.max_prefill_wait_ms
+                )
+                force_prefill = bool(
+                    prefills
+                    and decodes
+                    and (
+                        waited_too_long
+                        or self.consecutive_decode_batches
+                        >= self.scheduler.max_consecutive_decode_batches
+                    )
+                )
+                compatible = (
+                    prefills + decodes if force_prefill else decodes + prefills
+                )
             selected: list[WorkItem] = []
             request_ids: set[int] = set()
             new_running: set[int] = set()
-            tokens = prefill_tokens = chunks = 0
+            tokens = prefill_tokens = decode_tokens = chunks = 0
             for item in compatible:
                 if item.request_id in request_ids:
                     continue
@@ -73,6 +95,13 @@ class VLLMScheduler:
                 if len(selected) >= self.static.max_batch_size:
                     break
                 if tokens + item.token_count > self.static.max_batched_tokens:
+                    continue
+                if (
+                    item.phase == Phase.DECODE
+                    and self.scheduler.max_decode_tokens_per_batch > 0
+                    and decode_tokens + item.token_count
+                    > self.scheduler.max_decode_tokens_per_batch
+                ):
                     continue
                 if item.phase == Phase.PREFILL and prefill_tokens + item.token_count > self.static.prefill_token_budget:
                     continue
@@ -85,8 +114,16 @@ class VLLMScheduler:
                 selected.append(item); request_ids.add(item.request_id)
                 if not running: new_running.add(item.request_id)
                 tokens += item.token_count
-                if item.phase == Phase.PREFILL: prefill_tokens += item.token_count
+                if item.phase == Phase.PREFILL:
+                    prefill_tokens += item.token_count
+                else:
+                    decode_tokens += item.token_count
             if selected:
+                if anchor.stage == Stage.EDGE_FRONT and anchor.pipeline_rank == 0:
+                    if any(item.phase == Phase.PREFILL for item in selected):
+                        self.consecutive_decode_batches = 0
+                    elif all(item.phase == Phase.DECODE for item in selected):
+                        self.consecutive_decode_batches += 1
                 return selected
         return []
 

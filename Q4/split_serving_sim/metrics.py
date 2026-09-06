@@ -77,12 +77,17 @@ def build_summary(
     duration = max(end_time - start_time, 0.0)
     ttfts = [request["ttft_ms"] for request in requests]
     e2es = [request["e2e_ms"] for request in requests]
-    tpots = [
+    itls = [
         right - left
         for request in requests
         for left, right in zip(
             request["token_timestamps_ms"], request["token_timestamps_ms"][1:]
         )
+    ]
+    tpots = [
+        request["mean_tpot_ms"]
+        for request in requests
+        if request["mean_tpot_ms"] is not None
     ]
     batch_sizes = [trace["batch_size"] for trace in traces]
     total_output_tokens = sum(request["output_tokens"] for request in requests)
@@ -105,6 +110,12 @@ def build_summary(
             "p95": percentile(tpots, 0.95),
             "p99": percentile(tpots, 0.99),
         },
+        "itl_ms": {
+            "p50": percentile(itls, 0.50),
+            "p95": percentile(itls, 0.95),
+            "p99": percentile(itls, 0.99),
+            "max": max(itls) if itls else None,
+        },
         "e2e_ms": {
             "p50": percentile(e2es, 0.50),
             "p95": percentile(e2es, 0.95),
@@ -121,14 +132,26 @@ def build_summary(
     if slo is not None:
         ttft_p99 = summary["ttft_ms"]["p99"]
         tpot_p99 = summary["tpot_ms"]["p99"]
+        compliant = []
+        for request in requests:
+            tpot = request["mean_tpot_ms"]
+            passed = request["ttft_ms"] <= slo.ttft_ms and (
+                tpot is None or tpot <= slo.tpot_ms
+            )
+            request["slo_pass"] = passed
+            compliant.append(passed)
+        compliant_requests = sum(compliant)
+        attainment = compliant_requests / len(requests) if requests else 0.0
         summary["slo"] = {
             "ttft_limit_ms": slo.ttft_ms,
             "tpot_limit_ms": slo.tpot_ms,
+            "target_attainment": slo.target_attainment,
             "ttft_pass": ttft_p99 is not None and ttft_p99 <= slo.ttft_ms,
             # TPOT is not applicable when every request asks for one token.
             "tpot_pass": tpot_p99 is None or tpot_p99 <= slo.tpot_ms,
+            "compliant_requests": compliant_requests,
+            "attainment": attainment,
+            "goodput_qps": compliant_requests / duration if duration else None,
         }
-        summary["slo"]["pass"] = (
-            summary["slo"]["ttft_pass"] and summary["slo"]["tpot_pass"]
-        )
+        summary["slo"]["pass"] = attainment >= slo.target_attainment
     return summary

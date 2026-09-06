@@ -602,11 +602,44 @@ class NetworkModel:
             else self.config.network.downlink_gbps
         )
         bytes_per_second = bandwidth_gbps * 1e9 / 8.0 * self.config.network.efficiency
+        data_path = self.config.data_path
+        if data_path.enabled and data_path.tcp_buffer_mib > 0 and self.config.network.rtt_ms > 0:
+            tcp_window_bytes = data_path.tcp_buffer_mib * 1024.0 * 1024.0
+            tcp_window_rate = tcp_window_bytes / (self.config.network.rtt_ms / 1000.0)
+            bytes_per_second = min(bytes_per_second, tcp_window_rate)
         serialization = payload / bytes_per_second
         propagation = self.config.network.rtt_ms / 2000.0
         sender_overhead = self.config.network.sender_overhead_ms / 1000.0
         receiver_overhead = self.config.network.receiver_overhead_ms / 1000.0
-        total = sender_overhead + serialization + propagation + receiver_overhead
+        pre_path_parts: list[tuple[str, float]] = []
+        post_path_parts: list[tuple[str, float]] = []
+        if data_path.enabled:
+            pack_copies = (
+                data_path.wire_fast_pack_copies
+                if data_path.wire_fast
+                else data_path.legacy_pack_copies
+            )
+            ipc_copies = (
+                data_path.shm_ipc_copies
+                if data_path.ipc_mode == "shm"
+                else data_path.copy_ipc_copies
+            )
+            d2h = ("device_to_host", payload / (data_path.d2h_bandwidth_gb_s * 1e9))
+            pack = ("host_pack", pack_copies * payload / (data_path.host_memory_bandwidth_gb_s * 1e9))
+            ipc = ("cloud_ipc", data_path.ipc_latency_ms / 1000.0 + ipc_copies * payload / (data_path.ipc_bandwidth_gb_s * 1e9))
+            unpack = ("host_unpack", payload / (data_path.host_memory_bandwidth_gb_s * 1e9))
+            h2d = ("host_to_device", payload / (data_path.h2d_bandwidth_gb_s * 1e9))
+            if stage == Stage.WAN_UP:
+                pre_path_parts, post_path_parts = [d2h, pack], [ipc, unpack, h2d]
+            else:
+                pre_path_parts, post_path_parts = [d2h, ipc, pack], [unpack, h2d]
+        total = (
+            sender_overhead
+            + sum(duration for _, duration in pre_path_parts + post_path_parts)
+            + serialization
+            + propagation
+            + receiver_overhead
+        )
         tensors = self.config.network.activation_tensor_count
         shape = (
             f"{tensors} x {self.config.model.dtype} "
@@ -619,13 +652,23 @@ class NetworkModel:
             "network_transfer",
             signature,
             total,
-            {"direction": direction, "phase": phases},
+            {
+                "direction": direction,
+                "phase": phases,
+                "data_path": (
+                    f"{data_path.ipc_mode}/wire_fast={data_path.wire_fast}/tcp={data_path.tcp_buffer_mib:g}MiB"
+                    if data_path.enabled
+                    else "legacy"
+                ),
+            },
         )
         scale = profile.duration_s / total if total else 1.0
         sender_overhead *= scale
         serialization *= scale
         propagation *= scale
         receiver_overhead *= scale
+        pre_path_parts = [(name, duration * scale) for name, duration in pre_path_parts]
+        post_path_parts = [(name, duration * scale) for name, duration in post_path_parts]
         total = profile.duration_s
         profile_fields = {
             "profile_type": "network_transfer",
@@ -633,20 +676,36 @@ class NetworkModel:
             "profile_source": profile.source,
             "profile_correction_factor": profile.correction_factor,
         }
+        ordered_parts = (
+            [("sender_staging", sender_overhead)]
+            + pre_path_parts
+            + [
+                ("wan_serialization", serialization),
+                ("wan_propagation", propagation),
+            ]
+            + post_path_parts
+            + [("receiver_staging", receiver_overhead)]
+        )
+        sub_operations = tuple(
+            SubOperation(
+                name,
+                "communication",
+                duration,
+                shape,
+                dependencies=((ordered_parts[index - 1][0],) if index else ()),
+                **profile_fields,
+            )
+            for index, (name, duration) in enumerate(ordered_parts)
+        )
         return PerformanceEstimate(
             flops=0.0,
             memory_bytes=0.0,
             communication_bytes=payload,
             compute_time_s=0.0,
-            memory_time_s=serialization,
+            memory_time_s=serialization + sum(duration for _, duration in pre_path_parts + post_path_parts),
             collective_time_s=0.0,
             overhead_time_s=sender_overhead + propagation + receiver_overhead,
             total_time_s=total,
             input_shape=shape,
-            sub_operations=(
-                SubOperation("sender_staging", "communication", sender_overhead, shape, **profile_fields),
-                SubOperation("wan_serialization", "communication", serialization, shape, **profile_fields),
-                SubOperation("wan_propagation", "communication", propagation, shape, **profile_fields),
-                SubOperation("receiver_staging", "communication", receiver_overhead, shape, **profile_fields),
-            ),
+            sub_operations=sub_operations,
         )

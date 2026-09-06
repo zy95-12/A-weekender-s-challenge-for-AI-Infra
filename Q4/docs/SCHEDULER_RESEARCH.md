@@ -44,6 +44,13 @@ Primary references:
 | PD-disaggregated routing | Implemented | separate phase resources and serialized KV-transfer resource | One P and one D route; no replica load balancing yet |
 | PR #8 split POC baseline | Implemented | one-at-a-time admission, pure prefill or all-active decode, synchronous RPC transaction | Matches the custom POC scheduler, intentionally not native vLLM |
 
+Issue #6 additionally enables bounded decode-first scheduling without changing
+request admission order. `decode_first` prioritizes ready decode work;
+`max_consecutive_decode_batches`, `max_decode_tokens_per_batch`, and
+`max_prefill_wait_ms` provide deterministic prefill progress bounds. These are
+simulation policy controls for the issue #6 scheduler, not claims about the
+default vLLM V1 policy.
+
 ## Recommended implementation order
 
 1. **Done:** replace work-item phase priority with request-level `running` and `waiting`

@@ -113,12 +113,20 @@ class Simulator:
         self._sync_transaction_sequence = 0
         self.trace_records_dropped = 0
         self.trace_detail_records_dropped = 0
+        self.inflight_transactions: dict[tuple[int, str, int | None, int | None], float] = {}
+        self.inflight_bytes = 0.0
+        self.max_inflight_transactions_observed = 0
+        self.max_inflight_bytes_observed = 0.0
+        self._closed_loop_specs: list[RequestSpec] = []
+        self._next_closed_loop_index = 0
+        self._closed_loop_warmup_completed = 0
+        self.measured_request_ids: set[int] = set()
 
     def run(self) -> SimulationResult:
         request_specs = self._request_specs()
         if not request_specs:
             raise ValueError("workload generated no requests")
-        for spec in request_specs:
+        for index, spec in enumerate(request_specs):
             self.request_specs[spec.request_id] = spec
             self.request_priorities[spec.request_id] = spec.priority
             self.request_arrival_times[spec.request_id] = spec.arrival_time_ms / 1000.0
@@ -128,6 +136,20 @@ class Simulator:
                 input_tokens=spec.input_tokens,
                 output_tokens=spec.output_tokens,
             )
+            if index >= self.config.workload.warmup_requests:
+                self.measured_request_ids.add(spec.request_id)
+        if self.config.workload.mode == "closed_loop":
+            self._closed_loop_specs = request_specs
+            initial_count = (
+                min(self.config.workload.concurrency, self.config.workload.warmup_requests)
+                if self.config.workload.warmup_requests
+                else self.config.workload.concurrency
+            )
+            scheduled_specs = request_specs[:initial_count]
+            self._next_closed_loop_index = len(scheduled_specs)
+        else:
+            scheduled_specs = request_specs
+        for spec in scheduled_specs:
             self._push_event(
                 spec.arrival_time_ms / 1000.0,
                 EventType.REQUEST_ARRIVAL,
@@ -159,19 +181,36 @@ class Simulator:
             queued = sum(len(queue) for queue in self.queues.values())
             raise RuntimeError(f"simulation deadlocked; unfinished={unfinished}, queued={queued}")
 
-        request_metrics = [
-            self.requests[request_id].to_metrics()
-            for request_id in sorted(self.requests)
-        ]
+        request_metrics = []
+        for request_id in sorted(self.requests):
+            metrics = self.requests[request_id].to_metrics()
+            metrics["measured"] = request_id in self.measured_request_ids
+            request_metrics.append(metrics)
+        measured_metrics = [row for row in request_metrics if row["measured"]]
         end_time = max(request.finish_time or 0.0 for request in self.requests.values())
+        measured_start = min(row["arrival_time_ms"] for row in measured_metrics) / 1000.0
+        measured_end = max(row["finish_time_ms"] for row in measured_metrics) / 1000.0
+        measured_trace = [
+            row for row in self.trace
+            if row["end_time_ms"] > measured_start * 1000.0
+            and row["start_time_ms"] < measured_end * 1000.0
+        ]
         summary = build_summary(
-            request_metrics,
-            self.trace,
+            measured_metrics,
+            measured_trace,
             {name: resource.busy_time for name, resource in self.resources.items()},
-            start_time,
-            end_time,
+            measured_start,
+            measured_end,
             self.config.slo,
         )
+        full_duration = max(end_time - start_time, 0.0)
+        summary["resource_utilization"] = {
+            name: resource.busy_time / full_duration if full_duration else 0.0
+            for name, resource in self.resources.items()
+        }
+        summary["resource_utilization_scope"] = "full_run_including_warmup"
+        summary["total_requests_including_warmup"] = len(request_metrics)
+        summary["warmup_requests"] = len(request_metrics) - len(measured_metrics)
         summary["static_policy"] = {
             "batch_size": self.config.static_policy.max_batch_size,
             "max_batched_tokens": self.config.static_policy.max_batched_tokens,
@@ -182,6 +221,14 @@ class Simulator:
             "attention_backend": self.config.attention_backend.mode,
             "scheduler_policy": self.config.scheduler.policy,
             "max_num_seqs": self.config.scheduler.max_num_seqs,
+            "decode_first": self.config.scheduler.decode_first,
+            "max_consecutive_decode_batches": (
+                self.config.scheduler.max_consecutive_decode_batches
+            ),
+            "max_decode_tokens_per_batch": (
+                self.config.scheduler.max_decode_tokens_per_batch
+            ),
+            "max_prefill_wait_ms": self.config.scheduler.max_prefill_wait_ms,
         }
         summary["model"] = {
             "name": self.config.model.name,
@@ -194,6 +241,20 @@ class Simulator:
             "preserve_batch_across_stages": (
                 self.config.execution.preserve_batch_across_stages
             ),
+            "max_inflight_transactions": self.config.execution.max_inflight_transactions,
+            "buffer_pool_mib": self.config.execution.buffer_pool_mib,
+            "max_inflight_transactions_observed": self.max_inflight_transactions_observed,
+            "max_inflight_bytes_observed": self.max_inflight_bytes_observed,
+        }
+        summary["data_path"] = {
+            "enabled": self.config.data_path.enabled,
+            "ipc_mode": self.config.data_path.ipc_mode,
+            "wire_fast": self.config.data_path.wire_fast,
+            "tcp_buffer_mib": self.config.data_path.tcp_buffer_mib,
+        }
+        summary["workload"] = {
+            "mode": self.config.workload.mode,
+            "concurrency": self.config.workload.concurrency,
         }
         summary["performance_profile"] = {
             "enabled": self.config.performance_profile.enabled,
@@ -254,7 +315,7 @@ class Simulator:
             specs.append(
                 RequestSpec(
                     request_id=request_id,
-                    arrival_time_ms=arrival_time_ms,
+                    arrival_time_ms=(0.0 if workload.mode == "closed_loop" else arrival_time_ms),
                     input_tokens=workload.input_tokens,
                     output_tokens=workload.output_tokens,
                 )
@@ -272,6 +333,11 @@ class Simulator:
         event = Event(timestamp, self._event_sequence, event_type, payload)
         self._event_sequence += 1
         heapq.heappush(self.events, event)
+
+    def _launch_closed_loop_spec(self, spec: RequestSpec) -> None:
+        self.requests[spec.request_id].arrival_time = self.clock
+        self.request_arrival_times[spec.request_id] = self.clock
+        self._push_event(self.clock, EventType.REQUEST_ARRIVAL, spec.request_id)
 
     def _process_event(self, event: Event) -> None:
         if event.event_type == EventType.REQUEST_ARRIVAL:
@@ -424,6 +490,12 @@ class Simulator:
                 and item.pipeline_rank
                 == self.config.stage(Stage.EDGE_TAIL.value).pp_degree - 1
             ):
+                self._release_transaction(item)
+            if (
+                item.stage == Stage.EDGE_TAIL
+                and item.pipeline_rank
+                == self.config.stage(Stage.EDGE_TAIL.value).pp_degree - 1
+            ):
                 if item.phase == Phase.PREFILL and self.dag.is_final_prefill(item):
                     if self.kv_cache is not None:
                         spec = self.request_specs[item.request_id]
@@ -461,6 +533,30 @@ class Simulator:
                 )
             ):
                 self.active_static_cohort.clear()
+            if (
+                self.config.workload.mode == "closed_loop"
+            ):
+                warmup = self.config.workload.warmup_requests
+                if request_id not in self.measured_request_ids:
+                    self._closed_loop_warmup_completed += 1
+                    if self._next_closed_loop_index < warmup:
+                        spec = self._closed_loop_specs[self._next_closed_loop_index]
+                        self._next_closed_loop_index += 1
+                        self._launch_closed_loop_spec(spec)
+                    elif self._closed_loop_warmup_completed == warmup:
+                        stop = min(
+                            len(self._closed_loop_specs),
+                            self._next_closed_loop_index
+                            + self.config.workload.concurrency,
+                        )
+                        while self._next_closed_loop_index < stop:
+                            spec = self._closed_loop_specs[self._next_closed_loop_index]
+                            self._next_closed_loop_index += 1
+                            self._launch_closed_loop_spec(spec)
+                elif self._next_closed_loop_index < len(self._closed_loop_specs):
+                    spec = self._closed_loop_specs[self._next_closed_loop_index]
+                    self._next_closed_loop_index += 1
+                    self._launch_closed_loop_spec(spec)
             return
         context = request.input_tokens + len(request.token_times)
         ready = self.dag.add_decode(
@@ -508,12 +604,97 @@ class Simulator:
             stage.pp_degree,
         )
 
+    @staticmethod
+    def _transaction_key(item: WorkItem) -> tuple[int, str, int | None, int | None]:
+        return (item.request_id, item.phase.value, item.chunk_index, item.iteration)
+
+    def _transaction_bytes(self, item: WorkItem) -> float:
+        one_way = (
+            item.token_count
+            * self.config.model.hidden_size
+            * self.config.model.dtype_bytes
+            * self.config.network.activation_tensor_count
+            + self.config.network.protocol_overhead_bytes
+        )
+        return float(2 * one_way)
+
+    def _can_admit_front_batch(self, items: list[WorkItem]) -> bool:
+        if items[0].stage != Stage.EDGE_FRONT or items[0].pipeline_rank != 0:
+            return True
+        new_items = [
+            item for item in items
+            if self._transaction_key(item) not in self.inflight_transactions
+        ]
+        if not new_items:
+            return True
+        limit = self.config.execution.max_inflight_transactions
+        if limit and len(self.inflight_transactions) + len(new_items) > limit:
+            return False
+        additional_bytes = sum(self._transaction_bytes(item) for item in new_items)
+        capacity = self.config.execution.buffer_pool_mib * 1024.0 * 1024.0
+        if capacity and additional_bytes > capacity:
+            raise RuntimeError(
+                "one batch requires more bytes than execution.buffer_pool_mib"
+            )
+        return not capacity or self.inflight_bytes + additional_bytes <= capacity
+
+    def _admissible_front_candidates(self, items: list[WorkItem]) -> list[WorkItem]:
+        selected: list[WorkItem] = []
+        added_keys: set[tuple[int, str, int | None, int | None]] = set()
+        added_bytes = 0.0
+        limit = self.config.execution.max_inflight_transactions
+        capacity = self.config.execution.buffer_pool_mib * 1024.0 * 1024.0
+        for item in items:
+            if item.stage != Stage.EDGE_FRONT or item.pipeline_rank != 0:
+                selected.append(item)
+                continue
+            key = self._transaction_key(item)
+            if key in self.inflight_transactions or key in added_keys:
+                selected.append(item)
+                continue
+            size = self._transaction_bytes(item)
+            if capacity and size > capacity:
+                raise RuntimeError(
+                    "one transaction requires more bytes than execution.buffer_pool_mib"
+                )
+            if limit and len(self.inflight_transactions) + len(added_keys) >= limit:
+                continue
+            if capacity and self.inflight_bytes + added_bytes + size > capacity:
+                continue
+            selected.append(item)
+            added_keys.add(key)
+            added_bytes += size
+        return selected
+
+    def _reserve_front_batch(self, items: list[WorkItem]) -> None:
+        if items[0].stage != Stage.EDGE_FRONT or items[0].pipeline_rank != 0:
+            return
+        for item in items:
+            key = self._transaction_key(item)
+            if key in self.inflight_transactions:
+                continue
+            size = self._transaction_bytes(item)
+            self.inflight_transactions[key] = size
+            self.inflight_bytes += size
+        self.max_inflight_transactions_observed = max(
+            self.max_inflight_transactions_observed, len(self.inflight_transactions)
+        )
+        self.max_inflight_bytes_observed = max(
+            self.max_inflight_bytes_observed, self.inflight_bytes
+        )
+
+    def _release_transaction(self, item: WorkItem) -> None:
+        key = self._transaction_key(item)
+        size = self.inflight_transactions.pop(key, 0.0)
+        self.inflight_bytes -= size
+
     def _schedule_idle_resources(self) -> None:
         if self.config.execution.mode == "synchronous_rpc" and self.running_batches:
             return
         for resource_id in sorted(self.resources):
             resource = self.resources[resource_id]
             candidates = self.queues[resource_id]
+            candidates = self._admissible_front_candidates(candidates)
             if self.sync_signature is not None:
                 expected = self.sync_expected
                 candidates = [
@@ -536,6 +717,8 @@ class Simulator:
             )
             items = self.scheduler.form_batch(candidates, snapshot)
             if not items:
+                continue
+            if not self._can_admit_front_batch(items):
                 continue
             if not self._grow_kv_for_batch(items):
                 continue
@@ -624,6 +807,7 @@ class Simulator:
         )
         resource.running_batch_id = batch_id
         self.running_batches[batch_id] = batch
+        self._reserve_front_batch(items)
         for item in items:
             queue_time = self.clock - item.ready_time
             request = self.requests[item.request_id]
@@ -774,4 +958,6 @@ class Simulator:
                 self.config.scheduler.kv_cache.allocation_mode
                 if self.kv_cache else None
             ),
+            "inflight_transactions": len(self.inflight_transactions),
+            "inflight_bytes": self.inflight_bytes,
         }

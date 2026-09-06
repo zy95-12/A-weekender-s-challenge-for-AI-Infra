@@ -9,6 +9,37 @@ from tests.helpers import copied_toy_config
 
 
 class ConfigTest(unittest.TestCase):
+    def test_parses_issue6_stage123_controls(self) -> None:
+        data = copied_toy_config()
+        data["data_path"] = {
+            "enabled": True,
+            "ipc_mode": "shm",
+            "wire_fast": True,
+            "tcp_buffer_mib": 16,
+        }
+        data["execution"] = {
+            "max_inflight_transactions": 2,
+            "buffer_pool_mib": 1,
+        }
+        data["scheduler"] = {
+            "decode_first": True,
+            "max_consecutive_decode_batches": 3,
+            "max_decode_tokens_per_batch": 2,
+            "max_prefill_wait_ms": 5,
+        }
+        data["workload"].update(
+            {
+                "mode": "closed_loop", "num_requests": 3,
+                "concurrency": 2, "warmup_requests": 1,
+            }
+        )
+        config = parse_config(data)
+        self.assertEqual(config.data_path.ipc_mode, "shm")
+        self.assertTrue(config.data_path.wire_fast)
+        self.assertEqual(config.execution.max_inflight_transactions, 2)
+        self.assertTrue(config.scheduler.decode_first)
+        self.assertEqual(config.workload.concurrency, 2)
+
     def test_parses_attention_scheduler_and_nested_continuous_batching(self) -> None:
         data = copied_toy_config()
         data["static_policy"]["continuous_batching"] = {"enabled": False}

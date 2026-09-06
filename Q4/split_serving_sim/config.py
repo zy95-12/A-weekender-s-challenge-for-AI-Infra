@@ -114,9 +114,30 @@ class NetworkConfig:
 
 
 @dataclass(frozen=True)
+class DataPathConfig:
+    """Host/device staging and transport options used around each WAN message."""
+
+    enabled: bool = False
+    ipc_mode: str = "copy"
+    wire_fast: bool = False
+    tcp_buffer_mib: float = 0.0
+    d2h_bandwidth_gb_s: float = 24.0
+    h2d_bandwidth_gb_s: float = 24.0
+    host_memory_bandwidth_gb_s: float = 20.0
+    ipc_bandwidth_gb_s: float = 12.0
+    ipc_latency_ms: float = 0.05
+    legacy_pack_copies: float = 2.0
+    wire_fast_pack_copies: float = 1.0
+    copy_ipc_copies: float = 2.0
+    shm_ipc_copies: float = 0.0
+
+
+@dataclass(frozen=True)
 class ExecutionConfig:
     mode: str = "pipelined"
     preserve_batch_across_stages: bool = False
+    max_inflight_transactions: int = 0
+    buffer_pool_mib: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -177,6 +198,10 @@ class SchedulerConfig:
     policy: str = "fcfs"
     max_num_seqs: int = 256
     enable_chunked_prefill: bool = True
+    decode_first: bool = False
+    max_consecutive_decode_batches: int = 8
+    max_decode_tokens_per_batch: int = 0
+    max_prefill_wait_ms: float = 0.0
     kv_cache: KVCacheConfig = field(default_factory=KVCacheConfig)
     pd_disaggregation: PDDisaggregationConfig = field(default_factory=PDDisaggregationConfig)
 
@@ -202,6 +227,8 @@ class WorkloadConfig:
     input_tokens: int = 0
     output_tokens: int = 0
     random_seed: int = 42
+    concurrency: int = 0
+    warmup_requests: int = 0
     requests: tuple[RequestSpec, ...] = ()
 
 
@@ -209,6 +236,7 @@ class WorkloadConfig:
 class SLOConfig:
     ttft_ms: float
     tpot_ms: float
+    target_attainment: float = 0.99
 
 
 @dataclass(frozen=True)
@@ -225,6 +253,7 @@ class SimulationConfig:
     stages: tuple[StageConfig, ...]
     hardware: dict[str, HardwareConfig]
     network: NetworkConfig
+    data_path: DataPathConfig
     execution: ExecutionConfig
     performance_profile: PerformanceProfileConfig
     static_policy: StaticPolicyConfig
@@ -399,6 +428,22 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         sender_overhead_ms=float(network_data.get("sender_overhead_ms", 0.0)),
         receiver_overhead_ms=float(network_data.get("receiver_overhead_ms", 0.0)),
     )
+    data_path_data = data.get("data_path", {})
+    data_path = DataPathConfig(
+        enabled=bool(data_path_data.get("enabled", False)),
+        ipc_mode=str(data_path_data.get("ipc_mode", "copy")),
+        wire_fast=bool(data_path_data.get("wire_fast", False)),
+        tcp_buffer_mib=float(data_path_data.get("tcp_buffer_mib", 0.0)),
+        d2h_bandwidth_gb_s=float(data_path_data.get("d2h_bandwidth_gb_s", 24.0)),
+        h2d_bandwidth_gb_s=float(data_path_data.get("h2d_bandwidth_gb_s", 24.0)),
+        host_memory_bandwidth_gb_s=float(data_path_data.get("host_memory_bandwidth_gb_s", 20.0)),
+        ipc_bandwidth_gb_s=float(data_path_data.get("ipc_bandwidth_gb_s", 12.0)),
+        ipc_latency_ms=float(data_path_data.get("ipc_latency_ms", 0.05)),
+        legacy_pack_copies=float(data_path_data.get("legacy_pack_copies", 2.0)),
+        wire_fast_pack_copies=float(data_path_data.get("wire_fast_pack_copies", 1.0)),
+        copy_ipc_copies=float(data_path_data.get("copy_ipc_copies", 2.0)),
+        shm_ipc_copies=float(data_path_data.get("shm_ipc_copies", 0.0)),
+    )
     execution_data = data.get("execution", {})
     execution_mode = str(execution_data.get("mode", "pipelined"))
     execution = ExecutionConfig(
@@ -409,6 +454,8 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
                 execution_mode == "synchronous_rpc",
             )
         ),
+        max_inflight_transactions=int(execution_data.get("max_inflight_transactions", 0)),
+        buffer_pool_mib=float(execution_data.get("buffer_pool_mib", 0.0)),
     )
     profile_data = data.get("performance_profile", {})
     performance_profile = parse_performance_profile(profile_data)
@@ -475,6 +522,10 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         policy=str(scheduler_data.get("policy", policy.scheduler)),
         max_num_seqs=int(scheduler_data.get("max_num_seqs", policy.max_batch_size)),
         enable_chunked_prefill=bool(scheduler_data.get("enable_chunked_prefill", True)),
+        decode_first=bool(scheduler_data.get("decode_first", False)),
+        max_consecutive_decode_batches=int(scheduler_data.get("max_consecutive_decode_batches", 8)),
+        max_decode_tokens_per_batch=int(scheduler_data.get("max_decode_tokens_per_batch", 0)),
+        max_prefill_wait_ms=float(scheduler_data.get("max_prefill_wait_ms", 0.0)),
         kv_cache=KVCacheConfig(
             enabled=bool(kv_data.get("enabled", False)),
             allocation_mode=str(kv_data.get("allocation_mode", "preallocate")),
@@ -520,6 +571,8 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         input_tokens=int(workload_data.get("input_tokens", 0)),
         output_tokens=int(workload_data.get("output_tokens", 0)),
         random_seed=int(workload_data.get("random_seed", 42)),
+        concurrency=int(workload_data.get("concurrency", 0)),
+        warmup_requests=int(workload_data.get("warmup_requests", 0)),
         requests=request_specs,
     )
 
@@ -528,6 +581,7 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         SLOConfig(
             ttft_ms=float(_required(slo_data, "ttft_ms", "slo")),
             tpot_ms=float(_required(slo_data, "tpot_ms", "slo")),
+            target_attainment=float(slo_data.get("target_attainment", 0.99)),
         )
         if slo_data is not None
         else None
@@ -547,6 +601,7 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         stages=stages,
         hardware=hardware,
         network=network,
+        data_path=data_path,
         execution=execution,
         performance_profile=performance_profile,
         static_policy=policy,
@@ -671,6 +726,25 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("network.protocol_overhead_bytes cannot be negative")
     if min(config.network.sender_overhead_ms, config.network.receiver_overhead_ms) < 0:
         raise ConfigError("network staging overhead cannot be negative")
+    data_path = config.data_path
+    if data_path.ipc_mode not in {"copy", "shm"}:
+        raise ConfigError("data_path.ipc_mode must be copy or shm")
+    if data_path.tcp_buffer_mib < 0 or data_path.ipc_latency_ms < 0:
+        raise ConfigError("data path sizes and latency cannot be negative")
+    if min(
+        data_path.d2h_bandwidth_gb_s,
+        data_path.h2d_bandwidth_gb_s,
+        data_path.host_memory_bandwidth_gb_s,
+        data_path.ipc_bandwidth_gb_s,
+    ) <= 0:
+        raise ConfigError("data path bandwidths must be positive")
+    if min(
+        data_path.legacy_pack_copies,
+        data_path.wire_fast_pack_copies,
+        data_path.copy_ipc_copies,
+        data_path.shm_ipc_copies,
+    ) < 0:
+        raise ConfigError("data path copy counts cannot be negative")
     if config.execution.mode not in {"pipelined", "synchronous_rpc"}:
         raise ConfigError("execution.mode must be pipelined or synchronous_rpc")
     if (
@@ -678,6 +752,8 @@ def validate_config(config: SimulationConfig) -> None:
         and not config.execution.preserve_batch_across_stages
     ):
         raise ConfigError("synchronous_rpc must preserve batches across stages")
+    if config.execution.max_inflight_transactions < 0 or config.execution.buffer_pool_mib < 0:
+        raise ConfigError("execution in-flight limits cannot be negative")
     if min(
         config.simulation.max_trace_records,
         config.simulation.max_detailed_trace_records,
@@ -727,6 +803,10 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("split_poc_naive requires execution.mode=synchronous_rpc")
     if config.scheduler.max_num_seqs <= 0:
         raise ConfigError("scheduler.max_num_seqs must be positive")
+    if config.scheduler.max_consecutive_decode_batches <= 0:
+        raise ConfigError("max_consecutive_decode_batches must be positive")
+    if config.scheduler.max_decode_tokens_per_batch < 0 or config.scheduler.max_prefill_wait_ms < 0:
+        raise ConfigError("scheduler fairness limits cannot be negative")
     if config.attention_backend.mode not in {"unified", "separate"}:
         raise ConfigError("attention_backend.mode must be unified or separate")
     kv = config.scheduler.kv_cache
@@ -748,17 +828,23 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("PD requires distinct prefill_resource/decode_resource per stage")
 
     workload = config.workload
-    if workload.mode == "synthetic":
+    if workload.mode in {"synthetic", "closed_loop"}:
         if min(workload.num_requests, workload.input_tokens, workload.output_tokens) <= 0:
-            raise ConfigError("synthetic workload sizes must be positive")
-        if workload.arrival_process not in {"constant", "poisson"}:
-            raise ConfigError("arrival_process must be constant or poisson")
-        if workload.arrival_process == "constant" and workload.arrival_interval_ms < 0:
-            raise ConfigError("arrival_interval_ms cannot be negative")
-        if workload.arrival_process == "poisson" and (
-            workload.arrival_rate_qps is None or workload.arrival_rate_qps <= 0
+            raise ConfigError("generated workload sizes must be positive")
+        if workload.mode == "synthetic":
+            if workload.arrival_process not in {"constant", "poisson"}:
+                raise ConfigError("arrival_process must be constant or poisson")
+            if workload.arrival_process == "constant" and workload.arrival_interval_ms < 0:
+                raise ConfigError("arrival_interval_ms cannot be negative")
+            if workload.arrival_process == "poisson" and (
+                workload.arrival_rate_qps is None or workload.arrival_rate_qps <= 0
+            ):
+                raise ConfigError("poisson workload requires positive arrival_rate_qps")
+        elif (
+            workload.concurrency <= 0
+            or workload.num_requests - workload.warmup_requests < workload.concurrency
         ):
-            raise ConfigError("poisson workload requires positive arrival_rate_qps")
+            raise ConfigError("closed_loop requires positive concurrency covered by num_requests")
     elif workload.mode == "trace":
         if not workload.requests:
             raise ConfigError("trace workload requires at least one request")
@@ -773,7 +859,14 @@ def validate_config(config: SimulationConfig) -> None:
         ):
             raise ConfigError("trace request values are invalid")
     else:
-        raise ConfigError("workload.mode must be synthetic or trace")
+        raise ConfigError("workload.mode must be synthetic, closed_loop, or trace")
+    request_count = (
+        len(workload.requests) if workload.mode == "trace" else workload.num_requests
+    )
+    if not 0 <= workload.warmup_requests < request_count:
+        raise ConfigError("warmup_requests must leave at least one measured request")
+    if config.slo is not None and not 0 < config.slo.target_attainment <= 1:
+        raise ConfigError("slo.target_attainment must be in (0, 1]")
 
     # This MVP does not model weight paging. At minimum, each stage's sharded
     # weights must fit on one participating GPU.
