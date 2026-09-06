@@ -52,6 +52,11 @@
 
     <section class="section" id="security" aria-labelledby="security-title">
       <div class="section-head"><div><div class="eyebrow"><span>03</span> SPLIT-INFER 方案分析</div><h2 id="security-title">Hidden State 不安全，<br>加深企业侧的部署层数可降低 token 被恢复的概率。</h2></div><span class="research-label">Evidence from PR #15</span></div>
+      <div class="original-plan card">
+        <div class="original-plan-mark"><span>ORIGINAL PROPOSAL</span><b>题目中的 AI Infra 小组方案</b><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/issues/1">查看 Issue #1 原题 ↗</a></div>
+        <div class="original-plan-copy"><p>企业客户在内部部署少量算力，执行模型首层与尾层，包括 Embedding、Unembedding 等输入输出相关计算；云端租用更多算力，只执行占主要计算量的中间 Transformer Layers。企业侧将首段生成的 Hidden State 发送至云端，云端完成中间层后再把 Hidden State 返回企业，由尾层生成 token。Prefill 和每一步 Decode 都遵循相同的端→云→端路径。</p><div class="original-plan-facts"><div><small>简化资源假设</small><b>企业 2 卡 · 云端 8 卡</b></div><div><small>8K 示例载荷</small><b>8192 × 5120 × dtype</b></div><div><small>云端直接不可见</small><b>Prompt · First Token · Decode Tokens</b></div></div></div>
+        <div class="original-plan-question"><span>待验证的安全假设</span><p>不直接上传文本或 token，是否就意味着 Hidden State 无法泄露原始输入？</p><b>本节结论：不是。</b></div>
+      </div>
       <div class="architecture card">
         <div class="arch-node"><small>企业侧</small><b>Front Layers</b><span>tokens → hidden</span></div>
         <div class="arch-wire"><span>激活张量上行</span><i></i></div>

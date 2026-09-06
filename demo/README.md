@@ -37,7 +37,7 @@ ssh -L 8088:127.0.0.1:8088 <user>@<server-ip>
 
 1. **背景**：说明云端大模型运行时隐私问题。
 2. **业界洞察**：只提炼主仓 [完整洞察报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md) 的核心结论。
-3. **安全分析**：用户可以输入文本或自动生成 token，通过假矩阵交互回放 embedding 与最近邻反演过程；同时展示不同企业侧层数下的固定预算攻击结果。按钮不会在浏览器中运行 GPU 攻击。详见 [安全报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md)。
+3. **安全分析**：先还原 [Issue #1](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/issues/1) 中 AI Infra 小组提出的企业首尾层、云端中间层方案及其安全假设；用户随后可以输入文本或自动生成 token，通过假矩阵交互回放 embedding 与最近邻反演过程，并查看不同企业侧层数下的固定预算攻击结果。按钮不会在浏览器中运行 GPU 攻击。详见 [安全报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md)。
 4. **功能实现**：介绍 PR #8 的 Qwen2.5-3B、4/27/5、TP2+2 baseline，提供一行启动命令和产品交互，并展示三种切分与原生完整模型的真实精度对比。启动按钮和对话结果是假数据；精度表来自 [POC 实测报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue-4-real-split-vllm-poc/docs/poc-validation.md)。
 5. **系统优化**：拆解 4K、TP2+2、16 并发 baseline 的 TTFT/TPOT，说明 WAN 数据路径、Chunked Prefill/流水、端云协同调度和 PD 分离四条优化路线；使用 Issue #6 实测数据绘制 Baseline 与 Stage 1+2+3 的 QPS–TTFT/QPS–TPOT 曲线，并折算理论吞吐。C16 总量和曲线是实测数据，时间分项是结合 C1、独立 WAN 标定与算子 profile 的归因估算。
 6. **性能建模**：前端依次调用 `POST /api/simulate`，每完成一个 closed-loop 并发点就更新 QPS—TTFT/TPOT 曲线；下方同时展示 PR #8 的 32 工况回放误差、Issue #6 holdout 曲线、系统偏差、主要误差来源和原始报告链接。
