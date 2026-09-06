@@ -39,19 +39,19 @@
     </section>
 
     <section class="section" id="insight" aria-labelledby="insight-title">
-      <div class="section-head insight-head"><div><div class="eyebrow"><span>02</span> 业界洞察 / LANDSCAPE</div><h2 id="insight-title">TEE / Confidential Computing 应当成为 AI-Factory 的投入重点，<br>Split Inference 是端云协同的核心方向，长期关注 FHE / MPC。</h2></div><a class="text-link" target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md">阅读完整洞察报告 ↗</a></div>
+      <div class="section-head insight-head"><div><div class="eyebrow"><span>02</span> 业界洞察 / LANDSCAPE</div><h2 id="insight-title">TEE / Confidential Computing 应当成为 AI-Factory 的投入重点，<br>Split-Infer 是端云协同的核心方向，FHC / MPC 保持长期关注。</h2></div><a class="text-link" target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md">阅读完整洞察报告 ↗</a></div>
       <div class="insight-grid technology-grid">
-        <article class="insight-card featured tee-card"><span class="card-no">01 · PRIORITY</span><h3>TEE / Confidential Computing</h3><p>通过硬件隔离内存与远程证明，为云端推理建立可验证的运行时可信边界。它具备较现实的工程落地路径，应成为 AI-Factory 近期重点投入方向。</p><div class="tags"><span>Runtime isolation</span><span>Attestation</span></div></article>
-        <article class="insight-card minimization-card"><span class="card-no">02 · FOUNDATION</span><h3>数据最小化</h3><p>在数据进入推理系统前完成脱敏、裁剪与权限约束，从源头减少暴露面。成本低且应默认实施，但无法保护仍需上传的敏感信息。</p><div class="tags"><span>De-identification</span><span>Least data</span></div></article>
-        <article class="insight-card split-card"><span class="card-no">03 · CORE DIRECTION</span><h3>Split Inference</h3><p>企业侧执行首尾层，云侧承担中间层，兼顾本地数据边界与云端弹性算力，是端云协同的核心方向。中间激活仍可能被反演，需要持续验证。</p><div class="meter"><span style="width:72%"></span></div><small>系统价值高 · 安全边界需量化</small></article>
-        <article class="insight-card fhe-card"><span class="card-no">04 · LONG TERM</span><h3>FHE · 全同态加密</h3><p>允许服务端直接在密文上计算，理论安全边界强；当前仍受制于算子覆盖、延迟和内存开销，适合长期跟踪及高敏感局部任务。</p><div class="meter amber"><span style="width:34%"></span></div><small>密码学保障强 · 通用部署成本高</small></article>
-        <article class="insight-card mpc-card"><span class="card-no">05 · LONG TERM</span><h3>MPC · 安全多方计算</h3><p>将数据拆成多个份额，由多方协同完成计算，避免单一参与方看到完整明文；通信轮次与跨主体部署复杂度是主要挑战。</p><div class="meter amber"><span style="width:40%"></span></div><small>无单点明文 · 通信与协作成本高</small></article>
+        <article class="insight-card featured tee-card"><span class="card-no">01 · PRIORITY</span><h3>TEE / Confidential Computing</h3><p>通过硬件隔离内存与远程证明，为云端推理建立可验证的运行时可信边界。它具备较现实的工程落地路径，应成为 AI-Factory 近期重点投入方向。</p><div class="ratings"><div><span>安全性</span><b class="rating high">高</b><i data-level="4"></i></div><div><span>性能影响</span><b class="rating low">较低</b><i data-level="2"></i></div></div></article>
+        <article class="insight-card minimization-card"><span class="card-no">02 · FOUNDATION</span><h3>数据最小化</h3><p>在数据进入推理系统前完成脱敏、裁剪与权限约束，从源头减少暴露面。成本低且应默认实施，但无法保护仍需上传的敏感信息。</p><div class="ratings"><div><span>安全性</span><b class="rating medium">中</b><i data-level="3"></i></div><div><span>性能影响</span><b class="rating low">低</b><i data-level="1"></i></div></div></article>
+        <article class="insight-card split-card"><span class="card-no">03 · CORE DIRECTION</span><h3>Split-Infer</h3><p>企业侧执行首尾层，云侧承担中间层，兼顾本地数据边界与云端弹性算力，是端云协同的核心方向。中间激活仍可能被反演，需要持续验证。</p><div class="ratings"><div><span>安全性</span><b class="rating medium">中</b><i data-level="3"></i></div><div><span>性能影响</span><b class="rating medium">中</b><i data-level="3"></i></div></div></article>
+        <article class="insight-card fhe-card"><span class="card-no">04 · LONG TERM</span><h3>FHC · 同态计算</h3><p>以 FHE（全同态加密）等方式允许服务端在密文上计算，理论安全边界强；当前仍受制于算子覆盖、延迟和内存开销。</p><div class="ratings"><div><span>安全性</span><b class="rating high">很高</b><i data-level="5"></i></div><div><span>性能影响</span><b class="rating high">很高</b><i data-level="5"></i></div></div></article>
+        <article class="insight-card mpc-card"><span class="card-no">05 · LONG TERM</span><h3>MPC · 安全多方计算</h3><p>将数据拆成多个份额，由多方协同完成计算，避免单一参与方看到完整明文；通信轮次与跨主体部署复杂度是主要挑战。</p><div class="ratings"><div><span>安全性</span><b class="rating high">高</b><i data-level="4"></i></div><div><span>性能影响</span><b class="rating high">高</b><i data-level="4"></i></div></div></article>
       </div>
-      <blockquote>投入路径：以数据最小化打底，以 TEE 建立近期可信执行能力，以 Split Inference 推进端云协同，同时保留对 FHE / MPC 工程成熟度的长期观察。</blockquote>
+      <blockquote>评级为面向通用大模型推理的定性判断：安全性越高代表对明文与运行时数据的保护越强；性能影响越高代表延迟、吞吐或系统复杂度代价越大。具体结果仍取决于威胁模型与实现。</blockquote>
     </section>
 
     <section class="section" id="security" aria-labelledby="security-title">
-      <div class="section-head"><div><div class="eyebrow"><span>03</span> SPLIT-INFER 方案分析</div><h2 id="security-title">把模型切开，<br>也要看清暴露面。</h2></div><span class="research-label">Evidence from PR #15</span></div>
+      <div class="section-head"><div><div class="eyebrow"><span>03</span> SPLIT-INFER 方案分析</div><h2 id="security-title">Hidden State 不安全，<br>加深企业侧的部署层数可降低 token 被恢复的概率。</h2></div><span class="research-label">Evidence from PR #15</span></div>
       <div class="architecture card">
         <div class="arch-node"><small>企业侧</small><b>Front Layers</b><span>tokens → hidden</span></div>
         <div class="arch-wire"><span>激活张量上行</span><i></i></div>
@@ -62,20 +62,25 @@
 
       <div class="security-grid">
         <article class="card attack-lab">
-          <div class="card-title"><span class="icon danger">⌁</span><div><small>ATTACK REPLAY</small><h3>Embedding 最近邻反演</h3></div><span class="verified">4096 / 4096</span></div>
-          <p>当切分点仅输出 embedding 时，用公开词表 embedding 做余弦最近邻，可对该样本实现逐 token 100% 恢复。</p>
+          <div class="card-title"><span class="icon danger">⌁</span><div><small>ATTACK REPLAY</small><h3>最邻近反演几乎可以完全恢复 Embedding 的 Hidden State</h3></div><span class="verified">PR #15 · 100%</span></div>
+          <p>攻击者使用公开模型的词表 embedding 作为候选库，计算待恢复 Hidden State 与每个候选向量的余弦相似度，再用最邻近向量对应的 token 完成逐位置反演。</p>
+          <div class="attack-controls">
+            <label for="attack-input">输入文本或 token 序列</label>
+            <textarea id="attack-input" rows="3">secure inference protects private enterprise data</textarea>
+            <button class="token-generate" type="button" id="token-generate">系统生成一串 token</button>
+          </div>
           <div class="terminal">
             <div class="terminal-bar"><i></i><i></i><i></i><span>embedding_attack.py</span></div>
-            <div class="terminal-body" id="attack-output"><span class="prompt">$</span> 等待启动攻击回放…</div>
+            <div class="terminal-body" id="attack-output"><span class="prompt">$</span> 等待输入，运行 embedding 与最近邻反演…</div>
           </div>
-          <button class="button danger-button" id="attack-run">一键运行 · 还原一个 input</button>
-          <p class="fineprint">浏览器重放 PR #15 已验证结果，不在本机重新执行 GPU 攻击。该结论仅对应明确的 embedding-only 威胁模型。</p>
+          <button class="button danger-button" id="attack-run">加密 / 解密</button>
+          <p class="fineprint">“加密/解密”是演示交互名称，实际展示 embedding 与最近邻反演。当前矩阵为浏览器生成的假数据；PR #15 的真实脚本与验证数据见下方链接。</p>
           <div class="link-row"><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/Q1/embedding_attack.py">攻击脚本 ↗</a><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/Q1/results/embedding_attack.json">验证数据 ↗</a></div>
         </article>
 
         <article class="card defense-lab">
-          <div class="card-title"><span class="icon safe">◫</span><div><small>MITIGATION</small><h3>增加企业侧层数</h3></div></div>
-          <p>更深的本地前缀可降低当前固定预算 MLP 攻击的恢复率，但不能据此宣称绝对安全。</p>
+          <div class="card-title"><span class="icon safe">◫</span><div><small>MITIGATION</small><h3>安全性优化：增加企业侧部署层数</h3></div></div>
+          <p>我们用简单 MLP 攻击验证了一个清晰趋势：企业侧执行的模型越深，当前攻击恢复 token 的难度越高。但恢复率的量化结果与训练集、测试输入和攻击预算等数据分布强相关，不能直接外推为通用安全保证。</p>
           <div class="bar-chart" aria-label="当前样本 token 恢复率随企业侧层数变化">
             <div class="bar-row"><b>0</b><span><i style="width:100%"></i></span><em>100%</em></div>
             <div class="bar-row"><b>4</b><span><i style="width:53.98%"></i></span><em>53.98%</em></div>
@@ -85,7 +90,8 @@
             <div class="bar-row"><b>36</b><span><i style="width:9.59%"></i></span><em>9.59%</em></div>
           </div>
           <div class="chart-axis"><span>企业侧层数</span><span>当前样本 token recovery ↓</span></div>
-          <div class="warning"><b>边界：</b>独立公开测试在 36 层时仍有 60.33% 恢复率；更强攻击、完整双张量载荷仍未穷尽。</div>
+          <div class="defense-conclusion"><b>系统设计结论</b><p>业界也有沿特定方向向 Hidden State 注入噪声、进一步降低可恢复性的实践。由于这类噪声操作对推理系统负载影响相对有限，后续性能分析暂不单独展开；我们选择在企业端保留 <strong>4 层</strong>，作为系统优化的起点。</p></div>
+          <div class="warning"><b>安全边界：</b>增加深度和注入噪声只能提高攻击成本，不能保证绝对安全。独立公开测试在 36 层时仍有 60.33% 恢复率；更强攻击和完整双张量载荷仍未穷尽。</div>
           <div class="link-row"><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md">安全报告 ↗</a><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/Q1/results/recovery_summary.csv">完整数据 ↗</a></div>
         </article>
       </div>

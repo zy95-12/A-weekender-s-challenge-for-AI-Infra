@@ -5,15 +5,44 @@ document.querySelectorAll('[data-copy]').forEach((button) => button.addEventList
   await navigator.clipboard.writeText(button.dataset.copy); toast('命令已复制');
 }));
 
-const recoveredText = 'Security inference should protect private prompts while preserving useful model capability.';
+const generatedSamples = [
+  'secure cloud inference protects private input',
+  'enterprise data stays inside trusted boundary',
+  'split inference connects edge and cloud',
+];
+
+$('#token-generate').addEventListener('click', () => {
+  const next = generatedSamples[Math.floor(Math.random() * generatedSamples.length)];
+  $('#attack-input').value = next;
+  toast('已生成 token 序列');
+});
+
+function demoTokens(value) {
+  return value.match(/[\p{Script=Han}]|[\p{L}\p{N}_-]+|[^\s]/gu) || [];
+}
+
+function demoVector(token, index) {
+  let hash = 2166136261;
+  for (const char of token) hash = Math.imul(hash ^ char.codePointAt(0), 16777619) >>> 0;
+  return Array.from({length: 4}, (_, offset) => {
+    const value = Math.sin((hash % 10007) * (offset + 1) + index) * .92;
+    return Number(value.toFixed(4));
+  });
+}
+
 $('#attack-run').addEventListener('click', async (event) => {
-  const button = event.currentTarget, output = $('#attack-output'); button.disabled = true;
-  output.innerHTML = '<span class="prompt">$</span> loading public embedding matrix…\n[1/3] vocab_size = 151936\n[2/3] cosine nearest-neighbor search\n';
+  const button = event.currentTarget, output = $('#attack-output');
+  const source = $('#attack-input').value.trim();
+  if (!source) { toast('请先输入文本或生成 token'); return; }
+  const tokens = demoTokens(source), vectors = tokens.map(demoVector);
+  button.disabled = true; button.textContent = '正在执行…';
+  output.textContent = `$ python embedding_attack.py --demo\ninput_tokens = ${JSON.stringify(tokens)}\n\n[1/3] embedding hidden-state matrix (preview, dim=4):\n${JSON.stringify(vectors, null, 2)}\n`;
   await new Promise((resolve) => setTimeout(resolve, 650));
-  output.textContent += '[3/3] decoding 4096 hidden vectors\n';
+  output.textContent += '\n[2/3] cosine nearest-neighbor over public vocabulary…\n';
   await new Promise((resolve) => setTimeout(resolve, 550));
-  output.innerHTML += `<span class="success">✓ exact_token_match: 4096 / 4096 (100%)</span>\n\nrecovered sample:\n${recoveredText}`;
-  button.textContent = '还原完成 · 100% token match'; button.disabled = false;
+  output.textContent += `[3/3] recovered_tokens = ${JSON.stringify(tokens)}\n\n✓ comparison: ${tokens.length} / ${tokens.length} tokens consistent (cosine ≈ 0.9998)`;
+  button.textContent = '加密 / 解密'; button.disabled = false;
+  output.scrollTop = output.scrollHeight;
 } );
 
 let serviceReady = false;

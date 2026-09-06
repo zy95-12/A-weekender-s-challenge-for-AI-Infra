@@ -37,7 +37,7 @@ ssh -L 8088:127.0.0.1:8088 <user>@<server-ip>
 
 1. **背景**：说明云端大模型运行时隐私问题。
 2. **业界洞察**：只提炼主仓 [完整洞察报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md) 的核心结论。
-3. **安全分析**：重放 PR #15 的 embedding-only 100% token 恢复证据，并展示不同企业侧层数下的固定预算攻击结果。按钮不会在浏览器中运行 GPU 攻击。详见 [安全报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md)。
+3. **安全分析**：用户可以输入文本或自动生成 token，通过假矩阵交互回放 embedding 与最近邻反演过程；同时展示不同企业侧层数下的固定预算攻击结果。按钮不会在浏览器中运行 GPU 攻击。详见 [安全报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md)。
 4. **系统实现**：介绍 PR #8 的 Qwen2.5-3B、4/27/5、TP2+2 baseline。启动按钮和对话结果是假数据，只表达产品交互；真实部署见 [PR #8](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/8)。
 5. **性能优化**：只保留后续扩展位置。
 6. **性能建模**：前端依次调用 `POST /api/simulate`，每完成一个 closed-loop 并发点就更新 QPS—TTFT/TPOT 曲线。
@@ -109,6 +109,8 @@ curl -s http://127.0.0.1:8088/api/simulate \
 - `test_demo.py`：HTML 结构、证据链接与 API 参数契约测试
 
 全部前端资源随仓库提供，不依赖 CDN、Node.js 或第三方 Python 包。
+
+行业洞察卡片中的“安全性”和“性能影响”均为定性评级，用于横向理解技术取舍，不代表统一 benchmark。安全攻击交互里的四维 embedding preview 也是前端生成的假数据；真实实验仍以 PR #15 的脚本、模型和结果文件为准。
 
 ## 验证
 

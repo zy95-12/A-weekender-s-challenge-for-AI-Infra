@@ -35,6 +35,10 @@ class DemoTest(unittest.TestCase):
         self.assertNotIn("研究主线", page)
         for technology in ("Confidential Computing", "数据最小化", "Split Inference", "全同态加密", "安全多方计算"):
             self.assertIn(technology, page)
+        self.assertEqual(page.count('class="ratings"'), 5)
+        self.assertIn("Hidden State 不安全", page)
+        self.assertIn('id="attack-input"', page)
+        self.assertIn('id="token-generate"', page)
 
     def test_backend_contract_rejects_reserved_and_bad_inputs(self) -> None:
         spec = importlib.util.spec_from_file_location("demo_server", DEMO_DIR / "server.py")

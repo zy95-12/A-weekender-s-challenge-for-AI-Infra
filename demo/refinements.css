@@ -81,6 +81,122 @@ h3 {
   grid-column: span 3;
 }
 
+.ratings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.ratings > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px;
+  align-items: center;
+}
+
+.ratings span,
+.ratings b {
+  font-size: 9px;
+}
+
+.ratings span {
+  color: var(--muted);
+}
+
+.ratings b {
+  font-weight: 650;
+}
+
+.rating.high { color: var(--cyan); }
+.rating.medium { color: var(--amber); }
+.rating.low { color: #9ab5ff; }
+
+.ratings i {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 3px;
+  background: #192b39;
+}
+
+.ratings i::before {
+  content: "";
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--violet), var(--cyan));
+}
+
+.ratings i[data-level="1"]::before { width: 20%; }
+.ratings i[data-level="2"]::before { width: 40%; }
+.ratings i[data-level="3"]::before { width: 60%; }
+.ratings i[data-level="4"]::before { width: 80%; }
+.ratings i[data-level="5"]::before { width: 100%; }
+
+.attack-controls {
+  position: relative;
+  margin-top: 20px;
+}
+
+.attack-controls label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.attack-controls textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  outline: 0;
+  background: #09141e;
+  padding: 12px;
+  color: var(--text);
+  font: 11px/1.6 ui-monospace, monospace;
+}
+
+.attack-controls textarea:focus {
+  border-color: var(--red);
+}
+
+.token-generate {
+  margin-top: 7px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--cyan);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.defense-conclusion {
+  margin-top: 18px;
+  border: 1px solid rgba(67, 227, 207, .25);
+  border-radius: 9px;
+  background: rgba(67, 227, 207, .055);
+  padding: 13px 15px;
+}
+
+.defense-conclusion > b {
+  color: var(--cyan);
+  font-size: 11px;
+}
+
+.defense-conclusion p {
+  margin: 5px 0 0;
+  color: #afc0c6;
+  font-size: 11px;
+}
+
+.defense-conclusion strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
 @media (max-width: 900px) {
   .technology-grid {
     grid-template-columns: 1fr 1fr;
