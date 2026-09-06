@@ -28,10 +28,24 @@ UI 进程退出不会停止 serving；停止服务使用 `./poc down`。
 - **功能实现**：固定 `./poc up --wan`；轮询实际健康状态。回复来自模型，TTFT/TPOT 来自浏览器 token 事件计时，包含网络、代理和浏览器开销；少于两个输出 token 时 TPOT 不定义。
 - **精度**：只展示 Split 4/27/5 对原生完整单卡 TP1/full-prefill 的 8 道 GSM8K 真实归档结果。逐绝对位置对齐，decode 使用同一 teacher-forcing 序列；不比较自由回答。`accuracy-samples.json` 展示这 8 组不同输入。原生与 Split TP2+2 已于2026-09-07重新采集，现采用 logits cosine、top1 一致率和 top-5/10/20 overlap，不沿用绝对误差门槛；原始 logits、模型版本和门槛见 [精度报告](../docs/gsm8k-native-tp1.md)。
 - **C16 拆解**：来自历史 baseline refinement C16 完成 cohort 的 96 个请求和 7488 个 decode 位置。`baseline-c16-raw.zip` 保留原始请求、trace 和环境，区间为 wall-clock/RPC 区间，不伪装成 kernel 时间。`python3 scripts/check_demo_evidence.py` 可独立复算。
-- **优化曲线**：本次新增四卡最优 PD、4K/79 closed-loop 测量。每点至少 60 秒、每 worker 至少 3 轮；边界另做更长确认。SLO 为至少 99% 请求同时 TTFT≤3s、请求平均 TPOT≤100ms，完成和到达 cohort 都检查。CSV 和 ZIP 直接从真实请求生成。
+- **优化曲线**：05 章节主要展示 baseline 与优化系统的真实开环对比：同一目标到达率使用相同泊松请求计划，客户端不限制并发，服务端统一 max_active=96 / kv_blocks=32768。横轴为实测完成 QPS，均值/P99 按计划到达 cohort 计算；TTFT 包括发包延误，错误计失败，到达和完成 cohort 均须至少99%请求同时满足两项SLO。显示每点实际到达率、在途并发和测量时长；原 closed-loop 扫描保留为历史结果。见 [开环报告](evidence/open-loop-report.md)。
 - **仿真**：`demo/simulate.py` 对接当前主线 Q4，只开放 Qwen2.5-3B/A10/4K/79。optimized 使用 vendored real-serving scheduler、C40 empirical command 和 host profile，seed17；baseline 使用 behavioral scheduler、operator/host cost，沿用 baseline 精度回归的活动上限（C1 为8，其余为16）。每点真实执行、不缓存结果；不同并发仍是预测，参见 [校准与局限](../Q4/docs/CALIBRATION_AND_LIMITS.md)。
 
-## 复现实测曲线
+## 复现开环对比
+
+独占四卡服务后运行：
+
+```bash
+.venv/bin/python scripts/open_loop_sweep.py --out results/my-open-loop
+.venv/bin/python scripts/package_open_loop.py --source results/my-open-loop
+python3 scripts/plot_open_loop.py
+```
+
+绘图需 matplotlib；测量脚本使用现有 serving venv。运行器先测试 baseline，再测试 optimized，结束恢复默认 baseline WAN 服务。保存逐请求计划、实际时间、health、trace、配置、源文件和 hash。打包器从逐请求数据重新计算 QPS、均值、P99、联合 SLO 与平均在途并发，检查相同负载的到达计划一致。
+
+每点预热30秒、粗扫测量60秒（目标到达率≥4时120秒）、继续到达30秒后排空。首次失败后补一个中间点；每点只有 seed17，不是精确边界或长期生产容量验证。原始数据可下载，UI 不会点击后伪造新的性能测试。
+
+## 复现历史闭环曲线
 
 确保其他任务已停止：
 
@@ -63,6 +77,7 @@ python3 scripts/package_demo_evidence.py --sweep results/my-demo-sweep \
 ```bash
 python3 -m unittest demo/test_demo.py -v
 node --check demo/app.js
+.venv/bin/python -m unittest tests/test_open_loop_benchmark.py
 python3 scripts/check_demo_evidence.py
 ```
 
@@ -71,3 +86,5 @@ python3 scripts/check_demo_evidence.py
 可选浏览器端到端脚本：`demo/browser_smoke.cjs`（需要单独安装 Playwright/Chromium）。先 `./poc down`，启动 UI 后运行 `node demo/browser_smoke.cjs`；它会实际启动四卡服务并运行对话、攻击和两个仿真点。可通过 `DEMO_URL`、`DEMO_EVIDENCE_DIR`、`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指定地址、产物目录及浏览器。前端运行本身不依赖 Playwright。图表另可通过安装 matplotlib 后运行 `scripts/plot_demo_sweep.py` 导出 PNG/SVG。
 
 本次完整验收与新增数据见 [验证报告](../docs/live-demo-validation.md)。
+
+05 章节可用 `node demo/browser_open_loop.cjs` 做只读浏览器验收（需要 Playwright/Chromium）：核对实际证据与表格/曲线一致，检查 CSV、图片、原始 ZIP 下载及桌面/移动视图，不启动模型或发送推理请求。

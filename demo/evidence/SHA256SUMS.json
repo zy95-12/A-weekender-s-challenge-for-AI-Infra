@@ -21,5 +21,17 @@
   "accuracy-tp1-positions.json": "fd75d6af3b63e507d5eda486133041b28bcd64900da3a65486c988d09aa69f35",
   "optimized-sweep.json": "d4373bb244ac738a0232fc6ee8d417f2312cc10fc0d256c8177fbde094305f19",
   "accuracy-recheck.log": "114cd846621e87bde871f85bb3e397a34da35d2974972488034a505b596c4641",
-  "accuracy-tp1-ranking.json": "5530035f5e1933fb9e2960f17c917584598a3a819093c52f27286cfe37006643"
+  "accuracy-tp1-ranking.json": "5530035f5e1933fb9e2960f17c917584598a3a819093c52f27286cfe37006643",
+  "open-loop-sweep.json": "2ef11e7b2dcfc1bb8d3c417a0624463ec40fa0f55fce8b428fa60ea52dc98bc8",
+  "open-loop-browser-tpot.png": "6f98cc4279b55655baa183e84d465e2977727a811b390e91daa31d2312882018",
+  "open-loop-sweep.csv": "535fb2bb3da17289974e13b129ba876d4755fa1264850016e6a8591343e67a2f",
+  "open-loop-browser-validation.json": "fc5fa8fc445bce142758434e0bc53bbd26d221e3587d851b1acfe8081277ab44",
+  "open-loop-ttft-qps.svg": "17f73bf98aa1844f73c1792856306e2333ff6e21eb1268248e646b8352b2b7a3",
+  "open-loop-tpot-qps.png": "bf4f9288182d509e2147b7ffcc2428beeff56dbf29099fa7eac4d06d32be1882",
+  "open-loop-browser-ttft.png": "97c9fb31d21509fba95e8bf1602b7c4f747a35c30c82c92c3e9fa5d8cdc6159b",
+  "open-loop-tests.log": "4a21f1bbee3fb5e3a3789ae8ab1770dc068d362aa1d685eb839a10aaa4024680",
+  "open-loop-tpot-qps.svg": "2711bb0ca999d1b7f5f8230404a6196ca2cded9cf9b7a75f8bdf525a176ff0b7",
+  "open-loop-raw.zip": "2a418bef77648140f3488cbc791f16b942484bb92fd04a35cea9176d18dd71b3",
+  "open-loop-ttft-qps.png": "035057e36933755cdbb60eacc4ed2ef8f2303028c88192f006c27e3643f59942",
+  "open-loop-report.md": "533282dea16ca7a8bc18cc1a960974123b1e6d17c2787c7141a65c89c7549142"
 }

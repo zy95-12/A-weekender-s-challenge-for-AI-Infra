@@ -1,0 +1,575 @@
+{
+  "source": "measured",
+  "mode": "open-loop-poisson",
+  "seed": 17,
+  "model": "Qwen2.5-3B-Instruct",
+  "input_tokens": 4096,
+  "output_tokens": 79,
+  "latency_cohort": "scheduled-arrival",
+  "slo": {
+    "ttft_ms": 3000,
+    "request_mean_tpot_ms": 100,
+    "joint_attainment": 0.99,
+    "cohorts": [
+      "arrival",
+      "completion"
+    ]
+  },
+  "conclusion": "Baseline\u6700\u9ad8\u5df2\u6d4b\u5408\u683c\u70b9\uff1a\u5b8c\u6210 0.317 QPS\uff08\u76ee\u6807\u5230\u8fbe\u7387 0.500/s\uff09\uff1b\u4f18\u5316\u7cfb\u7edf\u6700\u9ad8\u5df2\u6d4b\u5408\u683c\u70b9\uff1a\u5b8c\u6210 4.775 QPS\uff08\u76ee\u6807\u5230\u8fbe\u7387 4.440/s\uff09\u3002\u8fd9\u662f\u672c\u6b21\u6709\u9650\u7a97\u53e3\u7ed3\u679c\uff0c\u4e0d\u662f\u7cbe\u786e\u6700\u5927\u5bb9\u91cf\u3002",
+  "points": [
+    {
+      "system": "baseline",
+      "target_arrival_rate": 0.5,
+      "actual_arrival_rate": 0.3,
+      "completed_qps": 0.31666666666666665,
+      "goodput_qps": 0.31666666666666665,
+      "mean_ttft_ms": 885.988342847971,
+      "p99_ttft_ms": 1508.872373947706,
+      "mean_tpot_ms": 44.13170190883437,
+      "p99_tpot_ms": 61.999719021155336,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 60,
+      "mean_inflight": 1.350492588483515,
+      "peak_inflight": 4,
+      "requests": 18,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 1.9081969564285821,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 1
+        },
+        {
+          "offset_s": 30,
+          "inflight": 2
+        },
+        {
+          "offset_s": 60,
+          "inflight": 0
+        }
+      ],
+      "max_waiting_sampled": 1,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "baseline/rate-0.500"
+    },
+    {
+      "system": "baseline",
+      "target_arrival_rate": 0.75,
+      "actual_arrival_rate": 0.55,
+      "completed_qps": 0.5333333333333333,
+      "goodput_qps": 0.5333333333333333,
+      "mean_ttft_ms": 978.0854786307222,
+      "p99_ttft_ms": 2015.7238736827273,
+      "mean_tpot_ms": 56.076104911036495,
+      "p99_tpot_ms": 114.83862752975814,
+      "arrival_slo": 0.9696969696969697,
+      "completion_slo": 1.0,
+      "slo_pass": false,
+      "duration_s": 60,
+      "mean_inflight": 2.766143889499896,
+      "peak_inflight": 7,
+      "requests": 33,
+      "ttft_failures": 0,
+      "tpot_failures": 1,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 1.7773234161722937,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 0
+        },
+        {
+          "offset_s": 30,
+          "inflight": 0
+        },
+        {
+          "offset_s": 60,
+          "inflight": 1
+        }
+      ],
+      "max_waiting_sampled": 2,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "baseline/refine-0.750"
+    },
+    {
+      "system": "baseline",
+      "target_arrival_rate": 1.0,
+      "actual_arrival_rate": 0.8833333333333333,
+      "completed_qps": 0.7166666666666667,
+      "goodput_qps": 0.45,
+      "mean_ttft_ms": 1179.210669939013,
+      "p99_ttft_ms": 2317.7333360676125,
+      "mean_tpot_ms": 120.62642468238793,
+      "p99_tpot_ms": 269.0647857702406,
+      "arrival_slo": 0.5283018867924528,
+      "completion_slo": 0.627906976744186,
+      "slo_pass": false,
+      "duration_s": 60,
+      "mean_inflight": 9.06521053546694,
+      "peak_inflight": 26,
+      "requests": 53,
+      "ttft_failures": 0,
+      "tpot_failures": 25,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 2.1525172155816104,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 5
+        },
+        {
+          "offset_s": 30,
+          "inflight": 8
+        },
+        {
+          "offset_s": 60,
+          "inflight": 15
+        }
+      ],
+      "max_waiting_sampled": 2,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "baseline/rate-1.000"
+    },
+    {
+      "system": "optimized",
+      "target_arrival_rate": 0.5,
+      "actual_arrival_rate": 0.3,
+      "completed_qps": 0.31666666666666665,
+      "goodput_qps": 0.31666666666666665,
+      "mean_ttft_ms": 667.16143807005,
+      "p99_ttft_ms": 712.9600654966998,
+      "mean_tpot_ms": 32.39455120939883,
+      "p99_tpot_ms": 34.58409290012824,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 60,
+      "mean_inflight": 1.0077751525834173,
+      "peak_inflight": 4,
+      "requests": 18,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 1.8739228678168716,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 1
+        },
+        {
+          "offset_s": 30,
+          "inflight": 2
+        },
+        {
+          "offset_s": 60,
+          "inflight": 0
+        }
+      ],
+      "max_waiting_sampled": 0,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "optimized/rate-0.500"
+    },
+    {
+      "system": "optimized",
+      "target_arrival_rate": 1.0,
+      "actual_arrival_rate": 0.8833333333333333,
+      "completed_qps": 0.8833333333333333,
+      "goodput_qps": 0.8833333333333333,
+      "mean_ttft_ms": 633.7658404309483,
+      "p99_ttft_ms": 735.4051936806353,
+      "mean_tpot_ms": 35.2419672651151,
+      "p99_tpot_ms": 38.899495034881205,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 60,
+      "mean_inflight": 3.0546611748500556,
+      "peak_inflight": 7,
+      "requests": 53,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 1.913446571852545,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 2
+        },
+        {
+          "offset_s": 30,
+          "inflight": 2
+        },
+        {
+          "offset_s": 60,
+          "inflight": 2
+        }
+      ],
+      "max_waiting_sampled": 1,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "optimized/rate-1.000"
+    },
+    {
+      "system": "optimized",
+      "target_arrival_rate": 1.5,
+      "actual_arrival_rate": 1.5333333333333334,
+      "completed_qps": 1.4333333333333333,
+      "goodput_qps": 1.4333333333333333,
+      "mean_ttft_ms": 616.1949658166043,
+      "p99_ttft_ms": 821.7551557372647,
+      "mean_tpot_ms": 40.01176281396289,
+      "p99_tpot_ms": 48.287130333976215,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 60,
+      "mean_inflight": 5.435080054166732,
+      "peak_inflight": 13,
+      "requests": 92,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 2.0111048247053986,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 2
+        },
+        {
+          "offset_s": 30,
+          "inflight": 4
+        },
+        {
+          "offset_s": 60,
+          "inflight": 8
+        }
+      ],
+      "max_waiting_sampled": 0,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "optimized/rate-1.500"
+    },
+    {
+      "system": "optimized",
+      "target_arrival_rate": 2.0,
+      "actual_arrival_rate": 1.9833333333333334,
+      "completed_qps": 2.033333333333333,
+      "goodput_qps": 2.033333333333333,
+      "mean_ttft_ms": 614.6858475167544,
+      "p99_ttft_ms": 1146.1656831978319,
+      "mean_tpot_ms": 42.48402239010957,
+      "p99_tpot_ms": 54.81429892125631,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 60,
+      "mean_inflight": 7.9322182131504935,
+      "peak_inflight": 17,
+      "requests": 119,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 1.9751072991493852,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 8
+        },
+        {
+          "offset_s": 30,
+          "inflight": 8
+        },
+        {
+          "offset_s": 60,
+          "inflight": 5
+        }
+      ],
+      "max_waiting_sampled": 0,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "optimized/rate-2.000"
+    },
+    {
+      "system": "optimized",
+      "target_arrival_rate": 3.0,
+      "actual_arrival_rate": 3.066666666666667,
+      "completed_qps": 3.1666666666666665,
+      "goodput_qps": 3.1666666666666665,
+      "mean_ttft_ms": 661.5006820254918,
+      "p99_ttft_ms": 1147.5195060512121,
+      "mean_tpot_ms": 51.227511298772974,
+      "p99_tpot_ms": 61.900029801389536,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 60,
+      "mean_inflight": 14.443146416366714,
+      "peak_inflight": 25,
+      "requests": 184,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 2.0630258404708,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 15
+        },
+        {
+          "offset_s": 30,
+          "inflight": 12
+        },
+        {
+          "offset_s": 60,
+          "inflight": 9
+        }
+      ],
+      "max_waiting_sampled": 1,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "optimized/rate-3.000"
+    },
+    {
+      "system": "optimized",
+      "target_arrival_rate": 4.135823836327486,
+      "actual_arrival_rate": 4.433333333333334,
+      "completed_qps": 4.425,
+      "goodput_qps": 4.425,
+      "mean_ttft_ms": 885.1703990587229,
+      "p99_ttft_ms": 2008.2479707002462,
+      "mean_tpot_ms": 69.39538605441567,
+      "p99_tpot_ms": 89.74185938844428,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 120,
+      "mean_inflight": 28.13926460094126,
+      "peak_inflight": 47,
+      "requests": 532,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 2.0677425814574226,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 28
+        },
+        {
+          "offset_s": 30,
+          "inflight": 34
+        },
+        {
+          "offset_s": 60,
+          "inflight": 29
+        },
+        {
+          "offset_s": 90,
+          "inflight": 37
+        },
+        {
+          "offset_s": 120,
+          "inflight": 29
+        }
+      ],
+      "max_waiting_sampled": 1,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "optimized/rate-4.136"
+    },
+    {
+      "system": "optimized",
+      "target_arrival_rate": 4.440035098628993,
+      "actual_arrival_rate": 4.7,
+      "completed_qps": 4.775,
+      "goodput_qps": 4.775,
+      "mean_ttft_ms": 998.9022992860156,
+      "p99_ttft_ms": 2307.0208744766205,
+      "mean_tpot_ms": 76.89620917319112,
+      "p99_tpot_ms": 95.84353619818918,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 120,
+      "mean_inflight": 33.131475712941516,
+      "peak_inflight": 51,
+      "requests": 564,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 1.997639845831145,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 34
+        },
+        {
+          "offset_s": 30,
+          "inflight": 34
+        },
+        {
+          "offset_s": 60,
+          "inflight": 33
+        },
+        {
+          "offset_s": 90,
+          "inflight": 43
+        },
+        {
+          "offset_s": 120,
+          "inflight": 25
+        }
+      ],
+      "max_waiting_sampled": 2,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "optimized/refine-4.440"
+    },
+    {
+      "system": "optimized",
+      "target_arrival_rate": 4.744246360930501,
+      "actual_arrival_rate": 5.041666666666667,
+      "completed_qps": 5.041666666666667,
+      "goodput_qps": 4.508333333333334,
+      "mean_ttft_ms": 1121.7592095173288,
+      "p99_ttft_ms": 2756.810808713927,
+      "mean_tpot_ms": 86.44412839008307,
+      "p99_tpot_ms": 106.29968612721244,
+      "arrival_slo": 0.8942148760330578,
+      "completion_slo": 0.8942148760330578,
+      "slo_pass": false,
+      "duration_s": 120,
+      "mean_inflight": 39.63914414173329,
+      "peak_inflight": 58,
+      "requests": 605,
+      "ttft_failures": 0,
+      "tpot_failures": 64,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 2.01783949014498,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 36
+        },
+        {
+          "offset_s": 30,
+          "inflight": 39
+        },
+        {
+          "offset_s": 60,
+          "inflight": 48
+        },
+        {
+          "offset_s": 90,
+          "inflight": 43
+        },
+        {
+          "offset_s": 120,
+          "inflight": 36
+        }
+      ],
+      "max_waiting_sampled": 1,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "optimized/rate-4.744"
+    }
+  ],
+  "winners": {
+    "baseline": {
+      "system": "baseline",
+      "target_arrival_rate": 0.5,
+      "actual_arrival_rate": 0.3,
+      "completed_qps": 0.31666666666666665,
+      "goodput_qps": 0.31666666666666665,
+      "mean_ttft_ms": 885.988342847971,
+      "p99_ttft_ms": 1508.872373947706,
+      "mean_tpot_ms": 44.13170190883437,
+      "p99_tpot_ms": 61.999719021155336,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 60,
+      "mean_inflight": 1.350492588483515,
+      "peak_inflight": 4,
+      "requests": 18,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 1.9081969564285821,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 1
+        },
+        {
+          "offset_s": 30,
+          "inflight": 2
+        },
+        {
+          "offset_s": 60,
+          "inflight": 0
+        }
+      ],
+      "max_waiting_sampled": 1,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "baseline/rate-0.500"
+    },
+    "optimized": {
+      "system": "optimized",
+      "target_arrival_rate": 4.440035098628993,
+      "actual_arrival_rate": 4.7,
+      "completed_qps": 4.775,
+      "goodput_qps": 4.775,
+      "mean_ttft_ms": 998.9022992860156,
+      "p99_ttft_ms": 2307.0208744766205,
+      "mean_tpot_ms": 76.89620917319112,
+      "p99_tpot_ms": 95.84353619818918,
+      "arrival_slo": 1.0,
+      "completion_slo": 1.0,
+      "slo_pass": true,
+      "duration_s": 120,
+      "mean_inflight": 33.131475712941516,
+      "peak_inflight": 51,
+      "requests": 564,
+      "ttft_failures": 0,
+      "tpot_failures": 0,
+      "errors": 0,
+      "p99_dispatch_lag_ms": 1.997639845831145,
+      "inflight_boundaries": [
+        {
+          "offset_s": 0,
+          "inflight": 34
+        },
+        {
+          "offset_s": 30,
+          "inflight": 34
+        },
+        {
+          "offset_s": 60,
+          "inflight": 33
+        },
+        {
+          "offset_s": 90,
+          "inflight": 43
+        },
+        {
+          "offset_s": 120,
+          "inflight": 25
+        }
+      ],
+      "max_waiting_sampled": 2,
+      "all_outputs_match": true,
+      "measurement_arrivals_completed_before_load_stop": true,
+      "raw_path": "optimized/refine-4.440"
+    }
+  }
+}
