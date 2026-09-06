@@ -31,6 +31,28 @@
         <h1 id="hero-title" class="demo-title">
           Split-Infer 优化/建模<br /><em>Demo 演示</em>
         </h1>
+        <section
+          class="project-abstract"
+          id="abstract"
+          aria-labelledby="abstract-title"
+        >
+          <h2 id="abstract-title">摘要</h2>
+          <p>
+            大模型的安全推理是企业上云关注的关键问题之一。本项目围绕大模型安全推理的
+            SplitInfer 方案，开展了安全性分析、功能实现、系统优化和性能建模。
+            实验表明，加深企业端部署层数可以降低 token 被明文恢复的成功率；
+            在特定 SLO（4K 上下文输入，TTFT ≤ 3s、TPOT ≤ 100ms）下，
+            按本次最高已测合格点比较，优化系统吞吐达到 baseline 的约
+            <strong>15.1 倍（0.317 QPS → 4.775 QPS）</strong>。
+            项目同时实现了面向多种硬件配置与模型的理论性能建模框架， 为
+            SplitInfer 方案的落地提供参考。
+          </p>
+          <p class="abstract-note">
+            恢复率与数据分布相关；吞吐比较来自单次有限窗口，baseline 合格点仅有
+            18 条到达请求，不代表精确容量提升倍数。当前实测校准集中在 Qwen2.5-3B
+            / A10，跨模型、跨硬件的预测精度尚未验证。
+          </p>
+        </section>
         <div class="hero-grid">
           <div>
             <div class="eyebrow"><span>01</span> 背景 / WHY IT MATTERS</div>
@@ -343,17 +365,44 @@ Security inference should protect private prompts while preserving useful model 
         aria-labelledby="optimization-title"
       >
         <div class="eyebrow"><span>05</span> 真实系统优化</div>
-        <h2 id="optimization-title">从耗时拆解到 SLO 下的吞吐。</h2>
-        <article class="card">
-          <h3>C16 baseline · 4K 输入 / 79 输出 / TP2+2</h3>
-          <div id="breakdown">加载真实 trace 拆解…</div>
+        <h2 id="optimization-title">开环负载下，比较 SLO 与吞吐。</h2>
+        <article class="card" id="baseline-analysis">
+          <h3>C16 Baseline：通信、流水与调度是优化重点</h3>
+          <p id="baseline-measurement-meta">加载 C16 Baseline 实测数据…</p>
+          <div id="baseline-measurement-table"></div>
           <p>
-            各区间来自请求 trace 的 wall-clock 时间戳；上/下行 RPC 含打包、IPC
-            等，不等于纯 WAN 传播时间。残差含调度等待、其他请求工作和交付开销。
+            历史 C16 闭环测量，用于分析耗时来源；各行来自同一批请求的 trace，
+            步外残差包含调度等待、其他请求执行和交付开销，不能全部视为纯排队时间。
+            <a href="evidence/baseline-c16-raw.zip" download
+              >下载原始请求与 trace</a
+            >
           </p>
-          <a href="evidence/baseline-c16-raw.zip" download
-            >下载原始请求与 trace</a
-          >
+          <h4>分析结论</h4>
+          <p>
+            <strong>通信开销与云侧处理同量级，需要优化通信路径。</strong>
+            SplitInfer 引入了显著的端云通信开销，往返 RPC
+            耗时与云侧处理时间相当， 远高于仅按“通信量 /
+            带宽”估算的时间。差额包含固定链路时延，以及序列化、 内存拷贝、IPC
+            等额外成本；应结合 profiling
+            削减可避免的操作，不能将差额全部视为冗余传输。
+          </p>
+          <p>
+            <strong>通信瓶颈持续存在，还需要用流水隐藏等待。</strong>
+            减少通信路径中的额外开销后，端云传输与固定链路时延仍然存在。
+            需要让不同请求的计算、传输和 KV
+            迁移尽可能重叠，减少通信阻塞计算的时间。
+          </p>
+          <p>
+            <strong>大并发下，请求等待是主要开销，需要端云协同调度。</strong>
+            C16 下，请求在计算步骤之外的等待远大于单步执行时间。
+            应协同安排企业前后层、云侧 prefill/decode 与 KV 就绪时机，
+            减少排队和相互阻塞，才能将局部加速转化为 SLO 下的吞吐提升。
+          </p>
+          <p class="muted">
+            结论来自 C16 Baseline 的历史 trace 分析；RPC 区间包含主机处理，
+            云侧处理区间也不等于纯 GPU kernel
+            时间。下方性能曲线统一使用开环实测。
+          </p>
         </article>
         <article class="card">
           <h3>已实现的优化与推荐配置</h3>
@@ -367,7 +416,7 @@ Security inference should protect private prompts while preserving useful model 
             </thead>
             <tbody>
               <tr>
-                <td>Stage1：SHM / wire fast / TCP buffer</td>
+                <td>通信路径优化：SHM / wire fast / TCP buffer</td>
                 <td>
                   共享内存 IPC、减少 wire 打包开销、16 MiB socket buffer；仍存在
                   D2H/H2D，未实现跨 WAN 零拷贝。
@@ -375,7 +424,7 @@ Security inference should protect private prompts while preserving useful model 
                 <td>开启</td>
               </tr>
               <tr>
-                <td>Stage2：chunked prefill / decode-first</td>
+                <td>分块预填充与解码优先调度</td>
                 <td>
                   prefill 按 2048 tokens 切块，decode quota=4，减少完整 prefill
                   对 decode 的阻塞；不是混合 P/D batch。
@@ -383,7 +432,7 @@ Security inference should protect private prompts while preserving useful model 
                 <td>开启</td>
               </tr>
               <tr>
-                <td>Stage3：异步流水</td>
+                <td>计算与通信异步流水</td>
                 <td>
                   允许多个请求的计算和传输在途，D
                   窗口=2；不保证任意并发下都有收益。
@@ -425,22 +474,34 @@ Security inference should protect private prompts while preserving useful model 
           <code>./poc up --preset optimized --wan</code>
         </article>
         <article class="card">
-          <h3>优化后新增实测 · QPS—TTFT / QPS—TPOT</h3>
+          <h3>开环实测 · Baseline 与优化系统</h3>
           <p>
-            4K 输入、固定 79 输出、closed-loop 并发扫描。合格条件：至少 99%
-            请求同时满足 TTFT ≤ 3000ms、请求平均 TPOT ≤ 100ms；完成与到达两个
-            cohort 均检查。曲线标明均值、P99 与 SLO，数据为已完成实验。
+            同一模型、四张 A10、4K 输入 / 79 输出、WAN 每方向 10Gbps / 单向
+            5ms。 Baseline 为 TP2+2，优化系统为企业 TP1 + 两个 TP1 P + TP1 D；
+            两者服务端 max_active=96、KV
+            blocks=32768。相同到达率使用相同泊松请求计划，客户端不限制并发。
           </p>
-          <div id="sweep-status">加载本次压测…</div>
-          <div id="sweep-ttft" class="chart"></div>
-          <div id="sweep-tpot" class="chart"></div>
-          <div id="sweep-table"></div>
-          <a href="evidence/optimized-sweep.csv" download>下载 CSV</a> ·
-          <a href="evidence/optimized-ttft-qps.png" download>TTFT 图</a> ·
-          <a href="evidence/optimized-tpot-qps.png" download>TPOT 图</a> ·
-          <a href="evidence/optimized-sweep-raw.zip" download
-            >下载原始请求和环境</a
-          >
+          <p>
+            横轴为实测完成 QPS，不是设定到达率。延迟按测量窗口内到达的请求统计，
+            TTFT 从计划到达时刻起算，包含发包延误；TPOT 是每条请求的平均 token
+            间隔。 合格要求到达、完成两个 cohort 均有至少 99% 请求同时满足 TTFT
+            ≤ 3s、TPOT ≤ 100ms，错误计失败。 每点预热 30s，粗扫测量
+            60s、高负载点 120s，再保持到达 30s 后排空。
+          </p>
+          <div id="open-loop-status">加载真实开环对比…</div>
+          <div id="open-loop-ttft" class="chart"></div>
+          <div id="open-loop-tpot" class="chart"></div>
+          <div id="open-loop-table"></div>
+          <p>
+            泊松采样的实际到达率会偏离目标值；每点一个 seed=17
+            的随机轨迹，不表示长期生产容量或精确最大 QPS。达标 QPS
+            只计算同时满足两项 SLO 的完成请求。
+          </p>
+          <a href="evidence/open-loop-sweep.csv" download>下载 CSV</a> ·
+          <a href="evidence/open-loop-ttft-qps.png" download>TTFT 图</a> ·
+          <a href="evidence/open-loop-tpot-qps.png" download>TPOT 图</a> ·
+          <a href="evidence/open-loop-raw.zip" download>原始数据与复现脚本</a> ·
+          <a href="evidence/open-loop-report.md">验证报告</a>
         </article>
       </section>
 

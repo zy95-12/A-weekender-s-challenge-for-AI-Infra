@@ -1,0 +1,8 @@
+.{"label": "test", "system": "baseline", "target_arrival_rate": 30, "seed": 17, "measurement_start": 31563.597905578, "measurement_end": 31564.597905578, "duration_s": 1, "actual_arrival_rate": 22.0, "completion_rate": 17.0, "successful_completed_qps": 16.0, "goodput_qps": 16.0, "arrival_cohort": {"requests": 22, "errors": 1, "joint_slo": 0.9545454545454546, "mean_ttft_ms": 100.0, "p99_ttft_ms": 100.0, "mean_scheduled_ttft_ms": 100.77885119927011, "p99_scheduled_ttft_ms": 101.65694853421883, "mean_tpot_ms": 2.0, "p99_tpot_ms": 2.0, "mean_dispatch_lag_ms": 0.776694500183856, "p99_dispatch_lag_ms": 1.6546631444725788, "ttft_failures": 1, "tpot_failures": 1}, "completion_cohort": {"requests": 17, "errors": 1, "joint_slo": 0.9411764705882353, "mean_ttft_ms": 100.0, "p99_ttft_ms": 100.0, "mean_scheduled_ttft_ms": 100.82000996872011, "p99_scheduled_ttft_ms": 101.66837548295007, "mean_tpot_ms": 2.0, "p99_tpot_ms": 2.0, "mean_dispatch_lag_ms": 0.8147978422879104, "p99_dispatch_lag_ms": 1.6660900932038203, "ttft_failures": 1, "tpot_failures": 1}, "mean_inflight": 4.799226026010729, "peak_inflight": 11, "inflight_boundaries": [{"offset_s": 0, "inflight": 0}], "all_outputs_match": false, "measurement_arrivals_completed_before_load_stop": true}
+.....127.0.0.1 - - [07/Sep/2026 03:49:07] "POST /api/service/start HTTP/1.1" 403 -
+127.0.0.1 - - [07/Sep/2026 03:49:07] "POST /api/service/start HTTP/1.1" 400 -
+..
+----------------------------------------------------------------------
+Ran 8 tests in 3.717s
+
+OK

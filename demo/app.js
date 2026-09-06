@@ -297,6 +297,52 @@ function chart(selector, points, key, limit) {
   $(selector).innerHTML =
     `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${key} 对 QPS"><text x="10" y="18" fill="#a9c5ce">${key.startsWith("ttft") ? "TTFT" : "TPOT"} ms</text><text x="110" y="18" fill="#43e3cf">mean</text><text x="170" y="18" fill="#a78bfa">P99</text>${svg}<text x="${w - 110}" y="${h - 5}" fill="#a9c5ce">QPS</text></svg>`;
 }
+function openLoopChart(selector, points, metric, limit) {
+  if (!points.length) return;
+  const w = 820,
+    h = 360,
+    p = { l: 70, r: 25, t: 55, b: 45 };
+  const maxX = Math.max(1, ...points.map((r) => r.completed_qps)) * 1.1;
+  const maxY =
+    Math.max(
+      limit,
+      ...points.flatMap((r) => [
+        r[`mean_${metric}_ms`] || 0,
+        r[`p99_${metric}_ms`] || 0,
+      ]),
+    ) * 1.12;
+  const x = (v) => p.l + (v / maxX) * (w - p.l - p.r);
+  const y = (v) => h - p.b - (v / maxY) * (h - p.t - p.b);
+  let svg = "";
+  for (let i = 0; i <= 5; i++) {
+    const a = (maxX * i) / 5,
+      b = (maxY * i) / 5;
+    svg += `<line x1="${p.l}" x2="${w - p.r}" y1="${y(b)}" y2="${y(b)}" stroke="#29404c"/><text x="${p.l - 8}" y="${y(b) + 4}" fill="#a9c5ce" text-anchor="end" font-size="11">${b.toFixed(0)}</text><text x="${x(a)}" y="${h - p.b + 20}" fill="#a9c5ce" text-anchor="middle" font-size="11">${a.toFixed(1)}</text>`;
+  }
+  svg += `<line x1="${p.l}" x2="${w - p.r}" y1="${y(limit)}" y2="${y(limit)}" stroke="#e6ac69" stroke-dasharray="5 4"/><text x="${p.l + 4}" y="${y(limit) - 5}" fill="#e6ac69" font-size="11">SLO ${limit} ms</text>`;
+  for (const [system, color, name] of [
+    ["baseline", "#e6ac69", "Baseline"],
+    ["optimized", "#43e3cf", "优化系统"],
+  ]) {
+    const rows = points
+      .filter((r) => r.system === system)
+      .sort((a, b) => a.target_arrival_rate - b.target_arrival_rate);
+    for (const stat of ["mean", "p99"]) {
+      const key = `${stat}_${metric}_ms`,
+        valid = rows.filter((r) => r[key] != null);
+      const path = valid
+        .map((r, i) => `${i ? "L" : "M"}${x(r.completed_qps)},${y(r[key])}`)
+        .join(" ");
+      svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="2" ${stat === "p99" ? 'stroke-dasharray="6 4"' : ""}/>`;
+      valid.forEach((r) => {
+        svg += `<circle cx="${x(r.completed_qps)}" cy="${y(r[key])}" r="4" fill="${r.slo_pass ? color : "#132833"}" stroke="${color}" stroke-width="2"><title>${name} · λ=${r.target_arrival_rate.toFixed(3)} · 实际到达=${r.actual_arrival_rate.toFixed(3)}/s · 完成=${r.completed_qps.toFixed(3)} QPS · ${stat} ${r[key].toFixed(2)}ms · 联合SLO ${r.slo_pass ? "通过" : "未通过"}</title></circle>`;
+      });
+    }
+  }
+  $(selector).innerHTML =
+    `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="开环 ${metric.toUpperCase()} 对完成 QPS，Baseline 与优化系统"><text x="10" y="18" fill="#a9c5ce">${metric.toUpperCase()} ms</text><text x="150" y="18" fill="#e6ac69">Baseline</text><text x="260" y="18" fill="#43e3cf">优化系统</text><text x="150" y="38" fill="#a9c5ce" font-size="12">实线：均值　虚线：P99　空心点：联合 SLO 未通过</text>${svg}<text x="${w - 160}" y="${h - 4}" fill="#a9c5ce">实测完成 QPS</text></svg>`;
+}
+
 async function evidence() {
   try {
     const d = await api("/api/evidence");
@@ -345,54 +391,59 @@ async function evidence() {
         ["GSM8K index", "问题", "输入 token 数"],
         d["accuracy-samples"].map((r) => [r.index, r.question, r.tokens]),
       );
-    const b = d["baseline-c16"];
-    $("#breakdown").innerHTML = ["ttft", "tpot"]
-      .map(
-        (k) =>
-          `<h4>${k.toUpperCase()}：${b.breakdown[k].total_ms.toFixed(2)}ms</h4>` +
-          table(
-            ["实测区间", "平均耗时 ms"],
-            Object.entries(b.breakdown[k].parts_ms).map(([x, y]) => [
-              x,
-              y.toFixed(3),
-            ]),
-          ),
-      )
-      .join("");
-    const sweep = d["optimized-sweep"];
-    if (sweep) {
-      const points = sweep.points.map((r) => ({
-        concurrency: r.concurrency,
-        qps: r.completed_qps,
-        ttft_mean_ms: r.mean_ttft_ms,
-        tpot_mean_ms: r.mean_tpot_ms,
-        ttft_p99_ms: r.p99_ttft_ms,
-        tpot_p99_ms: r.p99_tpot_ms,
-      }));
-      chart("#sweep-ttft", points, "ttft_mean_ms", 3000);
-      chart("#sweep-tpot", points, "tpot_mean_ms", 100);
-      $("#sweep-status").textContent = sweep.conclusion;
-      $("#sweep-table").innerHTML = table(
+    const baseline = d["baseline-c16"];
+    if (baseline) {
+      const { ttft, tpot } = baseline.breakdown;
+      $("#baseline-measurement-meta").textContent =
+        `4K 输入 / 79 输出 · TP2+2 · C16 · ${baseline.summary.requests} 条完成请求，${tpot.rows} 个 decode 步骤；下表为实测均值。`;
+      $("#baseline-measurement-table").innerHTML = table(
+        ["实测区间", "TTFT 拆解（ms）", "TPOT 拆解（ms）"],
         [
-          "C",
-          "QPS",
+          ...Object.keys(ttft.parts_ms).map((name) => [
+            name,
+            ttft.parts_ms[name].toFixed(2),
+            tpot.parts_ms[name].toFixed(2),
+          ]),
+          ["端到端合计", ttft.total_ms.toFixed(2), tpot.total_ms.toFixed(2)],
+        ],
+      );
+    } else $("#baseline-measurement-meta").textContent = "C16 实测数据未加载";
+    const openLoop = d["open-loop-sweep"];
+    if (openLoop) {
+      openLoopChart("#open-loop-ttft", openLoop.points, "ttft", 3000);
+      openLoopChart("#open-loop-tpot", openLoop.points, "tpot", 100);
+      $("#open-loop-status").textContent = openLoop.conclusion;
+      $("#open-loop-table").innerHTML = table(
+        [
+          "系统",
+          "目标 / 实际到达率",
+          "完成 / 达标 QPS",
           "TTFT mean/P99 ms",
           "TPOT mean/P99 ms",
-          "完成/到达 SLO %",
-          "窗口 s",
+          "到达 / 完成 SLO %",
+          "平均 / 峰值在途",
+          "到达请求数",
+          "测量 s",
         ],
-        sweep.points.map((r) => [
-          r.concurrency,
-          r.completed_qps.toFixed(3),
+        openLoop.points.map((r) => [
+          r.system === "baseline" ? "Baseline" : "优化系统",
+          r.target_arrival_rate.toFixed(3) +
+            " / " +
+            r.actual_arrival_rate.toFixed(3),
+          r.completed_qps.toFixed(3) + " / " + r.goodput_qps.toFixed(3),
           r.mean_ttft_ms.toFixed(1) + " / " + r.p99_ttft_ms.toFixed(1),
           r.mean_tpot_ms.toFixed(2) + " / " + r.p99_tpot_ms.toFixed(2),
-          (r.slo_attainment * 100).toFixed(2) +
+          (r.arrival_slo * 100).toFixed(2) +
             " / " +
-            (r.start_cohort_slo_attainment * 100).toFixed(2),
-          r.duration_s.toFixed(1),
+            (r.completion_slo * 100).toFixed(2),
+          r.mean_inflight.toFixed(1) + " / " + r.peak_inflight,
+          r.requests,
+          r.duration_s,
         ]),
       );
-    } else $("#sweep-status").textContent = "新增扫描尚未归档，不展示占位数字";
+    } else
+      $("#open-loop-status").textContent =
+        "开环实验进行中，尚未发布完整对比结果";
   } catch (e) {
     toast("证据加载失败：" + e.message);
   }

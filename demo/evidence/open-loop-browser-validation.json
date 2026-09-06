@@ -1,0 +1,14 @@
+{
+  "url": "http://127.0.0.1:8088",
+  "points": 11,
+  "conclusion": "Baseline最高已测合格点：完成 0.317 QPS（目标到达率 0.500/s）；优化系统最高已测合格点：完成 4.775 QPS（目标到达率 4.440/s）。这是本次有限窗口结果，不是精确最大容量。",
+  "errors": [],
+  "downloads": {
+    "open-loop-sweep.csv": 3013,
+    "open-loop-ttft-qps.png": 102626,
+    "open-loop-tpot-qps.png": 102467,
+    "open-loop-raw.zip": 19318228,
+    "open-loop-report.md": 3517
+  },
+  "desktop_and_mobile": true
+}
