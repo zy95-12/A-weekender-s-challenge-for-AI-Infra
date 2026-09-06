@@ -1,0 +1,88 @@
+{
+  "model": {
+    "name": "Qwen/Qwen2.5-3B-Instruct",
+    "hf_config_path": "../models/qwen2_5_3b_instruct_config.json",
+    "dtype": "float16",
+    "attention_bias": true
+  },
+  "topology": {
+    "stages": [
+      {"name": "edge_front", "layer_start": 0, "layer_end": 4, "resource": "enterprise_a10", "tp_degree": 2},
+      {"name": "cloud_middle", "layer_start": 4, "layer_end": 31, "resource": "cloud_a10", "tp_degree": 2},
+      {"name": "edge_tail", "layer_start": 31, "layer_end": 36, "resource": "enterprise_a10", "tp_degree": 2}
+    ]
+  },
+  "hardware": {
+    "enterprise_a10": {"count": 2, "peak_flops_tflops": 125, "hbm_bandwidth_gb_s": 600, "memory_gb": 23, "compute_efficiency": 0.45, "memory_efficiency": 0.65, "kernel_overhead_us": 10, "interconnect_bandwidth_gb_s": 24, "interconnect_latency_us": 8},
+    "cloud_a10": {"count": 2, "peak_flops_tflops": 125, "hbm_bandwidth_gb_s": 600, "memory_gb": 23, "compute_efficiency": 0.45, "memory_efficiency": 0.65, "kernel_overhead_us": 10, "interconnect_bandwidth_gb_s": 24, "interconnect_latency_us": 8}
+  },
+  "network": {
+    "uplink_gbps": 10,
+    "downlink_gbps": 10,
+    "rtt_ms": 10,
+    "efficiency": 0.8,
+    "activation_tensor_count": 2,
+    "protocol_overhead_bytes": 384
+  },
+  "data_path": {
+    "enabled": true,
+    "ipc_mode": "copy",
+    "wire_fast": false,
+    "tcp_buffer_mib": 0,
+    "wan_calibration": {
+      "enabled": true,
+      "path": "../profiles/issue5_wan_calibration.json",
+      "variant": "baseline"
+    }
+  },
+  "execution": {
+    "mode": "synchronous_rpc",
+    "preserve_batch_across_stages": true,
+    "max_inflight_transactions": 1,
+    "buffer_pool_mib": 0
+  },
+  "performance_profile": {"path": "../profiles/issue5_a10_tp2_baseline.json", "enabled": true},
+  "static_policy": {
+    "batch_size": 8,
+    "max_batched_tokens": 4096,
+    "prefill_token_budget": 4096,
+    "prefill_chunk_size": 4096,
+    "continuous_batching": {"enabled": true},
+    "pipeline_depth": 1,
+    "max_outstanding_prefill_chunks": 1,
+    "dispatch_mode": "eager"
+  },
+  "attention_backend": {"mode": "unified"},
+  "operator_backend": {
+    "name": "vllm",
+    "version": "0.10.x",
+    "fused_qkv": true,
+    "fused_gate_up": true,
+    "fused_silu_mul": true,
+    "fused_add_rms_norm": true
+  },
+  "scheduler": {
+    "policy": "split_poc_naive",
+    "allow_mixed_batch": false,
+    "max_num_seqs": 8,
+    "enable_chunked_prefill": false,
+    "decode_first": false,
+    "max_consecutive_decode_batches": 8,
+    "max_decode_tokens_per_batch": 0,
+    "max_prefill_wait_ms": 0,
+    "kv_cache": {"enabled": true, "allocation_mode": "preallocate", "block_size_tokens": 16, "num_blocks": 8192, "watermark": 0, "prefix_caching": false, "enable_preemption": false, "preemption_mode": "recompute"},
+    "pd_disaggregation": {"enabled": false}
+  },
+  "workload": {
+    "mode": "closed_loop",
+    "num_requests": 256,
+    "concurrency": 4,
+    "warmup_requests": 4,
+    "measurement_duration_s": 60,
+    "input_tokens": 4096,
+    "output_tokens": 79,
+    "random_seed": 42
+  },
+  "slo": {"ttft_ms": 3000, "tpot_ms": 100, "target_attainment": 0.99},
+  "simulation": {"max_time_s": 3600, "trace_enabled": false, "max_trace_records": 20000, "max_detailed_trace_records": 0}
+}

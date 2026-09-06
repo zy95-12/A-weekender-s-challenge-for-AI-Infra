@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="大模型安全推理研究演示：洞察、Split Inference 安全分析、系统实现与性能仿真。">
+  <title>Split-Infer 优化/建模 Demo 演示 · SplitShield</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="refinements.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="#top"><span class="brand-mark">S</span><span>SplitShield</span><small>RESEARCH DEMO</small></a>
+    <nav aria-label="页面导航">
+      <a href="#insight">洞察</a><a href="#security">安全分析</a><a href="#system">系统实现</a><a href="#modeling">性能建模</a>
+    </nav>
+    <span class="status"><i></i> Demo ready</span>
+  </header>
+
+  <main id="top">
+    <section class="hero section" aria-labelledby="hero-title">
+      <div class="demo-label">SplitShield · Research Demo</div>
+      <h1 id="hero-title" class="demo-title">Split-Infer 优化/建模<br><em>Demo 演示</em></h1>
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow"><span>01</span> 背景 / WHY IT MATTERS</div>
+          <p class="kicker">让智能可用，也让数据保持私密</p>
+          <h2 class="background-title">大模型进入关键业务，<br><em>安全推理</em>成为基础设施问题。</h2>
+          <p class="lede">模型能力快速增长，私有输入也随之进入云端。传输加密只保护链路，无法自动解决运行时数据暴露。本项目从安全攻击、系统实现与性能建模三个层面，研究 Split Inference 的能力与边界。</p>
+        </div>
+        <div class="hero-visual" aria-label="端云切分推理示意图">
+          <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+          <div class="node enterprise"><span>Enterprise</span><strong>Front + Back</strong><small>私有环境</small></div>
+          <div class="flow"><b>hidden states</b><span></span><small>WAN</small></div>
+          <div class="node cloud"><span>Cloud</span><strong>Middle Layers</strong><small>弹性算力</small></div>
+          <div class="risk-badge">!</div>
+        </div>
+      </div>
+      <div class="signal-row"><span>研究主线</span><b>Security Analysis</b><i></i><b>Serving System</b><i></i><b>Performance Model</b></div>
+    </section>
+
+    <section class="section" id="insight" aria-labelledby="insight-title">
+      <div class="section-head"><div><div class="eyebrow"><span>02</span> 业界洞察 / LANDSCAPE</div><h2 id="insight-title">安全推理没有银弹，<br>关键是匹配威胁模型。</h2></div><a class="text-link" target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md">阅读完整洞察报告 ↗</a></div>
+      <div class="insight-grid">
+        <article class="insight-card featured"><span class="card-no">01</span><h3>近期落地优先级</h3><p>先做数据最小化，再以 TEE / 机密计算建立运行时可信边界。两者工程成熟度更高，也更容易形成可审计的防线。</p><div class="tags"><span>Data minimization</span><span>TEE</span></div></article>
+        <article class="insight-card"><span class="card-no">02</span><h3>Split Inference</h3><p>适合端侧算力有限、云侧承担中间层的场景，但中间激活不是天然安全边界，必须评估反演与侧信道风险。</p><div class="meter"><span style="width:68%"></span></div><small>系统价值高 · 安全需验证</small></article>
+        <article class="insight-card"><span class="card-no">03</span><h3>FHE / MPC</h3><p>密码学保障最强，但成本和算子覆盖仍限制通用大模型部署，更适合高敏感、范围明确的子任务。</p><div class="meter amber"><span style="width:36%"></span></div><small>保障强 · 工程成本高</small></article>
+      </div>
+      <blockquote>核心判断：TLS 在服务端终止后，明文仍可能进入运行时。安全方案应回答“防谁、保护什么、性能预算多少”，而不是只看技术标签。</blockquote>
+    </section>
+
+    <section class="section" id="security" aria-labelledby="security-title">
+      <div class="section-head"><div><div class="eyebrow"><span>03</span> SPLIT-INFER 方案分析</div><h2 id="security-title">把模型切开，<br>也要看清暴露面。</h2></div><span class="research-label">Evidence from PR #15</span></div>
+      <div class="architecture card">
+        <div class="arch-node"><small>企业侧</small><b>Front Layers</b><span>tokens → hidden</span></div>
+        <div class="arch-wire"><span>激活张量上行</span><i></i></div>
+        <div class="arch-node cloud-node"><small>Infra 小组 / 云侧</small><b>Middle Layers</b><span>hidden → hidden</span></div>
+        <div class="arch-wire reverse"><span>激活张量下行</span><i></i></div>
+        <div class="arch-node"><small>企业侧</small><b>Back Layers</b><span>hidden → logits</span></div>
+      </div>
+
+      <div class="security-grid">
+        <article class="card attack-lab">
+          <div class="card-title"><span class="icon danger">⌁</span><div><small>ATTACK REPLAY</small><h3>Embedding 最近邻反演</h3></div><span class="verified">4096 / 4096</span></div>
+          <p>当切分点仅输出 embedding 时，用公开词表 embedding 做余弦最近邻，可对该样本实现逐 token 100% 恢复。</p>
+          <div class="terminal">
+            <div class="terminal-bar"><i></i><i></i><i></i><span>embedding_attack.py</span></div>
+            <div class="terminal-body" id="attack-output"><span class="prompt">$</span> 等待启动攻击回放…</div>
+          </div>
+          <button class="button danger-button" id="attack-run">一键运行 · 还原一个 input</button>
+          <p class="fineprint">浏览器重放 PR #15 已验证结果，不在本机重新执行 GPU 攻击。该结论仅对应明确的 embedding-only 威胁模型。</p>
+          <div class="link-row"><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/Q1/embedding_attack.py">攻击脚本 ↗</a><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/Q1/results/embedding_attack.json">验证数据 ↗</a></div>
+        </article>
+
+        <article class="card defense-lab">
+          <div class="card-title"><span class="icon safe">◫</span><div><small>MITIGATION</small><h3>增加企业侧层数</h3></div></div>
+          <p>更深的本地前缀可降低当前固定预算 MLP 攻击的恢复率，但不能据此宣称绝对安全。</p>
+          <div class="bar-chart" aria-label="当前样本 token 恢复率随企业侧层数变化">
+            <div class="bar-row"><b>0</b><span><i style="width:100%"></i></span><em>100%</em></div>
+            <div class="bar-row"><b>4</b><span><i style="width:53.98%"></i></span><em>53.98%</em></div>
+            <div class="bar-row"><b>9</b><span><i style="width:40.41%"></i></span><em>40.41%</em></div>
+            <div class="bar-row"><b>18</b><span><i style="width:23.83%"></i></span><em>23.83%</em></div>
+            <div class="bar-row"><b>27</b><span><i style="width:20.79%"></i></span><em>20.79%</em></div>
+            <div class="bar-row"><b>36</b><span><i style="width:9.59%"></i></span><em>9.59%</em></div>
+          </div>
+          <div class="chart-axis"><span>企业侧层数</span><span>当前样本 token recovery ↓</span></div>
+          <div class="warning"><b>边界：</b>独立公开测试在 36 层时仍有 60.33% 恢复率；更强攻击、完整双张量载荷仍未穷尽。</div>
+          <div class="link-row"><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md">安全报告 ↗</a><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/Q1/results/recovery_summary.csv">完整数据 ↗</a></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="system" aria-labelledby="system-title">
+      <div class="section-head"><div><div class="eyebrow"><span>04</span> SPLIT-INFER 系统实现</div><h2 id="system-title">真实权重、真实执行路径，<br>端云协同 baseline。</h2></div><a class="text-link" target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/8">查看 baseline PR #8 ↗</a></div>
+      <div class="system-grid">
+        <div class="system-copy">
+          <p>Baseline 使用 Qwen2.5-3B-Instruct FP16 权重，企业侧执行首尾层，云侧执行中间层；以 vLLM partial runner、FlashAttention、Paged KV 和独立 TP 通信组完成真实 split serving。</p>
+          <div class="spec-grid"><div><small>默认切分</small><b>4 / 27 / 5</b></div><div><small>并行策略</small><b>TP 2 + 2</b></div><div><small>部署硬件</small><b>4 × A10</b></div><div><small>接口</small><b>OpenAI-like</b></div></div>
+          <div class="command"><code>./poc up --wan</code><button data-copy="./poc up --wan">复制</button></div>
+          <p class="fineprint">右侧为交互界面假数据，仅展示产品形态；不会在浏览器中启动 PR #8 的 GPU 服务。</p>
+        </div>
+        <div class="chat-shell">
+          <div class="chat-head"><div><i id="service-dot"></i><b>Split-Infer Chat</b><small id="service-state">服务未启动</small></div><button id="service-toggle">启动 Demo</button></div>
+          <div class="messages" id="messages"><div class="message assistant"><span>S</span><p>启动 baseline 后，可以在这里体验端云切分推理。</p></div></div>
+          <form class="chat-input" id="chat-form"><input id="chat-text" aria-label="对话输入" value="为什么安全推理很重要？"><button aria-label="发送">↑</button></form>
+          <div class="chat-metrics"><span>TTFT <b id="chat-ttft">—</b></span><span>TPOT <b id="chat-tpot">—</b></span><span>WAN RTT <b>10 ms</b></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section optimization" id="optimization" aria-labelledby="optimization-title">
+      <div class="eyebrow"><span>05</span> 推理性能优化 / RESERVED</div>
+      <div class="placeholder-card"><div><span>COMING NEXT</span><h2 id="optimization-title">优化实验区</h2><p>Continuous batching、Chunked Prefill、并行策略与 PD 分离等优化将在这里统一呈现。</p></div><div class="placeholder-lines"><i></i><i></i><i></i></div></div>
+    </section>
+
+    <section class="section" id="modeling" aria-labelledby="modeling-title">
+      <div class="section-head"><div><div class="eyebrow"><span>06</span> 推理性能建模 / LIVE SIMULATION</div><h2 id="modeling-title">从配置到曲线，<br>逐点运行系统仿真。</h2></div><span class="live-label"><i></i> Q4 event-driven backend</span></div>
+      <div class="modeling-grid">
+        <form class="sim-panel card" id="sim-form">
+          <div class="field"><label for="model">模型</label><select id="model" name="model"><option>Qwen3-32B</option><option>DeepSeek-V3</option><option>DeepSeek-V4</option></select></div>
+          <div class="field"><label for="hardware">硬件</label><select id="hardware" name="hardware"><option>A10</option><option>H20</option><option>L20</option><option>Ascend 910B</option><option>Ascend 950</option></select></div>
+          <div class="field-pair"><div class="field"><label for="cards">总卡数</label><select id="cards" name="cards"><option>9</option><option>4</option><option>8</option><option>16</option></select></div><div class="field"><label for="tp">云侧 TP</label><select id="tp" name="tp"><option>4</option></select></div></div>
+          <div class="field-pair"><div class="field"><label for="input-tokens">输入 tokens</label><input id="input-tokens" name="input_tokens" type="number" min="32" max="2048" value="256"></div><div class="field"><label for="output-tokens">输出 tokens</label><input id="output-tokens" name="output_tokens" type="number" min="2" max="64" value="12"></div></div>
+          <div class="field"><label>并发量 <small>逐点执行</small></label><div class="checks"><label><input type="checkbox" name="concurrency" value="1" checked><span>1</span></label><label><input type="checkbox" name="concurrency" value="2" checked><span>2</span></label><label><input type="checkbox" name="concurrency" value="4" checked><span>4</span></label><label><input type="checkbox" name="concurrency" value="8" checked><span>8</span></label></div></div>
+          <div class="capability" id="capability"><i></i><p><b>当前可运行</b><span>Qwen3-32B · A10 · 9 卡；其余组合已预留接口。</span></p></div>
+          <button class="button primary sim-button" type="submit" id="sim-run"><span>运行仿真</span><small>Roofline + DAG + Event-driven</small></button>
+        </form>
+
+        <div class="results card">
+          <div class="result-head"><div><small>SIMULATION OUTPUT</small><h3>QPS — TTFT / TPOT</h3></div><div class="legend"><span><i class="cyan"></i>TTFT</span><span><i class="violet"></i>TPOT</span></div></div>
+          <div class="chart" id="chart"><div class="empty-chart"><div class="pulse-ring"></div><b>等待运行</b><span>每完成一个并发点，曲线将在这里更新</span></div></div>
+          <div class="progress-wrap"><div class="progress-meta"><span id="sim-status">Ready</span><b id="sim-progress">0 / 0</b></div><div class="progress"><i id="progress-bar"></i></div></div>
+          <div class="metric-cards"><div><small>最新 QPS</small><b id="metric-qps">—</b></div><div><small>Mean TTFT</small><b id="metric-ttft">—</b></div><div><small>Mean TPOT</small><b id="metric-tpot">—</b></div></div>
+          <p class="fineprint model-note">默认组合调用 Q4 仿真器真实计算；A10 参数为解析 Roofline 预设、尚未经该模型实测校准，因此结果用于系统行为演示，不代表生产容量承诺。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="brand"><span class="brand-mark">S</span><span>SplitShield</span></div><p>安全推理研究 Demo · Evidence-driven, boundary-aware.</p><a href="#top">回到顶部 ↑</a></footer>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

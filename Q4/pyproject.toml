@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "split-serving-sim"
+version = "0.1.0"
+description = "Behavioral event-driven simulator for split LLM serving"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+split-serving-sim = "split_serving_sim.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["split_serving_sim*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+split_serving_sim = ["vendor/serving/*.py", "vendor/serving/manifest.json"]

@@ -235,3 +235,8 @@ NVIDIA 关于事件追踪额外依赖的说明见
 ```bash
 .venv/bin/python scripts/validate_poc.py
 ```
+
+## Split-inference 仿真与演示
+
+[Q4 仿真入口](Q4/README.md)提供 baseline 回退与当前 PD 模型；[完整 Web demo](demo/README.md)保留安全实验回放和真实 Q4 性能模拟。
+校准值、硬编码假设、迁移要求及未解决问题统一见 [仿真交付说明](docs/split-inference-simulator.md)。

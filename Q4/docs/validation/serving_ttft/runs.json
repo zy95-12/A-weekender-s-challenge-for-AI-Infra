@@ -1,0 +1,92 @@
+[
+  {
+    "name": "actual_90s",
+    "requests": 465,
+    "ttft_ms": 793.9129978795918,
+    "components_ms": {
+      "entry_to_front": 194.308225131155,
+      "first_front": 26.007750548478416,
+      "first_upload": 37.17766344500806,
+      "first_p_queue": 82.91717952259125,
+      "first_p_command": 161.56152359152674,
+      "between_p_commands": 9.107127473279032,
+      "second_p_command": 178.38265164060297,
+      "last_download": 49.24321977647562,
+      "last_back_queue": 20.558702866612904,
+      "last_back": 33.21131663437813,
+      "token_delivery": 1.4376372495165435
+    }
+  },
+  {
+    "name": "probe_30s",
+    "requests": 152,
+    "ttft_ms": 709.8071181843759,
+    "components_ms": {
+      "entry_to_front": 166.8186292104227,
+      "first_front": 26.695399618462513,
+      "first_upload": 35.13299098689305,
+      "first_p_queue": 46.02147302600114,
+      "first_p_command": 155.6459175267404,
+      "between_p_commands": 6.386766835802088,
+      "second_p_command": 172.06592214435926,
+      "last_download": 45.45086348689112,
+      "last_back_queue": 21.00764009224153,
+      "last_back": 33.38886094730543,
+      "token_delivery": 1.192654309157086
+    }
+  },
+  {
+    "name": "seed_17",
+    "requests": 476,
+    "ttft_ms": 716.9798402618661,
+    "components_ms": {
+      "entry_to_front": 173.9916469162352,
+      "first_front": 25.912251785714442,
+      "first_upload": 23.455359999999665,
+      "first_p_queue": 75.92386774065932,
+      "first_p_command": 161.85447649253396,
+      "between_p_commands": 0.13398316244775596,
+      "second_p_command": 178.63199273461092,
+      "last_download": 24.564763348739845,
+      "last_back_queue": 19.000403964285464,
+      "last_back": 33.41400095798336,
+      "token_delivery": 0.0970931586561405
+    }
+  },
+  {
+    "name": "seed_29",
+    "requests": 480,
+    "ttft_ms": 716.4167804903367,
+    "components_ms": {
+      "entry_to_front": 167.36173480472993,
+      "first_front": 26.312802972916685,
+      "first_upload": 23.455360000000052,
+      "first_p_queue": 81.38859214959015,
+      "first_p_command": 161.88467627124308,
+      "between_p_commands": 0.4121228801103409,
+      "second_p_command": 178.83187523030628,
+      "last_download": 24.706066562500112,
+      "last_back_queue": 18.75252972916665,
+      "last_back": 33.21392675624984,
+      "token_delivery": 0.0970931335236969
+    }
+  },
+  {
+    "name": "seed_43",
+    "requests": 480,
+    "ttft_ms": 694.9593733129262,
+    "components_ms": {
+      "entry_to_front": 156.0588722825135,
+      "first_front": 26.19630843541695,
+      "first_upload": 23.455359999999803,
+      "first_p_queue": 71.2391025653697,
+      "first_p_command": 162.0795183867137,
+      "between_p_commands": 0.052623323416624616,
+      "second_p_command": 179.13234424949994,
+      "last_download": 24.339092914583425,
+      "last_back_queue": 19.154374639583324,
+      "last_back": 33.15468335416658,
+      "token_delivery": 0.09709316166280549
+    }
+  }
+]

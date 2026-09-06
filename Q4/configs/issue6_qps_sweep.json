@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "baseline": "issue6_baseline.json",
+    "stage123": "issue6_stage123.json"
+  },
+  "concurrency": [1, 2, 4, 8, 12, 16],
+  "server_max_active": {
+    "1": 8,
+    "2": 8,
+    "4": 8,
+    "8": 16,
+    "12": 16,
+    "16": 16
+  },
+  "measurement_duration_s": 60,
+  "request_cap": 512,
+  "memory_limit_mib": 768,
+  "evidence": "../data/issue6_qps_curves.csv",
+  "output_dir": "../outputs/validation/issue6_qps_curve"
+}
