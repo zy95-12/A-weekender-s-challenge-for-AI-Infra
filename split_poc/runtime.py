@@ -248,6 +248,9 @@ class Runner:
         if command['op'].startswith('pd_'):
             if self.pd is None:raise ValueError('PD disabled')
             return self.pd.execute(command)
+        if command["op"] in {"wan_prepare", "wan_echo", "wan_roundtrip"}:
+            from split_poc.wan_probe import execute
+            return execute(self, command, arrays)
         if command["op"] in {"profile_start", "profile_stop"}:
             if command["op"] == "profile_start":
                 torch.cuda.profiler.start()

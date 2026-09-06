@@ -177,6 +177,9 @@ def create_app(args):
             raise RuntimeError("Cloud optimization flags differ from Enterprise")
     executor = Executor(vars(args))
     app.state.executor = executor
+    if os.environ.get("SPLIT_WAN_PROBE") == "1":
+        from split_poc.wan_probe import install
+        install(app, args, executor)
     lock = threading.Lock()
     from split_poc.pipeline_state import CausalGate
     gate = CausalGate(timeout=30) if args.pipeline_window and args.pd_role!='decode' else None

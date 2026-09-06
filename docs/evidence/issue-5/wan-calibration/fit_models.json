@@ -1,0 +1,481 @@
+{
+  "scope": "C1, warm persistent HTTP, TP2+2, 10Gbps/10ms RTT. X is activation bytes EACH direction, two FP16 tensors. No model compute. No extrapolation beyond measured range. HTTP path includes stack overhead, not pure wire latency.",
+  "models": {
+    "baseline": {
+      "gpu_ready_rtt_ms": {
+        "affine_formula": "latency_ms = intercept_ms + slope_ms_per_MiB * activation_MiB_each_direction",
+        "intercept_ms": -58.75899991761054,
+        "slope_ms_per_MiB": 22.10767068288618,
+        "fit_mean_point_rmse_ms": 111.87936200743243,
+        "pass0_affine_test_pass1_rmse_ms": 112.12871170089535,
+        "affine_recommended": false,
+        "recommended": "Interpolate piecewise_linear_knots in linear byte space; inspect per-size variation and do not extrapolate.",
+        "piecewise_linear_knots": [
+          [
+            0.0078125,
+            11.7029361875
+          ],
+          [
+            0.03125,
+            11.7392215625
+          ],
+          [
+            0.125,
+            12.102740687499999
+          ],
+          [
+            0.5,
+            13.909364687499998
+          ],
+          [
+            1.0,
+            16.63075975
+          ],
+          [
+            2.0,
+            22.5838131875
+          ],
+          [
+            4.0,
+            48.9765689375
+          ],
+          [
+            8.0,
+            91.0874186875
+          ],
+          [
+            16.0,
+            182.0254561875
+          ],
+          [
+            32.0,
+            456.11970268749997
+          ],
+          [
+            64.0,
+            1138.085755125
+          ],
+          [
+            128.0,
+            2942.0651625
+          ]
+        ]
+      },
+      "http_transport_ms": {
+        "affine_formula": "latency_ms = intercept_ms + slope_ms_per_MiB * activation_MiB_each_direction",
+        "intercept_ms": -35.99274853990445,
+        "slope_ms_per_MiB": 12.14868977935198,
+        "fit_mean_point_rmse_ms": 87.32915710055339,
+        "pass0_affine_test_pass1_rmse_ms": 83.77776789196277,
+        "affine_recommended": false,
+        "recommended": "Interpolate piecewise_linear_knots in linear byte space; inspect per-size variation and do not extrapolate.",
+        "piecewise_linear_knots": [
+          [
+            0.0078125,
+            10.7170515625
+          ],
+          [
+            0.03125,
+            10.7224820625
+          ],
+          [
+            0.125,
+            10.8963999375
+          ],
+          [
+            0.5,
+            11.3164301875
+          ],
+          [
+            1.0,
+            12.051616375
+          ],
+          [
+            2.0,
+            13.815681062500001
+          ],
+          [
+            4.0,
+            32.1151253125
+          ],
+          [
+            8.0,
+            56.5970793125
+          ],
+          [
+            16.0,
+            99.2315253125
+          ],
+          [
+            32.0,
+            213.4867071875
+          ],
+          [
+            64.0,
+            544.6518966875001
+          ],
+          [
+            128.0,
+            1658.4684055625
+          ]
+        ]
+      },
+      "upload_path_ms": {
+        "affine_formula": "latency_ms = intercept_ms + slope_ms_per_MiB * activation_MiB_each_direction",
+        "intercept_ms": -34.66085600313143,
+        "slope_ms_per_MiB": 8.129549331606114,
+        "fit_mean_point_rmse_ms": 80.45308866499627,
+        "pass0_affine_test_pass1_rmse_ms": 75.75509475649086,
+        "affine_recommended": false,
+        "recommended": "Interpolate piecewise_linear_knots in linear byte space; inspect per-size variation and do not extrapolate.",
+        "piecewise_linear_knots": [
+          [
+            0.0078125,
+            5.3840798125000005
+          ],
+          [
+            0.03125,
+            5.365900875
+          ],
+          [
+            0.125,
+            5.4320795625
+          ],
+          [
+            0.5,
+            5.6344518125
+          ],
+          [
+            1.0,
+            6.0298416875
+          ],
+          [
+            2.0,
+            6.8657068125
+          ],
+          [
+            4.0,
+            15.79794825
+          ],
+          [
+            8.0,
+            26.767200312499998
+          ],
+          [
+            16.0,
+            49.533416125
+          ],
+          [
+            32.0,
+            103.975277125
+          ],
+          [
+            64.0,
+            296.0895933125
+          ],
+          [
+            128.0,
+            1135.6278406875
+          ]
+        ]
+      },
+      "download_path_ms": {
+        "affine_formula": "latency_ms = intercept_ms + slope_ms_per_MiB * activation_MiB_each_direction",
+        "intercept_ms": -1.3318925367731065,
+        "slope_ms_per_MiB": 4.019140447745868,
+        "fit_mean_point_rmse_ms": 8.198743052316269,
+        "pass0_affine_test_pass1_rmse_ms": 14.4332798135465,
+        "affine_recommended": false,
+        "recommended": "Interpolate piecewise_linear_knots in linear byte space; inspect per-size variation and do not extrapolate.",
+        "piecewise_linear_knots": [
+          [
+            0.0078125,
+            5.3329717500000005
+          ],
+          [
+            0.03125,
+            5.3565811875
+          ],
+          [
+            0.125,
+            5.464320375
+          ],
+          [
+            0.5,
+            5.681978375
+          ],
+          [
+            1.0,
+            6.021774687500001
+          ],
+          [
+            2.0,
+            6.94997425
+          ],
+          [
+            4.0,
+            16.3171770625
+          ],
+          [
+            8.0,
+            29.829879
+          ],
+          [
+            16.0,
+            49.6981091875
+          ],
+          [
+            32.0,
+            109.5114300625
+          ],
+          [
+            64.0,
+            248.562303375
+          ],
+          [
+            128.0,
+            522.8405648749999
+          ]
+        ]
+      }
+    },
+    "stage1": {
+      "gpu_ready_rtt_ms": {
+        "affine_formula": "latency_ms = intercept_ms + slope_ms_per_MiB * activation_MiB_each_direction",
+        "intercept_ms": -1.2506981711377845,
+        "slope_ms_per_MiB": 5.840348240148748,
+        "fit_mean_point_rmse_ms": 20.53703206067873,
+        "pass0_affine_test_pass1_rmse_ms": 35.6810410247047,
+        "affine_recommended": false,
+        "recommended": "Interpolate piecewise_linear_knots in linear byte space; inspect per-size variation and do not extrapolate.",
+        "piecewise_linear_knots": [
+          [
+            0.0078125,
+            11.880470500000001
+          ],
+          [
+            0.03125,
+            11.7452304375
+          ],
+          [
+            0.125,
+            11.9584654375
+          ],
+          [
+            0.5,
+            12.9889905625
+          ],
+          [
+            1.0,
+            14.136597250000001
+          ],
+          [
+            2.0,
+            17.87189025
+          ],
+          [
+            4.0,
+            22.9019975625
+          ],
+          [
+            8.0,
+            40.43822125
+          ],
+          [
+            16.0,
+            64.9408745625
+          ],
+          [
+            32.0,
+            164.58831650000002
+          ],
+          [
+            64.0,
+            326.8391578125
+          ],
+          [
+            128.0,
+            777.8685673125
+          ]
+        ]
+      },
+      "http_transport_ms": {
+        "affine_formula": "latency_ms = intercept_ms + slope_ms_per_MiB * activation_MiB_each_direction",
+        "intercept_ms": 6.094236199737146,
+        "slope_ms_per_MiB": 2.7926479593339577,
+        "fit_mean_point_rmse_ms": 6.483351008882531,
+        "pass0_affine_test_pass1_rmse_ms": 15.919608132482121,
+        "affine_recommended": false,
+        "recommended": "Interpolate piecewise_linear_knots in linear byte space; inspect per-size variation and do not extrapolate.",
+        "piecewise_linear_knots": [
+          [
+            0.0078125,
+            10.9397683125
+          ],
+          [
+            0.03125,
+            10.738547625
+          ],
+          [
+            0.125,
+            10.844539625
+          ],
+          [
+            0.5,
+            11.329355375
+          ],
+          [
+            1.0,
+            11.93337775
+          ],
+          [
+            2.0,
+            13.735731812500001
+          ],
+          [
+            4.0,
+            15.93042625
+          ],
+          [
+            8.0,
+            24.832379625
+          ],
+          [
+            16.0,
+            39.342819
+          ],
+          [
+            32.0,
+            93.94475375
+          ],
+          [
+            64.0,
+            171.1515833125
+          ],
+          [
+            128.0,
+            372.38727437499995
+          ]
+        ]
+      },
+      "upload_path_ms": {
+        "affine_formula": "latency_ms = intercept_ms + slope_ms_per_MiB * activation_MiB_each_direction",
+        "intercept_ms": 2.681890346730169,
+        "slope_ms_per_MiB": 1.2849294262925128,
+        "fit_mean_point_rmse_ms": 4.074516717746386,
+        "pass0_affine_test_pass1_rmse_ms": 10.616765663526655,
+        "affine_recommended": false,
+        "recommended": "Interpolate piecewise_linear_knots in linear byte space; inspect per-size variation and do not extrapolate.",
+        "piecewise_linear_knots": [
+          [
+            0.0078125,
+            5.576663999999999
+          ],
+          [
+            0.03125,
+            5.3720265
+          ],
+          [
+            0.125,
+            5.3972865
+          ],
+          [
+            0.5,
+            5.5698485
+          ],
+          [
+            1.0,
+            5.917871375
+          ],
+          [
+            2.0,
+            6.92364375
+          ],
+          [
+            4.0,
+            8.0199520625
+          ],
+          [
+            8.0,
+            11.3142331875
+          ],
+          [
+            16.0,
+            17.836008
+          ],
+          [
+            32.0,
+            39.0732195
+          ],
+          [
+            64.0,
+            76.3603545
+          ],
+          [
+            128.0,
+            173.3318534375
+          ]
+        ]
+      },
+      "download_path_ms": {
+        "affine_formula": "latency_ms = intercept_ms + slope_ms_per_MiB * activation_MiB_each_direction",
+        "intercept_ms": 3.4123458530069724,
+        "slope_ms_per_MiB": 1.5077185330414455,
+        "fit_mean_point_rmse_ms": 2.8975344407131565,
+        "pass0_affine_test_pass1_rmse_ms": 11.549098238777601,
+        "affine_recommended": false,
+        "recommended": "Interpolate piecewise_linear_knots in linear byte space; inspect per-size variation and do not extrapolate.",
+        "piecewise_linear_knots": [
+          [
+            0.0078125,
+            5.3631043125
+          ],
+          [
+            0.03125,
+            5.366521125
+          ],
+          [
+            0.125,
+            5.447253125
+          ],
+          [
+            0.5,
+            5.7595068750000005
+          ],
+          [
+            1.0,
+            6.015506374999999
+          ],
+          [
+            2.0,
+            6.8120880625
+          ],
+          [
+            4.0,
+            7.9104741875
+          ],
+          [
+            8.0,
+            13.5181464375
+          ],
+          [
+            16.0,
+            21.506811
+          ],
+          [
+            32.0,
+            54.871534249999996
+          ],
+          [
+            64.0,
+            94.79122881250001
+          ],
+          [
+            128.0,
+            199.0554209375
+          ]
+        ]
+      }
+    }
+  }
+}
