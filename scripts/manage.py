@@ -112,6 +112,8 @@ def up(args):
         raise RuntimeError("Pinned NCCL library is missing from the virtual environment")
     # Prevent Nsight LD_LIBRARY_PATH from selecting a different NCCL build.
     env["VLLM_NCCL_SO_PATH"] = str(nccl_library)
+    if args.operator_profile:
+        env["SPLIT_OPERATOR_CAPTURE"] = "1"
     def command_for(role):
         model = ROOT / "models" / ("qwen" if role == "enterprise" else "cloud")
         tp = enterprise_tp if role == "enterprise" else cloud_tp
@@ -122,6 +124,7 @@ def up(args):
         common += ["--prefill-chunk-size", str(args.prefill_chunk_size),
                    "--scheduler-policy", args.scheduler_policy, "--decode-quota", str(args.decode_quota)]
         common += ["--tcp-buffer-mib", str(args.tcp_buffer_mib), "--pipeline-window", str(args.pipeline_window)]
+        common += ["--max-active", str(args.max_active)]
         if args.profile or args.phase_profile:
             common.append("--phase-profile")
         if not args.profile:
@@ -163,6 +166,8 @@ if __name__ == "__main__":
     parser.add_argument("--delay", "--delay-ms", dest="delay", type=float, default=5)
     parser.add_argument("--bandwidth-gbps", type=float, default=10)
     parser.add_argument("--profile", action="store_true")
+    parser.add_argument("--operator-profile", action="store_true", help="Record operator tensor metadata and NVTX ranges; requires --profile")
+    parser.add_argument("--max-active", type=int, choices=range(1,17), default=8)
     parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe")
     parser.add_argument("--wire-fast", action="store_true")
     parser.add_argument("--prefill-chunk-size", type=int, default=0)
@@ -172,6 +177,8 @@ if __name__ == "__main__":
     parser.add_argument("--phase-profile", action="store_true")
     parser.add_argument("--pipeline-window", type=int, default=0)
     args = parser.parse_args()
+    if args.operator_profile and not args.profile:
+        parser.error("--operator-profile requires --profile")
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:
         parser.error("Invalid prefill chunk or decode quota")
     if not 0 <= args.pipeline_window <= 8:

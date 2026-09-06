@@ -212,7 +212,7 @@ class Runner:
             max_decode_seq_len=0 if prefill else max(lengths),
             context_lens_tensor=tensor([x["position"] for x in items]),
             block_tables=(torch.empty((len(items), 0), dtype=torch.int32, device="cuda")
-                          if prefill and all(x["position"]==0 for x in items)
+                          if prefill and all(x["position"]==0 for x in items) and not self.args.get("prefill_chunk_size", 0)
                           else tensor([x + [0] * (max_blocks - len(x)) for x in tables])),
             use_cuda_graph=False, max_query_len=max(queries), max_decode_query_len=1,
             query_start_loc=tensor([0] + np.cumsum(queries).tolist()),
@@ -350,6 +350,12 @@ def worker(rank, args, pipe):
         from vllm.distributed import get_tp_group
         communicator = getattr(get_tp_group().device_communicator, "pynccl_comm", None)
         nccl = getattr(communicator, "nccl", None)
+        operator_capture = None
+        if os.environ.get("SPLIT_OPERATOR_CAPTURE") == "1":
+            from split_poc.operator_capture import Capture
+            operator_capture = Capture(args["role"], rank, args["results"])
+            if communicator is not None:
+                operator_capture.wrap_communicator(communicator)
         pipe.send({"ready": True, "rank": rank, "audit": {
             "rank": rank, "pid": os.getpid(), "role": args["role"], "tp": args["tp"],
             "owned_layers": [int(i) for i in runner.model.model.layers],
@@ -369,7 +375,8 @@ def worker(rank, args, pipe):
             try:
                 if mailbox and arrays is not None:
                     arrays = mailbox.read(0, arrays)
-                result = runner.execute(command, arrays)
+                result = (operator_capture.execute(runner, command, arrays) if operator_capture
+                          else runner.execute(command, arrays))
                 if mailbox:
                     arrays = None
                 if mailbox and result and "arrays" in result:

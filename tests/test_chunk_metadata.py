@@ -8,6 +8,13 @@ from split_poc.runtime import KVPool, Runner
 
 
 class ChunkMetadataTests(unittest.TestCase):
+    def test_unchunked_prefill_keeps_original_attention_path(self):
+        runner = Runner.__new__(Runner)
+        runner.pool = KVPool(8)
+        runner.args = {"prefill_chunk_size": 0}
+        meta = self.metadata(runner, [{"request_id": "a", "position": 0, "query_len": 17}], "prefill")
+        self.assertEqual(meta.block_tables.numel(), 0)
+
     def metadata(self, runner, items, phase):
         tensor, empty = torch.tensor, torch.empty
         def cpu_tensor(*args, **kwargs):
@@ -22,9 +29,10 @@ class ChunkMetadataTests(unittest.TestCase):
     def test_nonzero_chunk_keeps_prefix_blocks_and_positions(self):
         runner = Runner.__new__(Runner)
         runner.pool = KVPool(8)
+        runner.args = {"prefill_chunk_size":17}
         first = [{"request_id":"a","position":0,"query_len":17}]
         meta = self.metadata(runner,first,"prefill")
-        self.assertEqual(meta.block_tables.numel(),0)
+        self.assertEqual(meta.block_tables.tolist(),[runner.pool.requests["a"]["blocks"]])
         self.assertEqual(meta.context_lens_tensor.tolist(),[0])
         runner.pool.commit(first)
         blocks = runner.pool.requests["a"]["blocks"][:]
