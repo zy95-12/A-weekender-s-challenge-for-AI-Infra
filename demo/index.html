@@ -346,6 +346,16 @@ Security inference should protect private prompts while preserving useful model 
         <h2 id="optimization-title">开环负载下，比较 SLO 与吞吐。</h2>
         <article class="card" id="baseline-analysis">
           <h3>C16 Baseline：通信、流水与调度是优化重点</h3>
+          <p id="baseline-measurement-meta">加载 C16 Baseline 实测数据…</p>
+          <div id="baseline-measurement-table"></div>
+          <p>
+            历史 C16 闭环测量，用于分析耗时来源；各行来自同一批请求的 trace，
+            步外残差包含调度等待、其他请求执行和交付开销，不能全部视为纯排队时间。
+            <a href="evidence/baseline-c16-raw.zip" download
+              >下载原始请求与 trace</a
+            >
+          </p>
+          <h4>分析结论</h4>
           <p>
             <strong>通信开销与云侧处理同量级，需要优化通信路径。</strong>
             SplitInfer 引入了显著的端云通信开销，往返 RPC

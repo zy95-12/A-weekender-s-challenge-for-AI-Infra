@@ -391,6 +391,23 @@ async function evidence() {
         ["GSM8K index", "问题", "输入 token 数"],
         d["accuracy-samples"].map((r) => [r.index, r.question, r.tokens]),
       );
+    const baseline = d["baseline-c16"];
+    if (baseline) {
+      const { ttft, tpot } = baseline.breakdown;
+      $("#baseline-measurement-meta").textContent =
+        `4K 输入 / 79 输出 · TP2+2 · C16 · ${baseline.summary.requests} 条完成请求，${tpot.rows} 个 decode 步骤；下表为实测均值。`;
+      $("#baseline-measurement-table").innerHTML = table(
+        ["实测区间", "TTFT 拆解（ms）", "TPOT 拆解（ms）"],
+        [
+          ...Object.keys(ttft.parts_ms).map((name) => [
+            name,
+            ttft.parts_ms[name].toFixed(2),
+            tpot.parts_ms[name].toFixed(2),
+          ]),
+          ["端到端合计", ttft.total_ms.toFixed(2), tpot.total_ms.toFixed(2)],
+        ],
+      );
+    } else $("#baseline-measurement-meta").textContent = "C16 实测数据未加载";
     const openLoop = d["open-loop-sweep"];
     if (openLoop) {
       openLoopChart("#open-loop-ttft", openLoop.points, "ttft", 3000);
@@ -427,7 +444,6 @@ async function evidence() {
     } else
       $("#open-loop-status").textContent =
         "开环实验进行中，尚未发布完整对比结果";
-
   } catch (e) {
     toast("证据加载失败：" + e.message);
   }
