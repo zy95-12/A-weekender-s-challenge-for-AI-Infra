@@ -1,0 +1,10 @@
+test_exact_sequence_requires_every_position (test_metrics.MetricsTests.test_exact_sequence_requires_every_position) ... ok
+test_frequency_weighted_and_type_macro_are_distinct (test_metrics.MetricsTests.test_frequency_weighted_and_type_macro_are_distinct) ... ok
+test_mismatched_lengths_rejected (test_metrics.MetricsTests.test_mismatched_lengths_rejected) ... ok
+test_position_alignment_not_bag_of_tokens (test_metrics.MetricsTests.test_position_alignment_not_bag_of_tokens) ... ok
+test_full_index_position_order_and_scale (test_retrieval.RetrievalTests.test_full_index_position_order_and_scale) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.002s
+
+OK

@@ -238,5 +238,5 @@ NVIDIA 关于事件追踪额外依赖的说明见
 
 ## Split-inference 仿真与演示
 
-[Q4 仿真入口](Q4/README.md)提供 baseline 回退与当前 PD 模型；[完整 Web demo](demo/README.md)保留安全实验回放和真实 Q4 性能模拟。
+[Q4 仿真入口](Q4/README.md)提供 baseline 回退与当前 PD 模型；[完整 Web demo](demo/README.md)接通 PR #15 真实攻击、GPU 服务启动/流式对话、真实精度与压测证据，以及当前 Q4 仿真。
 校准值、硬编码假设、迁移要求及未解决问题统一见 [仿真交付说明](docs/split-inference-simulator.md)。

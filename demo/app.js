@@ -1,78 +1,436 @@
-const $ = (selector) => document.querySelector(selector);
-const toast = (message) => { const el = $('#toast'); el.textContent = message; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1800); };
-
-document.querySelectorAll('[data-copy]').forEach((button) => button.addEventListener('click', async () => {
-  await navigator.clipboard.writeText(button.dataset.copy); toast('命令已复制');
-}));
-
-const recoveredText = 'Security inference should protect private prompts while preserving useful model capability.';
-$('#attack-run').addEventListener('click', async (event) => {
-  const button = event.currentTarget, output = $('#attack-output'); button.disabled = true;
-  output.innerHTML = '<span class="prompt">$</span> loading public embedding matrix…\n[1/3] vocab_size = 151936\n[2/3] cosine nearest-neighbor search\n';
-  await new Promise((resolve) => setTimeout(resolve, 650));
-  output.textContent += '[3/3] decoding 4096 hidden vectors\n';
-  await new Promise((resolve) => setTimeout(resolve, 550));
-  output.innerHTML += `<span class="success">✓ exact_token_match: 4096 / 4096 (100%)</span>\n\nrecovered sample:\n${recoveredText}`;
-  button.textContent = '还原完成 · 100% token match'; button.disabled = false;
-} );
-
-let serviceReady = false;
-$('#service-toggle').addEventListener('click', async (event) => {
-  const button = event.currentTarget;
-  if (serviceReady) { toast('Demo 服务已处于就绪状态'); return; }
-  button.disabled = true; button.textContent = '启动中…'; $('#service-state').textContent = '加载 Front / Middle / Back';
-  await new Promise((resolve) => setTimeout(resolve, 900));
-  serviceReady = true; button.textContent = 'Demo Ready'; $('#service-state').textContent = 'Qwen2.5-3B · 4/27/5'; $('#service-dot').classList.add('ready'); toast('Baseline 界面已就绪（假数据）');
-});
-
-$('#chat-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  if (!serviceReady) { toast('请先启动 Demo'); return; }
-  const input = $('#chat-text'), text = input.value.trim(); if (!text) return;
-  const messages = $('#messages');
-  messages.insertAdjacentHTML('beforeend', `<div class="message user"><span>U</span><p>${escapeHtml(text)}</p></div>`); input.value = '';
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  messages.insertAdjacentHTML('beforeend', '<div class="message assistant"><span>S</span><p>因为推理输入可能包含业务机密与个人数据。Split Inference 缩小了直接暴露面，但中间激活仍需结合威胁模型验证，不能视为天然加密。</p></div>');
-  $('#chat-ttft').textContent = '186 ms'; $('#chat-tpot').textContent = '31 ms'; messages.scrollTop = messages.scrollHeight;
-});
-
-function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value; return div.innerHTML; }
-
-const supported = () => $('#model').value === 'Qwen3-32B' && $('#hardware').value === 'A10' && $('#cards').value === '9';
-function updateCapability() {
-  const box = $('#capability');
-  if (supported()) { box.classList.remove('unsupported'); box.querySelector('b').textContent = '当前可运行'; box.querySelector('span').textContent = 'Qwen3-32B · A10 · 9 卡；Q4 解析仿真。'; }
-  else { box.classList.add('unsupported'); box.querySelector('b').textContent = '接口已预留'; box.querySelector('span').textContent = '该模型 / 硬件 / 卡数组合尚无 cost model，暂不生成伪结果。'; }
+const $ = (s) => document.querySelector(s);
+const esc = (v) => {
+  const d = document.createElement("div");
+  d.textContent = String(v);
+  return d.innerHTML;
+};
+const toast = (m) => {
+  const e = $("#toast");
+  e.textContent = m;
+  e.classList.add("show");
+  setTimeout(() => e.classList.remove("show"), 3000);
+};
+async function api(path, body) {
+  const r = await fetch(
+    path,
+    body === undefined
+      ? {}
+      : {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+  );
+  const p = await r.json();
+  if (!r.ok) throw Error(p.error || p.message || r.statusText);
+  return p;
 }
-['#model','#hardware','#cards'].forEach((id) => $(id).addEventListener('change', updateCapability));
-
-$('#sim-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  if (!supported()) { toast('该组合当前仅预留接口，请选择 Qwen3-32B / A10 / 9 卡'); return; }
-  const levels = [...document.querySelectorAll('input[name="concurrency"]:checked')].map((el) => Number(el.value));
-  if (!levels.length) { toast('请至少选择一个并发量'); return; }
-  const button = $('#sim-run'), points = []; button.disabled = true;
-  $('#sim-progress').textContent = `0 / ${levels.length}`; $('#progress-bar').style.width = '0%';
-  try {
-    for (let index = 0; index < levels.length; index += 1) {
-      const concurrency = levels[index]; $('#sim-status').textContent = `正在计算 concurrency = ${concurrency}…`;
-      const response = await fetch('/api/simulate', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:$('#model').value,hardware:$('#hardware').value,cards:Number($('#cards').value),tp_degree:Number($('#tp').value),input_tokens:Number($('#input-tokens').value),output_tokens:Number($('#output-tokens').value),concurrency})});
-      const payload = await response.json(); if (!response.ok) throw new Error(payload.message || '仿真失败');
-      points.push(payload.point); renderChart(points);
-      $('#metric-qps').textContent = payload.point.qps.toFixed(2); $('#metric-ttft').textContent = `${payload.point.ttft_mean_ms.toFixed(1)} ms`; $('#metric-tpot').textContent = `${payload.point.tpot_mean_ms.toFixed(1)} ms`;
-      $('#sim-progress').textContent = `${index + 1} / ${levels.length}`; $('#progress-bar').style.width = `${(index + 1) / levels.length * 100}%`;
+async function job(path, payload, log) {
+  let j = await api(path, payload);
+  while (j.status === "running") {
+    if (log) log.textContent = j.log || "后台实际执行中…";
+    await new Promise((r) => setTimeout(r, 1000));
+    j = await api("/api/jobs/" + j.id);
+  }
+  if (log) log.textContent = j.log || j.error || "";
+  if (j.status !== "completed") throw Error(j.error || "任务失败");
+  return j;
+}
+document.querySelectorAll("[data-copy]").forEach((b) =>
+  b.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(b.dataset.copy);
+      toast("命令已复制");
+    } catch (e) {
+      toast(e.message);
     }
-    $('#sim-status').textContent = `完成 · ${points.length} 个并发点`; toast('仿真曲线已生成');
-  } catch (error) { $('#sim-status').textContent = `失败：${error.message}`; toast(error.message); }
-  finally { button.disabled = false; }
+  }),
+);
+let encoded = null;
+$("#attack-text").addEventListener("input", () => {
+  encoded = null;
+  $("#attack-run").disabled = true;
 });
-
-function renderChart(points) {
-  const width=760,height=340,pad={l:58,r:62,t:25,b:46};
-  const maxX=Math.max(...points.map(p=>p.qps),1)*1.15, maxY=Math.max(...points.flatMap(p=>[p.ttft_mean_ms,p.tpot_mean_ms]),10)*1.18;
-  const x=v=>pad.l+v/maxX*(width-pad.l-pad.r), y=v=>height-pad.b-v/maxY*(height-pad.t-pad.b);
-  const grid=[0,.25,.5,.75,1].map(f=>`<line x1="${pad.l}" y1="${y(maxY*f)}" x2="${width-pad.r}" y2="${y(maxY*f)}" stroke="#193040"/><text x="${pad.l-10}" y="${y(maxY*f)+4}" text-anchor="end" fill="#70858f" font-size="10">${(maxY*f).toFixed(0)}</text>`).join('');
-  const path=key=>points.map((p,i)=>`${i?'L':'M'} ${x(p.qps)} ${y(p[key])}`).join(' ');
-  const dots=(key,color)=>points.map(p=>`<circle cx="${x(p.qps)}" cy="${y(p[key])}" r="4" fill="${color}"/><text x="${x(p.qps)}" y="${y(p[key])-9}" text-anchor="middle" fill="${color}" font-size="9">C${p.concurrency}</text>`).join('');
-  $('#chart').innerHTML=`<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="QPS 与 TTFT TPOT 曲线"><g>${grid}</g><line x1="${pad.l}" y1="${height-pad.b}" x2="${width-pad.r}" y2="${height-pad.b}" stroke="#47606c"/><line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${height-pad.b}" stroke="#47606c"/><text x="18" y="20" fill="#91a3ae" font-size="10">ms</text><text x="${width-pad.r}" y="${height-14}" text-anchor="end" fill="#91a3ae" font-size="10">observed QPS</text><path d="${path('ttft_mean_ms')}" fill="none" stroke="#43e3cf" stroke-width="2.5"/>${dots('ttft_mean_ms','#43e3cf')}<path d="${path('tpot_mean_ms')}" fill="none" stroke="#a78bfa" stroke-width="2.5"/>${dots('tpot_mean_ms','#a78bfa')}${points.map(p=>`<text x="${x(p.qps)}" y="${height-pad.b+18}" text-anchor="middle" fill="#70858f" font-size="9">${p.qps.toFixed(2)}</text>`).join('')}</svg>`;
+$("#encode-run").addEventListener("click", async () => {
+  const b = $("#encode-run");
+  b.disabled = true;
+  $("#attack-run").disabled = true;
+  encoded = null;
+  $("#attack-text").disabled = true;
+  $("#recovered-output").textContent = "等待恢复…";
+  $("#attack-download").textContent = "";
+  try {
+    const j = await job(
+      "/api/security/encode",
+      { text: $("#attack-text").value },
+      $("#attack-output"),
+    );
+    encoded = j.id;
+    $("#attack-output").textContent = JSON.stringify(j.result, null, 2);
+    $("#attack-download").innerHTML =
+      `<a href="/api/artifacts/${j.id}/hidden.npy">下载本次激活 NPY</a>`;
+    $("#attack-run").disabled = false;
+  } catch (e) {
+    toast(e.message);
+    $("#attack-output").textContent = e.message;
+  } finally {
+    b.disabled = false;
+    $("#attack-text").disabled = false;
+  }
+});
+$("#attack-run").addEventListener("click", async () => {
+  const b = $("#attack-run");
+  b.disabled = true;
+  try {
+    const j = await job(
+      "/api/security/recover",
+      { encode_id: encoded },
+      $("#attack-output"),
+    );
+    const r = j.result;
+    $("#recovered-output").textContent =
+      `${r.recovered_text}\n\n逐 token：${r.correct}/${r.positions.length} (${(r.token_accuracy * 100).toFixed(2)}%)\n整段完全匹配：${r.exact_sequence_match}\n真实检索耗时：${r.seconds.toFixed(3)}s`;
+    $("#attack-output").textContent = JSON.stringify(
+      r.positions.slice(0, 32),
+      null,
+      2,
+    );
+    $("#attack-download").innerHTML +=
+      ` · <a href="/api/artifacts/${j.id}/recover.json">下载全部逐位置结果</a>`;
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    b.disabled = false;
+  }
+});
+let ready = false,
+  starting = false,
+  chatting = false;
+async function refreshHealth() {
+  try {
+    const h = await api("/api/health");
+    ready = h.status === "ready";
+    $("#service-state").textContent = ready
+      ? "服务已启动"
+      : starting
+        ? "服务启动中"
+        : "服务未启动";
+    $("#service-dot").classList.toggle("ready", ready);
+    if (ready)
+      $("#service-state").textContent +=
+        " · " + (h.pd ? "优化 PD" : "Baseline TP2+2");
+  } catch (e) {
+    ready = false;
+    $("#service-state").textContent = "健康检查失败";
+    $("#service-dot").classList.remove("ready");
+  }
 }
+$("#service-toggle").addEventListener("click", async () => {
+  const b = $("#service-toggle");
+  b.disabled = true;
+  starting = true;
+  ready = false;
+  $("#service-state").textContent = "服务启动中";
+  try {
+    await job("/api/service/start", {}, $("#service-log"));
+    await refreshHealth();
+    toast("真实服务已启动");
+  } catch (e) {
+    $("#service-log").textContent += "\n" + e.message;
+    toast(e.message);
+  } finally {
+    starting = false;
+    b.disabled = false;
+    await refreshHealth();
+  }
+});
+const history = [];
+$("#chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (chatting) return;
+  if (!ready) {
+    toast("请先启动服务");
+    return;
+  }
+  const input = $("#chat-text"),
+    text = input.value.trim();
+  if (!text) return;
+  chatting = true;
+  const b = $("#chat-form button");
+  b.disabled = true;
+  const box = $("#messages");
+  box.insertAdjacentHTML(
+    "beforeend",
+    `<div class="message user"><span>U</span><p>${esc(text)}</p></div><div class="message assistant"><span>S</span><p></p></div>`,
+  );
+  const output = box.lastElementChild.querySelector("p");
+  input.value = "";
+  $("#chat-ttft").textContent = "—";
+  $("#chat-tpot").textContent = "—";
+  let answer = "",
+    first = null,
+    last = null,
+    count = 0,
+    usage = null,
+    done = false;
+  const start = performance.now();
+  try {
+    const r = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [...history, { role: "user", content: text }],
+      }),
+    });
+    if (!r.ok) {
+      const x = await r.json();
+      throw Error(x.error || "推理失败");
+    }
+    const reader = r.body.getReader(),
+      decoder = new TextDecoder();
+    let pending = "";
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      pending += decoder.decode(chunk.value, { stream: true });
+      let pos;
+      while ((pos = pending.indexOf("\n")) >= 0) {
+        const line = pending.slice(0, pos).trim();
+        pending = pending.slice(pos + 1);
+        if (!line.startsWith("data:")) continue;
+        const raw = line.slice(5).trim();
+        if (raw === "[DONE]") {
+          done = true;
+          continue;
+        }
+        const event = JSON.parse(raw);
+        if (event.error) throw Error(JSON.stringify(event.error));
+        if (event.usage) usage = event.usage;
+        const choice = event.choices?.[0];
+        if (choice && typeof choice.delta?.content === "string") {
+          const now = performance.now();
+          if (first === null) {
+            first = now;
+            $("#chat-ttft").textContent = (first - start).toFixed(1) + " ms";
+          }
+          last = now;
+          count++;
+          answer += choice.delta.content;
+          output.textContent = answer;
+          box.scrollTop = box.scrollHeight;
+        }
+      }
+    }
+    if (!done || !answer) throw Error("流提前结束或输出为空");
+    if (usage && usage.completion_tokens !== count)
+      throw Error("token 事件数量与 usage 不一致，无法报告 TPOT");
+    $("#chat-tpot").textContent =
+      count > 1
+        ? ((last - first) / (count - 1)).toFixed(2) + " ms"
+        : "单 token，无 TPOT";
+    history.push(
+      { role: "user", content: text },
+      { role: "assistant", content: answer },
+    );
+    while (history.length > 20) history.splice(0, 2);
+  } catch (e) {
+    output.textContent = answer + "\n[失败] " + e.message;
+    toast(e.message);
+  } finally {
+    chatting = false;
+    b.disabled = false;
+  }
+});
+function table(headers, rows) {
+  return (
+    '<div class="data-table"><table><thead><tr>' +
+    headers.map((x) => "<th>" + esc(x) + "</th>").join("") +
+    "</tr></thead><tbody>" +
+    rows
+      .map(
+        (row) =>
+          "<tr>" + row.map((v) => "<td>" + esc(v) + "</td>").join("") + "</tr>",
+      )
+      .join("") +
+    "</tbody></table></div>"
+  );
+}
+function chart(selector, points, key, limit) {
+  if (!points.length) return;
+  const w = 760,
+    h = 340,
+    p = { l: 65, r: 20, t: 35, b: 45 },
+    maxX = Math.max(1, ...points.map((x) => x.qps)) * 1.12,
+    maxY =
+      Math.max(
+        limit,
+        ...points.map((x) => x[key]),
+        ...points.map((x) => x[key.replace("mean", "p99")] || 0),
+      ) * 1.12;
+  const x = (v) => p.l + (v / maxX) * (w - p.l - p.r),
+    y = (v) => h - p.b - (v / maxY) * (h - p.t - p.b);
+  const path = (k) =>
+    points.map((v, i) => `${i ? "L" : "M"}${x(v.qps)},${y(v[k])}`).join(" ");
+  let svg = "";
+  for (let i = 0; i <= 4; i++) {
+    const v = (maxY * i) / 4;
+    svg += `<line x1="${p.l}" x2="${w - p.r}" y1="${y(v)}" y2="${y(v)}" stroke="#29404c"/><text x="${p.l - 8}" y="${y(v) + 4}" fill="#a9c5ce" text-anchor="end" font-size="11">${v.toFixed(0)}</text>`;
+  }
+  svg += `<line x1="${p.l}" x2="${w - p.r}" y1="${y(limit)}" y2="${y(limit)}" stroke="#e6ac69" stroke-dasharray="5 4"/><text x="${p.l + 5}" y="${y(limit) - 5}" fill="#e6ac69" font-size="11">SLO ${limit}ms</text>`;
+  for (const [k, color, label] of [
+    [key, "#43e3cf", "mean"],
+    [key.replace("mean", "p99"), "#a78bfa", "P99"],
+  ]) {
+    if (points.some((v) => v[k] === undefined)) continue;
+    svg += `<path d="${path(k)}" fill="none" stroke="${color}" stroke-width="2"/>`;
+    points.forEach((v) => {
+      svg += `<circle cx="${x(v.qps)}" cy="${y(v[k])}" r="4" fill="${color}"><title>C${v.concurrency}: ${v[k].toFixed(2)}ms, ${v.qps.toFixed(3)} QPS ${label}</title></circle>`;
+    });
+  }
+  points.forEach((v, i) => {
+    svg += `<text x="${x(v.qps) + 3}" y="${y(v[key]) - 10 - (i % 2) * 12}" fill="#43e3cf" font-size="10">C${v.concurrency}</text>`;
+  });
+  for (let i = 0; i <= 5; i++) {
+    const tick = (maxX * i) / 5;
+    svg += `<text x="${x(tick)}" y="${h - p.b + 18}" fill="#a9c5ce" text-anchor="middle" font-size="10">${tick.toFixed(1)}</text>`;
+  }
+  $(selector).innerHTML =
+    `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${key} 对 QPS"><text x="10" y="18" fill="#a9c5ce">${key.startsWith("ttft") ? "TTFT" : "TPOT"} ms</text><text x="110" y="18" fill="#43e3cf">mean</text><text x="170" y="18" fill="#a78bfa">P99</text>${svg}<text x="${w - 110}" y="${h - 5}" fill="#a9c5ce">QPS</text></svg>`;
+}
+async function evidence() {
+  try {
+    const d = await api("/api/evidence");
+    if (d["security-depth"])
+      $("#security-depth").innerHTML = table(
+        ["前层深度", "4K 样本恢复率", "独立公开测试恢复率"],
+        d["security-depth"].map((r) => [
+          r.depth,
+          (r.current_prompt_mlp_token_accuracy_mean * 100).toFixed(2) + "%",
+          (r.public_test_mlp_token_accuracy_mean * 100).toFixed(2) + "%",
+        ]),
+      );
+    const v = d.accuracy.variants.baseline;
+    $("#accuracy-results").innerHTML =
+      table(
+        [
+          "配置",
+          "阶段",
+          "位置数",
+          "最大逐位置 MAE",
+          "最大绝对误差",
+          "最大 softmax TV",
+        ],
+        ["prefill", "decode"].map((p) => [
+          "Split · 4 / 27 / 5",
+          p,
+          v[p].rows,
+          v[p].mae,
+          v[p].max_abs_error,
+          v[p].softmax_tv,
+        ]),
+      ) +
+      `<p>数据来源：2026-09-06 真实 GPU 验证；原生与 split 均 TP2/full prefill。固定 test indices：${d.accuracy_manifest.indices.join(", ")}；prefill 只比较最后一个输入位置，decode 每题 7 个位置。</p>`;
+    if (d["accuracy-samples"])
+      $("#accuracy-results").innerHTML += table(
+        ["GSM8K index", "问题", "输入 token 数"],
+        d["accuracy-samples"].map((r) => [r.index, r.question, r.tokens]),
+      );
+    const b = d["baseline-c16"];
+    $("#breakdown").innerHTML = ["ttft", "tpot"]
+      .map(
+        (k) =>
+          `<h4>${k.toUpperCase()}：${b.breakdown[k].total_ms.toFixed(2)}ms</h4>` +
+          table(
+            ["实测区间", "平均耗时 ms"],
+            Object.entries(b.breakdown[k].parts_ms).map(([x, y]) => [
+              x,
+              y.toFixed(3),
+            ]),
+          ),
+      )
+      .join("");
+    const sweep = d["optimized-sweep"];
+    if (sweep) {
+      const points = sweep.points.map((r) => ({
+        concurrency: r.concurrency,
+        qps: r.completed_qps,
+        ttft_mean_ms: r.mean_ttft_ms,
+        tpot_mean_ms: r.mean_tpot_ms,
+        ttft_p99_ms: r.p99_ttft_ms,
+        tpot_p99_ms: r.p99_tpot_ms,
+      }));
+      chart("#sweep-ttft", points, "ttft_mean_ms", 3000);
+      chart("#sweep-tpot", points, "tpot_mean_ms", 100);
+      $("#sweep-status").textContent = sweep.conclusion;
+      $("#sweep-table").innerHTML = table(
+        [
+          "C",
+          "QPS",
+          "TTFT mean/P99 ms",
+          "TPOT mean/P99 ms",
+          "完成/到达 SLO %",
+          "窗口 s",
+        ],
+        sweep.points.map((r) => [
+          r.concurrency,
+          r.completed_qps.toFixed(3),
+          r.mean_ttft_ms.toFixed(1) + " / " + r.p99_ttft_ms.toFixed(1),
+          r.mean_tpot_ms.toFixed(2) + " / " + r.p99_tpot_ms.toFixed(2),
+          (r.slo_attainment * 100).toFixed(2) +
+            " / " +
+            (r.start_cohort_slo_attainment * 100).toFixed(2),
+          r.duration_s.toFixed(1),
+        ]),
+      );
+    } else $("#sweep-status").textContent = "新增扫描尚未归档，不展示占位数字";
+  } catch (e) {
+    toast("证据加载失败：" + e.message);
+  }
+}
+$("#sim-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const levels = $("#sim-levels")
+    .value.split(",")
+    .map((x) => Number(x.trim()));
+  if (
+    !levels.length ||
+    levels.length > 16 ||
+    levels.some((c) => !Number.isInteger(c) || c < 1 || c > 96)
+  ) {
+    toast("输入 1–16 个并发点，每点为 1–96 整数");
+    return;
+  }
+  const b = $("#sim-run");
+  b.disabled = true;
+  const points = [],
+    variant = $("#variant").value;
+  $("#chart").innerHTML =
+    '<div id="sim-ttft"></div><div id="sim-tpot"></div><div id="sim-downloads"></div>';
+  try {
+    for (const [i, c] of levels.entries()) {
+      $("#sim-status").textContent = `实际仿真中：${variant} C${c}`;
+      const j = await job("/api/simulate", { variant, concurrency: c });
+      points.push(j.result.point);
+      chart("#sim-ttft", points, "ttft_mean_ms", 3000);
+      chart("#sim-tpot", points, "tpot_mean_ms", 100);
+      $("#sim-downloads").innerHTML +=
+        `<a href="/api/artifacts/${j.id}/result.json">C${c} JSON</a> `;
+      $("#metric-qps").textContent = j.result.point.qps.toFixed(3);
+      $("#metric-ttft").textContent =
+        j.result.point.ttft_mean_ms.toFixed(1) + " ms";
+      $("#metric-tpot").textContent =
+        j.result.point.tpot_mean_ms.toFixed(2) + " ms";
+      $("#sim-progress").textContent = `${i + 1} / ${levels.length}`;
+      $("#progress-bar").style.width = ((i + 1) / levels.length) * 100 + "%";
+    }
+    $("#sim-status").textContent = "仿真完成 · 预测值";
+  } catch (e) {
+    $("#sim-status").textContent = e.message;
+    toast(e.message);
+  } finally {
+    b.disabled = false;
+  }
+});
+evidence();
+refreshHealth();
+setInterval(refreshHealth, 10000);

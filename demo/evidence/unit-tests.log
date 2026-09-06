@@ -1,0 +1,13 @@
+test_attack_needs_successful_encode (demo.test_demo.ContractTests.test_attack_needs_successful_encode) ... ok
+test_busy_does_not_launch (demo.test_demo.ContractTests.test_busy_does_not_launch) ... ok
+test_health_without_owned_process_is_stopped (demo.test_demo.ContractTests.test_health_without_owned_process_is_stopped) ... ok
+test_raw_breakdown_reconciles (demo.test_demo.ContractTests.test_raw_breakdown_reconciles) ... ok
+test_same_origin_and_bad_json (demo.test_demo.ContractTests.test_same_origin_and_bad_json) ... 127.0.0.1 - - [07/Sep/2026 01:38:55] "POST /api/service/start HTTP/1.1" 403 -
+127.0.0.1 - - [07/Sep/2026 01:38:55] "POST /api/service/start HTTP/1.1" 400 -
+ok
+test_sim_rejects_silent_fallback (demo.test_demo.ContractTests.test_sim_rejects_silent_fallback) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.526s
+
+OK
