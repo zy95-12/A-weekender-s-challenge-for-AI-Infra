@@ -1,0 +1,45 @@
+[
+  {
+    "variant": "c40-performance-replicas",
+    "enterprise_command_coverage": 0.8068310637673778,
+    "prefill": [
+      {
+        "replica": 0,
+        "chunks": 464,
+        "chunks_per_s": 5.150155409828286,
+        "service_ms": 167.26786566584602,
+        "service_coverage": 0.8607759133828042
+      },
+      {
+        "replica": 1,
+        "chunks": 467,
+        "chunks_per_s": 5.183453828426313,
+        "service_ms": 173.16842361668128,
+        "service_coverage": 0.8961911212528165
+      }
+    ],
+    "decode": {
+      "batch_mean": 33.740947075208915,
+      "batches_per_s": 11.954132276691947,
+      "service_coverage": 0.25490548683417125
+    }
+  },
+  {
+    "variant": "c40-performance-tp2",
+    "enterprise_command_coverage": 0.6664685162224442,
+    "prefill": [
+      {
+        "replica": 0,
+        "chunks": 727,
+        "chunks_per_s": 8.073324815810961,
+        "service_ms": 115.21236693130557,
+        "service_coverage": 0.9298357853574541
+      }
+    ],
+    "decode": {
+      "batch_mean": 17.2409200968523,
+      "batches_per_s": 18.345436857936328,
+      "service_coverage": 0.31137241482967337
+    }
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "cpu_tests.log": {
+    "bytes": 1096,
+    "sha256": "14b9c819d271db0c2b69d830e48c5b5eed83fcd95eed7cbf5063da6c2000dfcd"
+  },
+  "comparison.csv": {
+    "bytes": 1090,
+    "sha256": "aca2b459a779648e3188f05601427cd6c64c4e05ef3b095da3de04d44a740565"
+  },
+  "audit.json": {
+    "bytes": 3604,
+    "sha256": "f47536fc518b879f27b0aed689ba4a7db96d46feeffd73e7d2e8b1136eb3b096"
+  },
+  "raw_results.zip": {
+    "bytes": 23065470,
+    "sha256": "0aaf10a010773078bebfdf062d81ed751f856f57f8704dca172e20b1cac35311"
+  },
+  "logits_comparison.json": {
+    "bytes": 570,
+    "sha256": "f2809dce2d8ffc88e3d5f7ae662266877587ec0188a65c2107d175d6e8cc63d2"
+  }
+}

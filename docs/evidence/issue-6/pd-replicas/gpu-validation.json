@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "concurrency": 24,
+  "requests": 24,
+  "exact_kv_transfers": 31,
+  "exact_kv_chunks": 31,
+  "cancel_cases": 2,
+  "two_source_replicas": true,
+  "cross_replica_teacher_force_exact": true,
+  "nonaligned_prompt_tokens": 257,
+  "max_tokens_one": true
+}

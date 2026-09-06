@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Split-vLLM · 企业—云推理</title>
+<style>
+body{margin:0;background:#0e1420;color:#dce6f5;font:16px/1.65 system-ui,sans-serif}main{max-width:1000px;margin:48px auto;padding:0 24px}h1{font-size:34px;margin-bottom:4px}small,.muted{color:#8fa2bc}.flow{display:flex;gap:16px;align-items:center;margin:28px 0}.box{flex:1;background:#192537;border:1px solid #32445e;border-radius:12px;padding:18px}.box b{color:#76dac6}.panel{background:#141f30;border:1px solid #2b3e58;border-radius:12px;padding:24px}textarea{box-sizing:border-box;width:100%;background:#0e1725;color:#fff;border:1px solid #3b516d;border-radius:8px;padding:14px;font:inherit;resize:vertical}button{background:#76dac6;border:0;border-radius:7px;padding:11px 22px;font:inherit;cursor:pointer;margin-top:12px}button:disabled{opacity:.5}pre{white-space:pre-wrap;word-break:break-word;font:inherit;min-height:120px}#status{font-family:monospace}footer{margin:24px 0;color:#8fa2bc;font-size:13px}@media(max-width:600px){.flow{display:block}.box{margin:12px 0}}
+</style><main>
+<small>QWEN2.5-3B-INSTRUCT / FP16 / REAL GPU INFERENCE</small>
+<h1>企业—云分段推理</h1><div class="muted">Prompt 留在企业侧，中间层通过独立 RPC 执行。</div>
+<div class="flow"><div class="box"><b>Enterprise · GPU 0,1</b><br>Embedding → Front<br>Back → LM Head → Token</div><span>⇄</span><div class="box"><b>Cloud · GPU 2,3</b><br>Middle Layers<br>接收 hidden states + residual</div></div>
+<p id="status">正在检查服务状态…</p><div class="panel">
+<textarea id="prompt" rows="3">请用三句话解释：为什么大模型推理需要 KV Cache？</textarea>
+<button id="send">开始真实推理</button> <small id="timing"></small><pre id="output">生成结果将逐步显示在这里。</pre>
+</div><footer>此 POC 使用贪心生成。中间表示不等同于加密；演示证明数据路径与分段计算，不提供不可反演的隐私保证。</footer>
+<script>
+const $=id=>document.getElementById(id);
+async function health(){try{let r=await fetch('/health'),h=await r.json();$('status').textContent=r.ok?`● READY · Split ${h.split} · TP ${h.tp}+${h.cloud_tp} · Active ${h.active} · Waiting ${h.waiting} · Completed ${h.completed}`:'● 服务不可用：'+JSON.stringify(h)}catch(e){$('status').textContent='● 服务连接失败'}}
+health();setInterval(health,3000);
+$('send').onclick=async()=>{let start=performance.now(),first=null;$('send').disabled=true;$('output').textContent='';$('timing').textContent='等待首个 token…';
+try{const r=await fetch('/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'Qwen/Qwen2.5-3B-Instruct',messages:[{role:'user',content:$('prompt').value}],temperature:0,max_tokens:256,stream:true})});if(!r.ok)throw Error(await r.text());const reader=r.body.getReader(),decoder=new TextDecoder();let pending='';while(true){let {value,done}=await reader.read();if(done)break;pending+=decoder.decode(value,{stream:true});let events=pending.split('\n\n');pending=events.pop();for(let event of events){if(!event.startsWith('data: '))continue;let data=event.slice(6);if(data==='[DONE]')continue;let obj=JSON.parse(data);if(obj.error)throw Error(obj.error.message);let text=obj.choices?.[0]?.delta?.content||'';if(text&&first===null)first=performance.now();$('output').textContent+=text;$('timing').textContent=`首字 ${first===null?'…':((first-start)/1000).toFixed(2)+'s'} · 已用 ${((performance.now()-start)/1000).toFixed(2)}s`;}}}catch(e){$('output').textContent+='\n错误：'+e.message}finally{$('send').disabled=false;health()}};
+</script></main></html>

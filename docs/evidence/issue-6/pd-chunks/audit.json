@@ -1,0 +1,130 @@
+{
+  "passed": true,
+  "variants": [
+    {
+      "variant": "old_p1d2",
+      "all_requests": 198,
+      "formal_requests": 166,
+      "positions_valid": true,
+      "handoff_order_valid": true,
+      "exposed_kv_ms": {
+        "mean": 94.6572073373494,
+        "p99": 143.53440385000002
+      },
+      "final_receive_thread_ms": {
+        "mean": 82.78038248795181,
+        "p99": 94.46212645
+      },
+      "import_to_ready_ms": {
+        "mean": 34.24093828313253,
+        "p99": 80.74102185
+      },
+      "eligible_to_first_decode_front_ms": {
+        "mean": 20.928454686746992,
+        "p99": 43.84061204999991
+      },
+      "fraction_kv_ready_before_first_token": 0.018072289156626505,
+      "mean_bytes_migrated_before_final_prefill_response": 0.0
+    },
+    {
+      "variant": "old_p2d1",
+      "all_requests": 246,
+      "formal_requests": 214,
+      "positions_valid": true,
+      "handoff_order_valid": true,
+      "exposed_kv_ms": {
+        "mean": 19.775649425233645,
+        "p99": 86.55752211000015
+      },
+      "final_receive_thread_ms": {
+        "mean": 33.34595594859813,
+        "p99": 71.88743708
+      },
+      "import_to_ready_ms": {
+        "mean": 5.004395299065421,
+        "p99": 44.68193403000011
+      },
+      "eligible_to_first_decode_front_ms": {
+        "mean": 11.360177649532709,
+        "p99": 35.85536933
+      },
+      "fraction_kv_ready_before_first_token": 0.5327102803738317,
+      "mean_bytes_migrated_before_final_prefill_response": 0.0
+    },
+    {
+      "variant": "notify_only",
+      "all_requests": 247,
+      "formal_requests": 215,
+      "positions_valid": true,
+      "handoff_order_valid": true,
+      "exposed_kv_ms": {
+        "mean": 0.0,
+        "p99": 0.0
+      },
+      "final_receive_thread_ms": {
+        "mean": 11.839243288372094,
+        "p99": 16.870055819999997
+      },
+      "import_to_ready_ms": {
+        "mean": 2.3294248418604653,
+        "p99": 6.941665319999999
+      },
+      "eligible_to_first_decode_front_ms": {
+        "mean": 7.343150944186047,
+        "p99": 24.446643819999995
+      },
+      "fraction_kv_ready_before_first_token": 1.0,
+      "mean_bytes_migrated_before_final_prefill_response": 0.0
+    },
+    {
+      "variant": "chunk_transfer",
+      "all_requests": 246,
+      "formal_requests": 214,
+      "positions_valid": true,
+      "handoff_order_valid": true,
+      "exposed_kv_ms": {
+        "mean": 0.0,
+        "p99": 0.0
+      },
+      "final_receive_thread_ms": {
+        "mean": 5.173576406542056,
+        "p99": 7.674628710000001
+      },
+      "import_to_ready_ms": {
+        "mean": 2.5853668037383173,
+        "p99": 5.22903723
+      },
+      "eligible_to_first_decode_front_ms": {
+        "mean": 5.722725738317758,
+        "p99": 14.781274530000001
+      },
+      "fraction_kv_ready_before_first_token": 1.0,
+      "mean_bytes_migrated_before_final_prefill_response": 84934656.0
+    },
+    {
+      "variant": "chunk_p1d2",
+      "all_requests": 195,
+      "formal_requests": 163,
+      "positions_valid": true,
+      "handoff_order_valid": true,
+      "exposed_kv_ms": {
+        "mean": 0.0,
+        "p99": 0.0
+      },
+      "final_receive_thread_ms": {
+        "mean": 5.230402447852761,
+        "p99": 8.595340719999998
+      },
+      "import_to_ready_ms": {
+        "mean": 2.2988681042944785,
+        "p99": 3.6008443599999995
+      },
+      "eligible_to_first_decode_front_ms": {
+        "mean": 16.765038601226994,
+        "p99": 63.65090647999998
+      },
+      "fraction_kv_ready_before_first_token": 1.0,
+      "mean_bytes_migrated_before_final_prefill_response": 84934656.0
+    }
+  ]
+}

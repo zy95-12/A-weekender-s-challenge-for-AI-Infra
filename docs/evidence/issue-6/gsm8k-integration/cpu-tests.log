@@ -1,0 +1,72 @@
+..................Already running; network reapplied and verified: http://127.0.0.1:8000
+START stop_previous
+PASS stop_previous (0.0s)
+START model_integrity
+PASS model_integrity (0.0s)
+START native_reference
+PASS native_reference (0.0s)
+START up_1_3
+PASS up_1_3 (0.0s)
+START correctness_1_3
+PASS correctness_1_3 (0.0s)
+START acceptance_1_3
+PASS acceptance_1_3 (0.0s)
+START down_1_3
+PASS down_1_3 (0.0s)
+START up_1_1
+PASS up_1_1 (0.0s)
+START correctness_1_1
+PASS correctness_1_1 (0.0s)
+START acceptance_1_1
+PASS acceptance_1_1 (0.0s)
+START down_1_1
+PASS down_1_1 (0.0s)
+START up_3_1
+PASS up_3_1 (0.0s)
+START correctness_3_1
+PASS correctness_3_1 (0.0s)
+START acceptance_3_1
+PASS acceptance_3_1 (0.0s)
+START down_3_1
+PASS down_3_1 (0.0s)
+START up_wan
+PASS up_wan (0.0s)
+START network_check
+
+......................Retrying idempotent PD control /release after RemoteProtocolError
+.Retrying idempotent PD control /pd/local after RemoteProtocolError
+......Pipeline scheduler failed
+Traceback (most recent call last):
+  File "/root/issue6-integration/split_poc/pipeline.py", line 216, in run
+    self.complete_back(self.ready_task(ready))
+  File "/root/issue6-integration/split_poc/pipeline.py", line 130, in complete_back
+    arrays,timings = task["future"].result()
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/usr/lib/python3.12/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/issue6-integration/tests/test_pipeline_scheduler.py", line 73, in rpc
+    raise RuntimeError('injected WAN failure')
+RuntimeError: injected WAN failure
+...............................
+----------------------------------------------------------------------
+Ran 78 tests in 1.428s
+
+OK
+{
+  "completed": false,
+  "cells": 1,
+  "repetitions": 3,
+  "profile_batches": 0
+}
+{
+  "completed": true,
+  "cells": 1,
+  "repetitions": 3,
+  "profile_batches": 0
+}

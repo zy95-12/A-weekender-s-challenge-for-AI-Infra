@@ -1,0 +1,36 @@
+{
+  "current4k": {
+    "absolute_positions": [
+      4095,
+      4096,
+      4097,
+      4098,
+      4099,
+      4100,
+      4101,
+      4102
+    ],
+    "exact": true,
+    "max_logit_error": 0,
+    "mean_logit_error": 0,
+    "max_softmax_probability_error": 0,
+    "top1_matches": 8
+  },
+  "nonaligned257": {
+    "absolute_positions": [
+      256,
+      257,
+      258,
+      259,
+      260,
+      261,
+      262,
+      263
+    ],
+    "exact": true,
+    "max_logit_error": 0,
+    "mean_logit_error": 0,
+    "max_softmax_probability_error": 0,
+    "top1_matches": 8
+  }
+}

@@ -1,0 +1,9 @@
+# Preserve captured console output byte-for-byte, including column padding.
+results/**/*.log -whitespace
+results/**/dcgm_metrics.txt -whitespace
+# Preserve captured CSV bytes (including CRLF) so artifact SHA256 stays valid.
+results/**/*.csv -text whitespace=cr-at-eol
+results/baseline_20260905/** linguist-generated=true
+results/baseline_20260905/REPORT.md linguist-generated=false
+results/baseline_20260905/DATA_SCOPE.md linguist-generated=false
+*.nsys-rep binary

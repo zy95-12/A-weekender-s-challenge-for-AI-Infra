@@ -1,0 +1,18 @@
+{
+  "comparison.csv": {
+    "bytes": 541,
+    "sha256": "26f3901cfccf1da384bd396e49517b502ee33470efeab6b7836f63a3331636cd"
+  },
+  "audit.json": {
+    "bytes": 645,
+    "sha256": "9c163025f9548950389d7c1a971f75d2b0931ef1c2c8aef3228d9e7161568efb"
+  },
+  "raw_results.zip": {
+    "bytes": 18739121,
+    "sha256": "35edd423c8c393397fc846ecc88c3e2bba1232502778655034922f3fa88c51e8"
+  },
+  "logits_comparison.json": {
+    "bytes": 5917,
+    "sha256": "7a1e132c01f4269cbceb930f313422d7b1ce6e5f407d7331216ef0bc485f11c6"
+  }
+}
