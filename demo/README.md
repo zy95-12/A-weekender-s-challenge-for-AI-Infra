@@ -68,7 +68,7 @@ python3 scripts/check_demo_evidence.py
 
 端到端验收须在真实四卡环境运行启动、对话；CPU 攻击仍需要固定模型权重。
 
-可选浏览器端到端脚本：`demo/browser_smoke.cjs`（需要单独安装 Playwright/Chromium）。先 `./poc down`，启动 UI 后运行 `node demo/browser_smoke.cjs`；它会实际启动四卡服务并运行对话、攻击和两个仿真点。可通过 `DEMO_URL`、`DEMO_EVIDENCE_DIR`、`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指定地址、产物目录及浏览器。前端运行本身不依赖 Playwright。图表另可通过安装 matplotlib 后运行 `scripts/plot_demo_sweep.py` 导出 PNG/SVG。
+可选浏览器端到端脚本：`demo/browser_smoke.cjs`（需要单独安装 Playwright/Chromium）。先 `./poc down`，启动 UI 后运行 `node demo/browser_smoke.cjs`；它会实际启动四卡服务并运行对话、攻击和两个仿真点。可通过 `DEMO_URL`、`DEMO_EVIDENCE_DIR`、`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 指定地址、产物目录及浏览器。前端运行本身不依赖 Playwright。图表另可通过安装 matplotlib 后运行 `scripts/plot_open_loop.py` 导出 PNG/SVG。
 
 本次完整验收与新增数据见 [验证报告](../docs/live-demo-validation.md)。
 
