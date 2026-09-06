@@ -28,6 +28,15 @@ class KVPool:
         self.requests = {}
         self.block_size = block_size
 
+    def reserve(self, rid, length):
+        if rid in self.requests:
+            raise ValueError('Request already allocated')
+        if type(length) is not int or not 1<=length<=16384:
+            raise ValueError('Invalid reserved length')
+        count=(length+self.block_size-1)//self.block_size
+        if count>len(self.free):raise ValueError('KV capacity exhausted')
+        self.requests[rid]={'length':0,'blocks':[self.free.pop() for _ in range(count)]}
+
     def prepare(self, items):
         # Validate the entire batch before changing any state.
         need = 0
@@ -140,7 +149,7 @@ class Runner:
         self.config = EngineArgs(model=args["model"], dtype="half", tensor_parallel_size=args["tp"],
             enforce_eager=True, max_model_len=16384, enable_prefix_caching=False,
             disable_custom_all_reduce=True, block_size=16,
-            max_num_batched_tokens=16384, max_num_seqs=16).create_engine_config()
+            max_num_batched_tokens=16384, max_num_seqs=args.get('max_active',16)).create_engine_config()
         self.context = set_current_vllm_config(self.config)
         self.context.__enter__()
         set_custom_all_reduce(False)
@@ -165,6 +174,10 @@ class Runner:
             self.http = http_client(args.get("tcp_buffer_mib", 0), base_url=args["cloud"], timeout=httpx.Timeout(30, connect=3), trust_env=False)
         self.rpc_phase = None
         self.trace = []
+        self.pd = None
+        if args.get('pd_role'):
+            from split_poc.pd_kv import KVTransfer
+            self.pd=KVTransfer(self)
 
     def rpc_trace(self, event, info):
         # Client socket I/O ranges, not estimates of pure WAN propagation.
@@ -232,6 +245,9 @@ class Runner:
     def execute(self, command, arrays=None):
         from vllm.forward_context import set_forward_context
         from vllm.distributed import get_tp_group
+        if command['op'].startswith('pd_'):
+            if self.pd is None:raise ValueError('PD disabled')
+            return self.pd.execute(command)
         if command["op"] in {"profile_start", "profile_stop"}:
             if command["op"] == "profile_start":
                 torch.cuda.profiler.start()
@@ -353,7 +369,7 @@ def worker(rank, args, pipe):
         operator_capture = None
         if os.environ.get("SPLIT_OPERATOR_CAPTURE") == "1":
             from split_poc.operator_capture import Capture
-            operator_capture = Capture(args["role"], rank, args["results"])
+            operator_capture = Capture(args["role"]+('_'+args['pd_role'] if args.get('pd_role') else ''), rank, args["results"])
             if communicator is not None:
                 operator_capture.wrap_communicator(communicator)
         pipe.send({"ready": True, "rank": rank, "audit": {
@@ -457,6 +473,8 @@ class Executor:
                 raise RuntimeError(reply["error"])
             replies.append(reply["result"])
         result = replies[0]
+        if command['op']=='pd_status':
+            return {'ranks':replies}
         if self.mailbox and "shared_shape" in result:
             result = {**{k:v for k,v in result.items() if k!="shared_shape"}, "arrays": self.mailbox.read(1, result["shared_shape"], copy=True)}
         return result

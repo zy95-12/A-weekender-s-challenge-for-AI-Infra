@@ -9,6 +9,7 @@ import sys
 import sysconfig
 import time
 import urllib.request
+import uuid
 from network_state import configure
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +34,7 @@ def spawn(name, command, env=None):
 
 
 def stop():
-    for name in ("proxy", "enterprise", "cloud", "telemetry"):
+    for name in ("proxy", "enterprise", "cloud", "cloud_prefill", "cloud_decode", "telemetry"):
         path = RUN / f"{name}.pid.json"
         if not path.exists():
             continue
@@ -77,6 +78,9 @@ def up(args):
     RUN.mkdir(exist_ok=True)
     enterprise_tp = args.enterprise_tp or args.tp
     cloud_tp = args.cloud_tp or args.tp
+    if getattr(args,'pd',False):
+        enterprise_tp=args.enterprise_tp or 1
+        cloud_tp=args.prefill_tp
     if (RUN / "enterprise.pid.json").exists():
         reusable = False
         try:
@@ -97,6 +101,7 @@ def up(args):
     subprocess.run(["bash", str(ROOT / "scripts/network.sh"), "up"], check=True)
     subprocess.run([str(PYTHON), str(ROOT / "scripts/model_views.py")], cwd=ROOT, check=True)
     configure(args.wan, args.delay, args.bandwidth_gbps)
+    if args.pd:args.pd_epoch=uuid.uuid4().hex
     stamp = time.strftime("%Y%m%d-%H%M%S")
     results = ROOT / "results" / stamp
     results.mkdir(parents=True)
@@ -116,7 +121,7 @@ def up(args):
         env["SPLIT_OPERATOR_CAPTURE"] = "1"
     def command_for(role):
         model = ROOT / "models" / ("qwen" if role == "enterprise" else "cloud")
-        tp = enterprise_tp if role == "enterprise" else cloud_tp
+        tp = enterprise_tp if role == "enterprise" else (args.decode_tp if role=='cloud_decode' else cloud_tp)
         common = [str(PYTHON), "-m", "split_poc.server", "--model", str(model),
                   "--split", args.split, "--tp", str(tp), "--results", str(results), "--ipc-mode", args.ipc_mode]
         if args.wire_fast:
@@ -125,6 +130,11 @@ def up(args):
                    "--scheduler-policy", args.scheduler_policy, "--decode-quota", str(args.decode_quota)]
         common += ["--tcp-buffer-mib", str(args.tcp_buffer_mib), "--pipeline-window", str(args.pipeline_window)]
         common += ["--max-active", str(args.max_active)]
+        if args.pd:
+            common += ['--pd','--pd-epoch',args.pd_epoch,'--prefill-tp',str(args.prefill_tp),
+                       '--decode-tp',str(args.decode_tp),'--cloud-decode','http://10.205.0.2:8002']
+            if role!='enterprise':common+=['--pd-role','decode' if role=='cloud_decode' else 'prefill']
+            if args.pd_verify_kv:common+=['--pd-verify-kv']
         if args.profile or args.phase_profile:
             common.append("--phase-profile")
         if not args.profile:
@@ -136,7 +146,18 @@ def up(args):
                 "--capture-range=cudaProfilerApi", "--capture-range-end=stop", "--force-overwrite=true",
                 "--output", str(results / role), *common]
     try:
-        cloud = spawn("cloud", ["ip", "netns", "exec", "split-cloud", *command_for("cloud"), "--role", "cloud",
+        if args.pd:
+            prefill_gpus='1,2' if args.prefill_tp==2 else '1'
+            decode_gpus='3' if args.decode_tp==1 else '2,3'
+            cloud=spawn('cloud_prefill',['ip','netns','exec','split-cloud',*command_for('cloud_prefill'),
+                '--role','cloud','--host','10.205.0.2','--port','8001','--dist-port','29502'],
+                {**env,'CUDA_VISIBLE_DEVICES':prefill_gpus})
+            decode=spawn('cloud_decode',['ip','netns','exec','split-cloud',*command_for('cloud_decode'),
+                '--role','cloud','--host','10.205.0.2','--port','8002','--dist-port','29503'],
+                {**env,'CUDA_VISIBLE_DEVICES':decode_gpus})
+            wait_ready('http://10.205.0.2:8002/health',decode,'cloud_decode','split-enterprise')
+        else:
+            cloud = spawn("cloud", ["ip", "netns", "exec", "split-cloud", *command_for("cloud"), "--role", "cloud",
                        "--host", "10.205.0.2", "--port", "8001", "--dist-port", "29502"],
                       {**env, "CUDA_VISIBLE_DEVICES": "2,3" if cloud_tp == 2 else "2"})
         wait_ready("http://10.205.0.2:8001/health", cloud, "cloud", "split-enterprise")
@@ -149,7 +170,8 @@ def up(args):
         wait_ready("http://127.0.0.1:8000/health", proxy, "proxy")
         subprocess.run([str(PYTHON), str(ROOT / "scripts/smoke.py")], check=True)
         (RUN / "launch.json").write_text(json.dumps(vars(args), indent=2))
-        print(f"\nDemo ready: http://127.0.0.1:8000\nResults: {results}\nSplit: {args.split}; TP: {enterprise_tp}+{cloud_tp}", flush=True)
+        topology=f'{enterprise_tp}+{cloud_tp}'+(f'+{args.decode_tp}' if args.pd else '')
+        print(f"\nDemo ready: http://127.0.0.1:8000\nResults: {results}\nSplit: {args.split}; TP: {topology}", flush=True)
     except BaseException:
         stop()
         raise
@@ -158,7 +180,7 @@ def up(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["up", "down", "status"])
-    parser.add_argument("--split", choices=["1:3", "1:1", "3:1"], default="1:3")
+    parser.add_argument("--split", choices=["1:3", "1:1", "3:1", "4:30:2"], default="1:3")
     parser.add_argument("--tp", type=int, choices=[1, 2], default=2)
     parser.add_argument("--enterprise-tp", type=int, choices=[1, 2])
     parser.add_argument("--cloud-tp", type=int, choices=[1, 2])
@@ -176,7 +198,13 @@ if __name__ == "__main__":
     parser.add_argument("--tcp-buffer-mib", type=int, default=0)
     parser.add_argument("--phase-profile", action="store_true")
     parser.add_argument("--pipeline-window", type=int, default=0)
+    parser.add_argument('--pd',action='store_true',help='Separate cloud prefill and decode GPU groups')
+    parser.add_argument('--prefill-tp',type=int,choices=[1,2],default=2)
+    parser.add_argument('--decode-tp',type=int,choices=[1,2],default=1)
+    parser.add_argument('--pd-verify-kv',action='store_true',help='Diagnostic exact KV copy hashes; excluded from benchmarks')
     args = parser.parse_args()
+    if args.pd and (args.prefill_tp+args.decode_tp!=3 or args.enterprise_tp not in (None,1) or not args.pipeline_window):
+        parser.error('PD on this four-GPU host requires E1, P+D=3 and --pipeline-window')
     if args.operator_profile and not args.profile:
         parser.error("--operator-profile requires --profile")
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:

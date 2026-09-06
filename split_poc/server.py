@@ -179,21 +179,35 @@ def create_app(args):
     app.state.executor = executor
     lock = threading.Lock()
     from split_poc.pipeline_state import CausalGate
-    gate = CausalGate(timeout=30) if args.pipeline_window else None
+    gate = CausalGate(timeout=30) if args.pipeline_window and args.pd_role!='decode' else None
     last_seen = {}
     cloud_metrics = {"kv_used_blocks": 0, "prefill_tokens": 0, "decode_tokens": 0, "forward_steps": 0}
+    pd_control=None
+    if args.pd_role:
+        from split_poc.pd_control import install
+        pd_control=install(app,args,executor,cloud_metrics,last_seen)
     Path(args.results).mkdir(parents=True, exist_ok=True)
     config = {**vars(args), "model_id": MODEL_ID, "revision": REVISION,
               "vllm": "0.10.2", "dtype": "float16", "attention_backend": "FLASH_ATTN",
               "runtime": "custom vLLM V0 partial runner", "split_layers": SPLITS[args.split]}
     config["clock_sample"] = {"wall_time_ns": time.time_ns(), "monotonic_ns": time.perf_counter_ns()}
-    (Path(args.results) / f"{args.role}_config.json").write_text(json.dumps(config, indent=2))
+    label=args.role+('_'+args.pd_role if args.pd_role else '')
+    (Path(args.results) / f"{label}_config.json").write_text(json.dumps(config, indent=2))
     scheduler = None
     if args.role == "enterprise":
         from transformers import AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=True)
         eos = {tokenizer.eos_token_id, 151643, 151645}
-        if args.pipeline_window:
+        if args.pd:
+            remote=httpx.get(args.cloud_decode+'/health',timeout=5,trust_env=False)
+            remote.raise_for_status();decode_config=remote.json()
+            if (remote_config.get('pd_role'),decode_config.get('pd_role'))!=('prefill','decode') or any(
+                c.get('pd_epoch')!=args.pd_epoch or c.get('layer_split')!=list(SPLITS[args.split])
+                or c.get('revision')!=REVISION for c in (remote_config,decode_config)):
+                raise RuntimeError('PD role/epoch/model handshake mismatch')
+            from split_poc.pd_scheduler import PDScheduler
+            scheduler=PDScheduler(executor,args,eos)
+        elif args.pipeline_window:
             from split_poc.pipeline import PipelineScheduler
             scheduler = PipelineScheduler(executor, args, eos)
         else:
@@ -207,9 +221,16 @@ def create_app(args):
             try:
                 reply = httpx.get(args.cloud + "/health", timeout=2, trust_env=False)
                 reply.raise_for_status()
+                if args.pd:
+                    reply=httpx.get(args.cloud_decode+'/health',timeout=2,trust_env=False)
+                    reply.raise_for_status()
             except Exception:
                 raise HTTPException(503, "Cloud unavailable")
         return {"status": "ready", "role": args.role, "split": args.split, "tp": args.tp,
+                "pd":args.pd,"pd_role":args.pd_role,"pd_epoch":args.pd_epoch,
+                "pd_reservations":len(pd_control.records) if pd_control else None,
+                "pd_reserving":len(scheduler.reserving) if scheduler and args.pd else 0,
+                "pd_releasing":len(scheduler.releasing) if scheduler and args.pd else 0,
                 "cloud_tp": cloud_tp, "model_id": MODEL_ID, "revision": REVISION, "protocol": 1,
                 "layer_split": SPLITS[args.split],
                 "optimizations": optimization_config(args),
@@ -275,6 +296,8 @@ def create_app(args):
                 allowed = {"op", "phase", "items", "batch_id"}
                 if set(command) != allowed or command["op"] != "forward" or command["phase"] not in {"prefill", "decode"}:
                     raise ValueError("Unsupported execution metadata")
+                if args.pd_role and command['phase']!=args.pd_role:
+                    raise ValueError('Wrong phase for PD role')
                 if not 1 <= len(command["items"]) <= args.max_active:
                     raise ValueError("Invalid batch size")
                 seen = set()
@@ -310,6 +333,7 @@ def create_app(args):
                     cloud_metrics["forward_steps"] += 1
                     cloud_metrics[command["phase"] + "_tokens"] += n
                     result["meta"]["timings"]["cloud_send_ns"] = time.perf_counter_ns()
+                    if pd_control:pd_control.after_forward(command)
                     return pack(result["meta"], result["arrays"], fast=args.wire_fast)
             try:
                 result = await asyncio.to_thread(lambda: gate.run(command["items"], execute)) if gate else await asyncio.to_thread(execute)
@@ -323,8 +347,9 @@ def create_app(args):
             if not isinstance(ids, list) or len(ids) > 256 or any(not isinstance(x, str) for x in ids):
                 raise HTTPException(400, "Invalid release")
             def release_owned():
+                if pd_control:pd_control.release(ids)
                 with lock:
-                    result = executor.call({"op": "release", "ids": ids})
+                    result = executor.call({"op": 'pd_release' if args.pd_role else "release", "ids": ids})
                     cloud_metrics["kv_used_blocks"] = result["kv_used_blocks"]
                     for rid in ids:
                         last_seen.pop(rid, None)
@@ -337,6 +362,7 @@ def create_app(args):
             async def cleanup():
                 while True:
                     await asyncio.sleep(30)
+                    if args.pd_role:continue  # PD ownership drains through the coordinator.
                     def expire():
                         with lock:
                             expired = [rid for rid, t in last_seen.items() if time.monotonic() - t > 300]
@@ -519,6 +545,10 @@ def create_app(args):
                 raise RuntimeError("Scheduler did not drain; refusing concurrent executor close")
             scheduler.http.close()
             scheduler.trace.close()
+        if pd_control:
+            await asyncio.to_thread(pd_control.tasks.shutdown,True)
+            pd_control.http.close()
+            pd_control.trace.close()
         await asyncio.to_thread(executor.close)
     return app
 
@@ -547,7 +577,17 @@ def main():
     parser.add_argument("--pipeline-window", type=int, default=0, help="0 disables async front/RPC/back pipeline")
     parser.add_argument("--phase-profile", action="store_true",
                         help="Detailed synchronous GPU stage timings; disable for baseline throughput")
+    parser.add_argument('--pd',action='store_true')
+    parser.add_argument('--pd-role',choices=['','prefill','decode'],default='')
+    parser.add_argument('--prefill-tp',type=int,choices=[1,2],default=2)
+    parser.add_argument('--decode-tp',type=int,choices=[1,2],default=1)
+    parser.add_argument('--cloud-decode',default='http://10.205.0.2:8002')
+    parser.add_argument('--pd-kv-port',type=int,default=29611)
+    parser.add_argument('--pd-epoch',default='')
+    parser.add_argument('--pd-verify-kv',action='store_true')
     args = parser.parse_args()
+    if args.pd and (not args.pipeline_window or not args.pd_epoch):
+        parser.error('PD requires pipelining and an explicit launch epoch')
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:
         parser.error("Invalid prefill chunk or decode quota")
     if not 0 <= args.pipeline_window <= 8:

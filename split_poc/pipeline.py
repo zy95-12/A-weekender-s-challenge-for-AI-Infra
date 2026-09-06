@@ -23,7 +23,7 @@ from split_poc.wire import pack, unpack
 class PipelineScheduler(Scheduler):
     def __init__(self, executor, args, eos):
         self.window = args.pipeline_window
-        self.transfers = concurrent.futures.ThreadPoolExecutor(max_workers=self.window)
+        self.transfers = concurrent.futures.ThreadPoolExecutor(max_workers=self.window*(2 if getattr(args,'pd',False) else 1))
         self.inflight = []
         self.admission = KVAdmission(args.kv_blocks)
         self.waiting_admission = None
@@ -55,7 +55,7 @@ class PipelineScheduler(Scheduler):
                     torch.cuda.nvtx.range_push(names[parts[1]]+" batch="+command["batch_id"])
                 elif parts[2] in {"complete","failed"}:
                     torch.cuda.nvtx.range_pop()
-        response = self.data_http.post("/forward",content=payload,
+        response = self.http_for(command).post("/forward",content=payload,
                                        extensions={"trace":trace} if self.args.phase_profile else {},
                                        headers={"content-type":"application/octet-stream"})
         response.raise_for_status()
@@ -126,6 +126,7 @@ class PipelineScheduler(Scheduler):
 
     def complete_back(self, task):
         arrays,timings = task["future"].result()
+        self.remote_ready(task,timings)
         batch,command = task["batch"],task["command"]
         start = time.perf_counter_ns()
         result = self.executor.call({**command,"op":"back"},arrays)
@@ -168,6 +169,28 @@ class PipelineScheduler(Scheduler):
                 if job.finished:
                     self.completed += 1
 
+    def http_for(self, command):
+        return self.data_http
+
+    def remote_ready(self, task, timings):
+        pass
+
+    def eligible(self):
+        return [j for j in self.active if not j.cancelled and not j.finished and
+                (j.front_position<len(j.ids) or (j.prefilled and j.outstanding==0))]
+
+    def can_submit(self):
+        return len(self.inflight)<self.window
+
+    def ready_task(self, tasks):
+        return tasks[0]
+
+    def close_clients(self):
+        pass
+
+    def fail_pending(self, exc):
+        pass
+
     def run(self):
         self.data_http = http_client(self.args.tcp_buffer_mib,base_url=self.args.cloud,
                                     timeout=httpx.Timeout(30,connect=3),trust_env=False)
@@ -185,11 +208,10 @@ class PipelineScheduler(Scheduler):
                 ready = [t for t in self.inflight if t["future"].done() and
                          all(i["position"]==j.position for i,j in zip(t["command"]["items"],t["batch"]))]
                 if ready:
-                    self.complete_back(ready[0])
+                    self.complete_back(self.ready_task(ready))
                     continue
-                eligible = [j for j in self.active if not j.cancelled and not j.finished and
-                            (j.front_position<len(j.ids) or (j.prefilled and j.outstanding==0))]
-                if not self.closed and len(self.inflight)<self.window and eligible:
+                eligible = self.eligible()
+                if not self.closed and self.can_submit() and eligible:
                     batch,phase,self.decode_rounds = choose(eligible,self.args.scheduler_policy,
                                                            self.decode_rounds,self.args.decode_quota)
                     self.submit_front(batch,phase)
@@ -206,6 +228,7 @@ class PipelineScheduler(Scheduler):
             self.active=[]
         except BaseException as exc:
             self.executor.healthy=False
+            self.fail_pending(exc)
             for job in self.active:
                 job.events.put({"error":str(exc)})
                 self.failed+=1
@@ -222,3 +245,4 @@ class PipelineScheduler(Scheduler):
         finally:
             self.transfers.shutdown(wait=True,cancel_futures=True)
             self.data_http.close()
+            self.close_clients()
