@@ -687,6 +687,129 @@ h3 {
   color: #c5d2d6;
 }
 
+.optimization-curves-card {
+  margin-top: 18px;
+  padding: 27px;
+}
+
+.optimization-curves-head,
+.curve-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.optimization-curves-head small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: .14em;
+}
+
+.optimization-curves-head h3 {
+  margin-top: 4px;
+}
+
+.optimization-curves-head p,
+.curve-foot p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.curve-legend {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 13px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.curve-legend i {
+  display: inline-block;
+  width: 17px;
+  height: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.baseline-line { background: var(--red); }
+.optimized-line { background: var(--cyan); }
+.curve-legend .p99-line { border-top: 1px dashed #91a3ae; background: none; }
+
+.optimization-curves {
+  overflow-x: auto;
+  margin-top: 20px;
+  border: 1px solid #1d3040;
+  border-radius: 10px;
+  background: #08121b;
+}
+
+.optimization-curves svg {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+}
+
+.curve-summary {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  align-items: center;
+  gap: 18px;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #09141e;
+  padding: 13px 16px;
+}
+
+.curve-summary small,
+.curve-summary b,
+.curve-summary span {
+  display: block;
+}
+
+.curve-summary small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.curve-summary b {
+  color: var(--text);
+  font: 15px ui-monospace, monospace;
+}
+
+.curve-summary span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.curve-summary > i {
+  color: #536a76;
+  font-style: normal;
+}
+
+.curve-summary > strong {
+  color: var(--cyan);
+  font-size: 11px;
+}
+
+.curve-foot {
+  align-items: center;
+  margin-top: 12px;
+}
+
+.curve-foot p {
+  flex: 1;
+}
+
+.curve-foot a {
+  flex: 0 0 auto;
+  color: var(--cyan);
+  font-size: 9px;
+  text-decoration: none;
+}
+
 .validation-card {
   margin-top: 18px;
   padding: 28px;
@@ -970,7 +1093,9 @@ h3 {
   .accuracy-foot,
   .breakdown-note,
   .validation-head,
-  .holdout-card {
+  .holdout-card,
+  .optimization-curves-head,
+  .curve-foot {
     align-items: stretch;
     flex-direction: column;
   }
@@ -1021,5 +1146,13 @@ h3 {
     padding-top: 10px;
     padding-left: 0;
     text-align: left;
+  }
+
+  .curve-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .curve-summary > i {
+    transform: rotate(90deg);
   }
 }
