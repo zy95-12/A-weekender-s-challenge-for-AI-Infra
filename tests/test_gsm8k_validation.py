@@ -32,4 +32,29 @@ class LogitsTests(unittest.TestCase):
         self.assertTrue(result['passed'])
 
 
+    def test_compare_records_single_gpu_reference_and_nonzero_error(self):
+        import contextlib, hashlib, io, json, tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+        from scripts.gsm8k_validate import compare
+        with tempfile.TemporaryDirectory() as folder:
+            out = Path(folder)
+            prompts = [{'index': 1, 'prompt_ids': [10, 11, 12]}]
+            (out/'prompts.json').write_text(json.dumps(prompts))
+            (out/'manifest.json').write_text(json.dumps({'prompts_sha256':
+                hashlib.sha256((out/'prompts.json').read_bytes()).hexdigest()}))
+            values = np.tile(np.linspace(0,1,151936,dtype=np.float32),(2,1))
+            for name, logits in [('native-baseline', values), ('split-baseline', values+.002)]:
+                dest=out/name;dest.mkdir()
+                np.savez(dest/'1.npz',logits=logits,prompt_ids=[10,11,12],tokens=[20,21],
+                    forced_tokens=[20,21],rows_json=np.array(json.dumps(self.rows())))
+            (out/'native-baseline/config.json').write_text(json.dumps({'tensor_parallel_size':1}))
+            with contextlib.redirect_stdout(io.StringIO()):
+                compare(SimpleNamespace(output=out,compare_variants=['baseline']))
+            result=json.loads((out/'summary.json').read_text())
+            self.assertTrue(result['passed'])
+            self.assertEqual(result['variants']['baseline']['native_config']['tensor_parallel_size'],1)
+            self.assertGreater(result['variants']['baseline']['decode']['mae'],.0019)
+
+
 if __name__ == '__main__': unittest.main()

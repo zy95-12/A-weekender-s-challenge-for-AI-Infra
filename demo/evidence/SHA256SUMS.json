@@ -3,6 +3,7 @@
   "baseline-c16.json": "e6689266134c22424aabd4eaefcec0aa36c06221913459bc73ae08227154d63d",
   "q1-tests.log": "72b05660c308e56464e6846a427df9c2953f1f6ae5003f9ef8800610fb4c99cb",
   "optimized-tpot-qps.png": "ddcb395ab825df6bfd2a7c198d7f41eb4245778014ec5009f1f826b59454eb7a",
+  "accuracy-tp1-manifest.json": "8dcac34ab84db2a3535a9d5828c0eaf944df2d95d70ec1297ca9ac8deedded41",
   "security-depth.json": "aa0d9688bcda6b9240ef304fd1aaee259b3b156ec5b53e8f54352eb953971976",
   "optimized-tpot-qps.svg": "991854e0d7eeb2e7e871f29ea5c0da2f59a388c8375165b9d18d7793f63b2916",
   "browser-validation.json": "a6e00fac7f329e444352b776235cb416b7bbb5fd7baf5324f39c8a587b0c8cbd",
@@ -13,7 +14,10 @@
   "optimized-sweep.csv": "31104eca2746383f54c022a6e8c332137e1a848c1ba2dbe02fd2c3a1d7cb3dbf",
   "baseline-c16-raw.zip": "96935ef47b993018e83ab57a72544dff2545f035afb7ef9863c304c140f58962",
   "unit-tests.log": "68e12a3d95e5957467fe5b914017982571a7d04e46b4dbde02b6e2160321ad20",
+  "accuracy-tp1-raw.zip": "070155db329b00f139904c6c1715667bff5da3daf97d78775d4edfa7587e1a1e",
   "accuracy-samples.json": "164ac0e4d2ba53c98a0d713154d9607822f658122877358b2beb9a9a2e58bbf5",
+  "accuracy-tp1.json": "8a9b64563992407d3a1683b5c2e072cfcff82e8b25a431cc6ca60af9974a8b31",
+  "accuracy-tp1-positions.json": "fd75d6af3b63e507d5eda486133041b28bcd64900da3a65486c988d09aa69f35",
   "optimized-sweep.json": "d4373bb244ac738a0232fc6ee8d417f2312cc10fc0d256c8177fbde094305f19",
   "accuracy-recheck.log": "114cd846621e87bde871f85bb3e397a34da35d2974972488034a505b596c4641"
 }

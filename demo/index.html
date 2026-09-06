@@ -322,15 +322,15 @@ Security inference should protect private prompts while preserving useful model 
           <pre id="service-log"></pre>
         </details>
         <article class="card">
-          <h3>原生完整模型与 Split · 4 / 27 / 5 精度对比</h3>
+          <h3>原生单卡完整模型与 Split · 4 / 27 / 5 精度对比</h3>
           <p>
             固定 8 道 GSM8K 输入；同 token、同绝对位置，decode 使用 teacher
-            forcing。只比较 logits，不要求自由回答相同。下面为已归档的真实 GPU
-            测量。
+            forcing。只比较 logits，不要求自由回答相同。下面为原生单卡 TP1 对
+            Split TP2+2 的最新真实 GPU 测量，未调整原数值门槛。
           </p>
           <div id="accuracy-results">加载验证证据…</div>
           <a
-            href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/gsm8k-validation.md"
+            href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/live-research-demo/docs/gsm8k-native-tp1.md"
             >完整验证方法与原始 logits 下载 ↗</a
           >
         </article>

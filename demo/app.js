@@ -319,17 +319,21 @@ async function evidence() {
           "最大逐位置 MAE",
           "最大绝对误差",
           "最大 softmax TV",
+          "最大概率差",
+          "原数值门槛",
         ],
         ["prefill", "decode"].map((p) => [
           "Split · 4 / 27 / 5",
           p,
           v[p].rows,
-          v[p].mae,
-          v[p].max_abs_error,
-          v[p].softmax_tv,
+          v[p].mae.toFixed(6),
+          v[p].max_abs_error.toFixed(6),
+          v[p].softmax_tv.toFixed(6),
+          v[p].max_probability_delta.toFixed(6),
+          v[p].passed ? "通过" : "未通过",
         ]),
       ) +
-      `<p>数据来源：2026-09-06 真实 GPU 验证；原生与 split 均 TP2/full prefill。固定 test indices：${d.accuracy_manifest.indices.join(", ")}；prefill 只比较最后一个输入位置，decode 每题 7 个位置。</p>`;
+      `<p>数据来源：2026-09-07 重新进行真实 GPU 采集；原生完整模型单卡 TP1，split 为 TP2+2，均 full prefill。此对照包含 TP 差异；逐请求采集，不代表高并发数值一致性。固定 test indices：${d.accuracy_manifest.indices.join(", ")}；prefill 只比较最后一个输入位置，decode 每题 7 个位置。</p>`;
     if (d["accuracy-samples"])
       $("#accuracy-results").innerHTML += table(
         ["GSM8K index", "问题", "输入 token 数"],

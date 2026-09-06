@@ -112,8 +112,8 @@ def native(args):
     out = Path(args.output); manifest = check_inputs(out)
     dest = out / ('native-' + args.variant); dest.mkdir(exist_ok=False)
     optimized = args.variant == 'optimized'
-    # Match TP and attention mode to isolate splitting/transport/KV correctness.
-    config = dict(dtype='half', tensor_parallel_size=1 if optimized else 2,
+    # Default matches TP/attention; an explicit native TP also measures parallelism differences.
+    config = dict(dtype='half', tensor_parallel_size=args.native_tp or (1 if optimized else 2),
         enforce_eager=True, max_model_len=8192, max_num_seqs=1,
         max_num_batched_tokens=2048 if optimized else 8192, gpu_memory_utilization=.65,
         enable_prefix_caching=False, enable_chunked_prefill=optimized,
@@ -222,9 +222,10 @@ def compare(args):
     out = Path(args.output); check_inputs(out, require_model=False)
     prompts = json.loads((out/'prompts.json').read_text())
     report = {'passed':True, 'samples':len(prompts), 'variants':{},
-        'scope':'Same input IDs and absolute positions; last prefill position plus forced decode; matched native TP/attention configuration. No answer equality gate.'}
-    for variant in ('baseline','optimized'):
+        'scope':'Same input IDs and absolute positions; last prefill position plus forced decode. Native TP is recorded per variant; TP overrides include parallelism differences. No answer equality gate.'}
+    for variant in args.compare_variants:
         rows = []
+        native_config = json.loads((out/('native-'+variant)/'config.json').read_text())
         for p in prompts:
             name = f"{p['index']}.npz"
             a = np.load(out/('native-'+variant)/name); b = np.load(out/('split-'+variant)/name)
@@ -245,8 +246,9 @@ def compare(args):
             summary[phase] = {'rows':len(selected), 'passed':all(r['passed'] for r in selected),
                 **{key:max(r[key] for r in selected) for key in ('mae','rmse','max_abs_error','softmax_tv','max_probability_delta')},
                 'min_cosine_similarity':min(r['cosine_similarity'] for r in selected)}
+        summary['native_config'] = native_config
         report['variants'][variant] = summary
-        report['passed'] &= all(s['passed'] for s in summary.values())
+        report['passed'] &= all(summary[p]['passed'] for p in ('prefill','decode'))
     save(out/'summary.json',report); print(json.dumps(report,indent=2),flush=True)
     if not report['passed']:
         raise SystemExit(1)
@@ -274,7 +276,7 @@ def all_phases(args):
     try:
         for variant in ('baseline','optimized'):
             run('native-'+variant,[sys.executable,str(Path(__file__).resolve()),'--phase','native',
-                '--variant',variant,'--output',str(out)],env)
+                '--variant',variant,'--output',str(out)] + (['--native-tp',str(args.native_tp)] if args.native_tp else []),env)
         for variant in ('baseline','optimized'):
             print('Validating '+variant,flush=True)
             run(variant+'-up',['./poc','up','--preset',variant,'--wan'])
@@ -293,6 +295,8 @@ def main():
     parser.add_argument('--phase',choices=['all','prepare','native','split','compare'],default='all')
     parser.add_argument('--output',default='results/gsm8k-logits')
     parser.add_argument('--variant',choices=['baseline','optimized'],default='optimized')
+    parser.add_argument('--native-tp',type=int,choices=[1,2],help='Override native full-model TP; default matches each split variant')
+    parser.add_argument('--compare-variants',nargs='+',choices=['baseline','optimized'],default=['baseline','optimized'])
     parser.add_argument('--limit',type=int,default=8,help='0 selects the full test set')
     parser.add_argument('--seed',type=int,default=42)
     parser.add_argument('--few-shot',type=int,choices=range(17),default=16)

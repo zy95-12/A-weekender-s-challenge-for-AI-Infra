@@ -220,16 +220,8 @@ class Handler(SimpleHTTPRequestHandler):
                 p.stem: json.loads(p.read_text())
                 for p in (DEMO / "evidence").glob("*.json")
             }
-            data["accuracy"] = json.loads(
-                (
-                    ROOT / "docs/evidence/issue-6/gsm8k-integration/summary.json"
-                ).read_text()
-            )
-            data["accuracy_manifest"] = json.loads(
-                (
-                    ROOT / "docs/evidence/issue-6/gsm8k-integration/manifest.json"
-                ).read_text()
-            )
+            data["accuracy"] = data["accuracy-tp1"]
+            data["accuracy_manifest"] = data["accuracy-tp1-manifest"]
             return self.send_json(200, data)
         if path.startswith("/api/jobs/"):
             jid = path.rsplit("/", 1)[-1]
