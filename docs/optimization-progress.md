@@ -2,16 +2,24 @@
 
 关联：https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/issues/6
 
-## 状态
+## 当前状态（2026-09-06）
 
-| 阶段 | 状态 | 备注 |
+本节更新先前的阶段状态；下文按时间保留原始实验记录，其中“阶段 2 阻塞”等表述是历史结论。完整清单与推荐配置见 [当前优化清单](optimization-inventory.md)。
+
+| 特性 | 当前状态 | PR |
 |---|---|---|
-| 0：归因与 anchor | 完成 | 单/多在途 WAN echo、GPU copy、TP 2+2 的 12 轮未优化 anchor 均通过 |
-| 1：数据路径 | 代表场景验收完成 | 根据用户更新的验收范围收尾；收益与回退见下方收敛结论 |
-| 2：chunked prefill＋基础调度 | 数值验收阻塞 | 四种候选块大小均未通过固定 logits 门槛；见 docs/chunk-prefill.md |
-| 3：异步流水 | 不切块跨请求路径已验收 | 真实重叠与并发收益通过代表场景验证；异步 chunk 仍受阶段2阻塞 |
-| 4：投机推理 | prompt-lookup 首版代表场景通过 | q=1 内核、合并 WAN 验证；复制场景收益，通用解释/代码与输出尾间隔回退 |
-| 5：RDMA/GDR | 暂缓 | 按用户要求，前四阶段结束后再评估 |
+| Stage 1：shm IPC、快速 wire 打包、TCP buffer | 已验证，推荐开启 | #10、#14 |
+| Stage 2：chunked prefill、decode-first/quota、连续 decode 合批 | 首块 paged attention 路径已修正，集成已验证 | #11、#14 |
+| Stage 3：有界跨请求流水线 | 与 Stage 1/2 集成并通过 PD 代表场景验证 | #12、#14 |
+| Stage 4：prompt-lookup 投机验证 | 独立实验分支；当前并发配置关闭 | #13 |
+| 云侧 PD 分离与 KV 迁移 | 已验证，推荐开启 | #16 |
+| 独立 PD 控制通道 | 已验证，推荐开启 | #17 |
+| chunk KV 提前迁移 | 已实现；当前推荐配置关闭 | #17 |
+| 固定 SLO 并发扫描及逐请求审计 | 已完成代表场景测量 | #18 |
+| P/D 独立在途窗口 | 已验证，P=3、D=2 | #19 |
+| 两个 TP1 P 实例共享一个 D | 已验证 C24/C40；见本分支 PR | 本分支 |
+| P+Mix+D 真正混合 batch | 方案讨论阶段，尚未实现 | 无 |
+| RDMA/GDR | 尚未实现 | 无 |
 
 ## 阶段 0 初步证据（不是优化收益）
 
