@@ -57,9 +57,55 @@ h3 {
   font-size: 15px;
 }
 
+.insight-head h2 {
+  max-width: 980px;
+  font-size: clamp(25px, 2.7vw, 36px);
+}
+
+.technology-grid {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.technology-grid .insight-card {
+  min-height: 245px;
+}
+
+.technology-grid .tee-card,
+.technology-grid .minimization-card,
+.technology-grid .split-card {
+  grid-column: span 2;
+}
+
+.technology-grid .fhe-card,
+.technology-grid .mpc-card {
+  grid-column: span 3;
+}
+
+@media (max-width: 900px) {
+  .technology-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .technology-grid .insight-card {
+    grid-column: auto;
+  }
+
+  .technology-grid .tee-card {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 600px) {
   .demo-title {
     margin-bottom: 48px;
     font-size: clamp(40px, 13vw, 58px);
+  }
+
+  .technology-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .technology-grid .tee-card {
+    grid-column: auto;
   }
 }

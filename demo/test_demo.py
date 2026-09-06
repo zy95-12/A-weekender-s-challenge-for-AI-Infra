@@ -25,12 +25,16 @@ class StructureParser(HTMLParser):
 class DemoTest(unittest.TestCase):
     def test_page_contains_all_six_sections_and_evidence_links(self) -> None:
         parser = StructureParser()
-        parser.feed((DEMO_DIR / "index.html").read_text(encoding="utf-8"))
+        page = (DEMO_DIR / "index.html").read_text(encoding="utf-8")
+        parser.feed(page)
         self.assertTrue({"top", "insight", "security", "system", "optimization", "modeling"} <= parser.ids)
         joined = "\n".join(parser.links)
         self.assertIn("docs/01_tech_insight.md", joined)
         self.assertIn("embedding_attack.py", joined)
         self.assertIn("pull/8", joined)
+        self.assertNotIn("研究主线", page)
+        for technology in ("Confidential Computing", "数据最小化", "Split Inference", "全同态加密", "安全多方计算"):
+            self.assertIn(technology, page)
 
     def test_backend_contract_rejects_reserved_and_bad_inputs(self) -> None:
         spec = importlib.util.spec_from_file_location("demo_server", DEMO_DIR / "server.py")

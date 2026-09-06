@@ -36,17 +36,18 @@
           <div class="risk-badge">!</div>
         </div>
       </div>
-      <div class="signal-row"><span>研究主线</span><b>Security Attack</b><i></i><b>Functional System</b><i></i><b>Optimization</b><i></i><b>Performance Model</b></div>
     </section>
 
     <section class="section" id="insight" aria-labelledby="insight-title">
-      <div class="section-head"><div><div class="eyebrow"><span>02</span> 业界洞察 / LANDSCAPE</div><h2 id="insight-title">安全推理没有银弹，<br>关键是匹配威胁模型。</h2></div><a class="text-link" target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md">阅读完整洞察报告 ↗</a></div>
-      <div class="insight-grid">
-        <article class="insight-card featured"><span class="card-no">01</span><h3>近期落地优先级</h3><p>先做数据最小化，再以 TEE / 机密计算建立运行时可信边界。两者工程成熟度更高，也更容易形成可审计的防线。</p><div class="tags"><span>Data minimization</span><span>TEE</span></div></article>
-        <article class="insight-card"><span class="card-no">02</span><h3>Split Inference</h3><p>适合端侧算力有限、云侧承担中间层的场景，但中间激活不是天然安全边界，必须评估反演与侧信道风险。</p><div class="meter"><span style="width:68%"></span></div><small>系统价值高 · 安全需验证</small></article>
-        <article class="insight-card"><span class="card-no">03</span><h3>FHE / MPC</h3><p>密码学保障最强，但成本和算子覆盖仍限制通用大模型部署，更适合高敏感、范围明确的子任务。</p><div class="meter amber"><span style="width:36%"></span></div><small>保障强 · 工程成本高</small></article>
+      <div class="section-head insight-head"><div><div class="eyebrow"><span>02</span> 业界洞察 / LANDSCAPE</div><h2 id="insight-title">TEE / Confidential Computing 应当成为 AI-Factory 的投入重点，<br>Split Inference 是端云协同的核心方向，长期关注 FHE / MPC。</h2></div><a class="text-link" target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md">阅读完整洞察报告 ↗</a></div>
+      <div class="insight-grid technology-grid">
+        <article class="insight-card featured tee-card"><span class="card-no">01 · PRIORITY</span><h3>TEE / Confidential Computing</h3><p>通过硬件隔离内存与远程证明，为云端推理建立可验证的运行时可信边界。它具备较现实的工程落地路径，应成为 AI-Factory 近期重点投入方向。</p><div class="tags"><span>Runtime isolation</span><span>Attestation</span></div></article>
+        <article class="insight-card minimization-card"><span class="card-no">02 · FOUNDATION</span><h3>数据最小化</h3><p>在数据进入推理系统前完成脱敏、裁剪与权限约束，从源头减少暴露面。成本低且应默认实施，但无法保护仍需上传的敏感信息。</p><div class="tags"><span>De-identification</span><span>Least data</span></div></article>
+        <article class="insight-card split-card"><span class="card-no">03 · CORE DIRECTION</span><h3>Split Inference</h3><p>企业侧执行首尾层，云侧承担中间层，兼顾本地数据边界与云端弹性算力，是端云协同的核心方向。中间激活仍可能被反演，需要持续验证。</p><div class="meter"><span style="width:72%"></span></div><small>系统价值高 · 安全边界需量化</small></article>
+        <article class="insight-card fhe-card"><span class="card-no">04 · LONG TERM</span><h3>FHE · 全同态加密</h3><p>允许服务端直接在密文上计算，理论安全边界强；当前仍受制于算子覆盖、延迟和内存开销，适合长期跟踪及高敏感局部任务。</p><div class="meter amber"><span style="width:34%"></span></div><small>密码学保障强 · 通用部署成本高</small></article>
+        <article class="insight-card mpc-card"><span class="card-no">05 · LONG TERM</span><h3>MPC · 安全多方计算</h3><p>将数据拆成多个份额，由多方协同完成计算，避免单一参与方看到完整明文；通信轮次与跨主体部署复杂度是主要挑战。</p><div class="meter amber"><span style="width:40%"></span></div><small>无单点明文 · 通信与协作成本高</small></article>
       </div>
-      <blockquote>核心判断：TLS 在服务端终止后，明文仍可能进入运行时。安全方案应回答“防谁、保护什么、性能预算多少”，而不是只看技术标签。</blockquote>
+      <blockquote>投入路径：以数据最小化打底，以 TEE 建立近期可信执行能力，以 Split Inference 推进端云协同，同时保留对 FHE / MPC 工程成熟度的长期观察。</blockquote>
     </section>
 
     <section class="section" id="security" aria-labelledby="security-title">
