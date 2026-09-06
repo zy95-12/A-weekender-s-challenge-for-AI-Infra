@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "enabled": true,
+  "metadata": {
+    "source_pr": 8,
+    "source_commit": "09dbe653ac3dabcd3c13735fc3d4df32dda045e1",
+    "note": "Operator entries are aggregate correction samples; network entries are exact payload-shape samples."
+  },
+  "samples": [
+    {
+      "operator_type": "flash_attention",
+      "match": {
+        "tp_degree": 1,
+        "phase": "prefill"
+      },
+      "latency_ms": 986.66926,
+      "roofline_ms": 1000.3642109952,
+      "source": "PR8 tp_1_1 aggregate CUDA kernels"
+    },
+    {
+      "operator_type": "flash_attention",
+      "match": {
+        "tp_degree": 1,
+        "phase": "decode"
+      },
+      "latency_ms": 3696.669753,
+      "roofline_ms": 3738.7176959999924,
+      "source": "PR8 tp_1_1 aggregate CUDA kernels"
+    },
+    {
+      "operator_type": "mm",
+      "match": {
+        "tp_degree": 1
+      },
+      "latency_ms": 52329.50785799999,
+      "roofline_ms": 67417.88707137611,
+      "source": "PR8 tp_1_1 aggregate CUDA kernels"
+    },
+    {
+      "operator_type": "flash_attention",
+      "match": {
+        "tp_degree": 2,
+        "phase": "prefill"
+      },
+      "latency_ms": 421.862004,
+      "roofline_ms": 503.7821054975988,
+      "source": "PR8 tp_2_2 aggregate CUDA kernels"
+    },
+    {
+      "operator_type": "flash_attention",
+      "match": {
+        "tp_degree": 2,
+        "phase": "decode"
+      },
+      "latency_ms": 2795.119471000001,
+      "roofline_ms": 2466.958847999998,
+      "source": "PR8 tp_2_2 aggregate CUDA kernels"
+    },
+    {
+      "operator_type": "mm",
+      "match": {
+        "tp_degree": 2
+      },
+      "latency_ms": 25615.446132999994,
+      "roofline_ms": 37955.477521394365,
+      "source": "PR8 tp_2_2 aggregate CUDA kernels"
+    },
+    {
+      "operator_type": "collective",
+      "match": {
+        "tp_degree": 2
+      },
+      "latency_ms": 19854.4796965,
+      "roofline_ms": 2812.2624,
+      "source": "PR8 tp_2_2 aggregate CUDA kernels"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [1, 2048]\",\"payload_bytes\":8576}",
+      "match": {
+        "direction": "down",
+        "phase": "decode"
+      },
+      "latency_ms": 5.402038014003085,
+      "roofline_ms": 5.008576,
+      "source": "PR8 profile_summary exact payload shape mean"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [4, 2048]\",\"payload_bytes\":33152}",
+      "match": {
+        "direction": "down",
+        "phase": "decode"
+      },
+      "latency_ms": 5.458558588460318,
+      "roofline_ms": 5.033152,
+      "source": "PR8 profile_summary exact payload shape mean"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [2048, 2048]\",\"payload_bytes\":16777600}",
+      "match": {
+        "direction": "down",
+        "phase": "prefill"
+      },
+      "latency_ms": 66.2432615625,
+      "roofline_ms": 21.7776,
+      "source": "PR8 profile_summary exact payload shape mean"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [512, 2048]\",\"payload_bytes\":4194688}",
+      "match": {
+        "direction": "down",
+        "phase": "prefill"
+      },
+      "latency_ms": 55.26218484375,
+      "roofline_ms": 9.194688,
+      "source": "PR8 profile_summary exact payload shape mean"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [8192, 2048]\",\"payload_bytes\":67109248}",
+      "match": {
+        "direction": "down",
+        "phase": "prefill"
+      },
+      "latency_ms": 377.11273078125004,
+      "roofline_ms": 72.109248,
+      "source": "PR8 profile_summary exact payload shape mean"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [1, 2048]\",\"payload_bytes\":8576}",
+      "match": {
+        "direction": "up",
+        "phase": "decode"
+      },
+      "latency_ms": 5.4503567094638115,
+      "roofline_ms": 5.008576,
+      "source": "PR8 profile_summary exact payload shape mean"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [4, 2048]\",\"payload_bytes\":33152}",
+      "match": {
+        "direction": "up",
+        "phase": "decode"
+      },
+      "latency_ms": 5.480178038259285,
+      "roofline_ms": 5.033152,
+      "source": "PR8 profile_summary exact payload shape mean"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [2048, 2048]\",\"payload_bytes\":16777600}",
+      "match": {
+        "direction": "up",
+        "phase": "prefill"
+      },
+      "latency_ms": 65.29928159375,
+      "roofline_ms": 21.7776,
+      "source": "PR8 profile_summary exact payload shape mean"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [512, 2048]\",\"payload_bytes\":4194688}",
+      "match": {
+        "direction": "up",
+        "phase": "prefill"
+      },
+      "latency_ms": 57.57031340625,
+      "roofline_ms": 9.194688,
+      "source": "PR8 profile_summary exact payload shape mean"
+    },
+    {
+      "operator_type": "network_transfer",
+      "signature": "{\"input_shape\":\"2 x float16 [8192, 2048]\",\"payload_bytes\":67109248}",
+      "match": {
+        "direction": "up",
+        "phase": "prefill"
+      },
+      "latency_ms": 345.44634334375,
+      "roofline_ms": 72.109248,
+      "source": "PR8 profile_summary exact payload shape mean"
+    }
+  ]
+}

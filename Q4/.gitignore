@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+
+outputs/*
+!outputs/demo/
+!outputs/demo/**
+!outputs/validation/
+outputs/validation/*
+!outputs/validation/pr8_accuracy.json
+!outputs/validation/pr8_accuracy_profiled.json
+!outputs/validation/issue5_stage123_smoke.json
+!outputs/validation/issue6_qps_curve/
+!outputs/validation/issue6_qps_curve/**
