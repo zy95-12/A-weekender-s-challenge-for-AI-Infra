@@ -1,0 +1,15 @@
+{
+  "samples": {
+    "baseline": {
+      "all_including_warmup": 264,
+      "measured": 192
+    },
+    "stage1": {
+      "all_including_warmup": 264,
+      "measured": 192
+    }
+  },
+  "component_residual_min_ms": 0.0015540000000004994,
+  "component_residual_max_ms": 0.021398999999746593,
+  "all_arrays_exact": true
+}
