@@ -20,15 +20,15 @@ Headless Chromium 从服务停止状态打开页面，点击启动按钮，后�
 
 此次从原始 logits ZIP 解压，重新执行 `scripts/gsm8k_validate.py --phase compare` 通过；没有把旧数据说成新GPU测量，也没有把问题答案一致性作为验收。输入、模型、位置对齐和原始归档见 [精度报告](gsm8k-validation.md)。
 
-## C16 baseline 耗时拆解
+## 历史归档：C16 baseline 耗时拆解（不在 demo 展示）
 
 使用此前 baseline refinement C16 的同一个完成 cohort：96个请求、4K/79、TP2+2。TTFT平均6331.412ms，prefill步骤wall time平均734.972ms，其余等待及交付残差5596.440ms。TPOT平均106.975ms，decode步骤平均35.966ms，其余等待及交付残差71.009ms。
 
-页面展示从真实时间戳计算的企业、上行RPC、云侧、下行RPC及步外残差。RPC区间包含打包/IPC等，企业及云侧区间含CPU准备和调度，不能解释为纯GPU kernel时间或纯WAN传播时间。残差也不能全部归于单一调度器函数。原始请求、trace、配置与环境见 [baseline-c16-raw.zip](../demo/evidence/baseline-c16-raw.zip)，可运行 `python3 scripts/check_demo_evidence.py` 独立复算。
+历史归档保留从真实时间戳计算的企业、上行RPC、云侧、下行RPC及步外残差。RPC区间包含打包/IPC等，企业及云侧区间含CPU准备和调度，不能解释为纯GPU kernel时间或纯WAN传播时间。残差也不能全部归于单一调度器函数。原始请求、trace、配置与环境见 [baseline-c16-raw.zip](../demo/evidence/baseline-c16-raw.zip)，可运行 `python3 scripts/check_demo_evidence.py` 独立复算。
 
 ## Baseline / 优化系统开环对比
 
-05 章节已切换到独立泊松到达的双系统对比，原闭环扫描作为历史证据保留。完整结果、各点时长及统计限制见 [开环实测报告](../demo/evidence/open-loop-report.md)，[CSV](../demo/evidence/open-loop-sweep.csv) 和 [原始请求、计划、trace及复现脚本](../demo/evidence/open-loop-raw.zip)。
+05 章节已切换到独立泊松到达的双系统对比，闭环扫描和 C16 闭环耗时拆解仅保留历史归档，不在 demo 展示。完整结果、各点时长及统计限制见 [开环实测报告](../demo/evidence/open-loop-report.md)，[CSV](../demo/evidence/open-loop-sweep.csv) 和 [原始请求、计划、trace及复现脚本](../demo/evidence/open-loop-raw.zip)。
 
 客户端没有并发上限，也不以完成事件补请求；相同到达率使用相同随机计划。两套系统统一 max_active=96 / kv_blocks=32768。TTFT 从计划到达时刻起算，包括发包延误；超时/错误计失败。表中同时给出设定到达率、实际到达率、完成QPS和达标QPS，不把这些量混同。均值/P99 按到达cohort展示，联合SLO对到达与完成cohort均检查。比较包含相同四卡资源上的拓扑和stage1/2/3整体变化，不是单个优化的消融。
 

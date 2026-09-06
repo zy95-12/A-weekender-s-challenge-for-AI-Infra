@@ -27,8 +27,7 @@ UI 进程退出不会停止 serving；停止服务使用 `./poc down`。
 - **方案分析**：`Q1/demo_attack.py` 调用 PR #15 原版 `retrieval.recover`，把输入编码为 FP16 embedding，然后真实执行全词表 FP32 余弦最近邻恢复。CPU 实现，不是密码学加解密，也不声称反演了 4 层后的 serving 激活。每次运行可下载 NPY 和逐位置 JSON，真实耗时包含在结果中。原始 IDs 只用于检索之后评分。
 - **功能实现**：固定 `./poc up --wan`；轮询实际健康状态。回复来自模型，TTFT/TPOT 来自浏览器 token 事件计时，包含网络、代理和浏览器开销；少于两个输出 token 时 TPOT 不定义。
 - **精度**：只展示 Split 4/27/5 对原生完整单卡 TP1/full-prefill 的 8 道 GSM8K 真实归档结果。逐绝对位置对齐，decode 使用同一 teacher-forcing 序列；不比较自由回答。`accuracy-samples.json` 展示这 8 组不同输入。原生与 Split TP2+2 已于2026-09-07重新采集，现采用 logits cosine、top1 一致率和 top-5/10/20 overlap，不沿用绝对误差门槛；原始 logits、模型版本和门槛见 [精度报告](../docs/gsm8k-native-tp1.md)。
-- **C16 拆解**：来自历史 baseline refinement C16 完成 cohort 的 96 个请求和 7488 个 decode 位置。`baseline-c16-raw.zip` 保留原始请求、trace 和环境，区间为 wall-clock/RPC 区间，不伪装成 kernel 时间。`python3 scripts/check_demo_evidence.py` 可独立复算。
-- **优化曲线**：05 章节主要展示 baseline 与优化系统的真实开环对比：同一目标到达率使用相同泊松请求计划，客户端不限制并发，服务端统一 max_active=96 / kv_blocks=32768。横轴为实测完成 QPS，均值/P99 按计划到达 cohort 计算；TTFT 包括发包延误，错误计失败，到达和完成 cohort 均须至少99%请求同时满足两项SLO。显示每点实际到达率、在途并发和测量时长；原 closed-loop 扫描保留为历史结果。见 [开环报告](evidence/open-loop-report.md)。
+- **优化曲线**：05 章节主要展示 baseline 与优化系统的真实开环对比：同一目标到达率使用相同泊松请求计划，客户端不限制并发，服务端统一 max_active=96 / kv_blocks=32768。横轴为实测完成 QPS，均值/P99 按计划到达 cohort 计算；TTFT 包括发包延误，错误计失败，到达和完成 cohort 均须至少99%请求同时满足两项SLO。显示每点实际到达率、在途并发和测量时长；页面不展示闭环测试结果。见 [开环报告](evidence/open-loop-report.md)。
 - **仿真**：`demo/simulate.py` 对接当前主线 Q4，只开放 Qwen2.5-3B/A10/4K/79。optimized 使用 vendored real-serving scheduler、C40 empirical command 和 host profile，seed17；baseline 使用 behavioral scheduler、operator/host cost，沿用 baseline 精度回归的活动上限（C1 为8，其余为16）。每点真实执行、不缓存结果；不同并发仍是预测，参见 [校准与局限](../Q4/docs/CALIBRATION_AND_LIMITS.md)。
 
 ## 复现开环对比
@@ -44,20 +43,6 @@ python3 scripts/plot_open_loop.py
 绘图需 matplotlib；测量脚本使用现有 serving venv。运行器先测试 baseline，再测试 optimized，结束恢复默认 baseline WAN 服务。保存逐请求计划、实际时间、health、trace、配置、源文件和 hash。打包器从逐请求数据重新计算 QPS、均值、P99、联合 SLO 与平均在途并发，检查相同负载的到达计划一致。
 
 每点预热30秒、粗扫测量60秒（目标到达率≥4时120秒）、继续到达30秒后排空。首次失败后补一个中间点；每点只有 seed17，不是精确边界或长期生产容量验证。原始数据可下载，UI 不会点击后伪造新的性能测试。
-
-## 复现历史闭环曲线
-
-确保其他任务已停止：
-
-```bash
-./poc up --preset optimized --wan
-.venv/bin/python scripts/demo_sweep.py --output results/my-demo-sweep
-python3 scripts/package_demo_evidence.py --sweep results/my-demo-sweep \
-  --serving-results "$(cat run/current_results)" --output results/my-demo-evidence
-```
-
-扫描默认从 C1 增至 C96，遇到第一个不满足联合 SLO 的点停止；没有找到失效点时不会宣称找到最大容量。
-边界可使用 `scripts/pd_benchmark.py --seconds 180 --cycles 6` 另测确认点；归档器在同一并发存在多次测量时选最长窗口绘图，保留全部原始运行。
 
 ## API
 

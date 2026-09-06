@@ -343,18 +343,7 @@ Security inference should protect private prompts while preserving useful model 
         aria-labelledby="optimization-title"
       >
         <div class="eyebrow"><span>05</span> 真实系统优化</div>
-        <h2 id="optimization-title">从耗时拆解到 SLO 下的吞吐。</h2>
-        <article class="card">
-          <h3>C16 baseline · 4K 输入 / 79 输出 / TP2+2</h3>
-          <div id="breakdown">加载真实 trace 拆解…</div>
-          <p>
-            各区间来自请求 trace 的 wall-clock 时间戳；上/下行 RPC 含打包、IPC
-            等，不等于纯 WAN 传播时间。残差含调度等待、其他请求工作和交付开销。
-          </p>
-          <a href="evidence/baseline-c16-raw.zip" download
-            >下载原始请求与 trace</a
-          >
-        </article>
+        <h2 id="optimization-title">开环负载下，比较 SLO 与吞吐。</h2>
         <article class="card">
           <h3>已实现的优化与推荐配置</h3>
           <table>
@@ -453,24 +442,6 @@ Security inference should protect private prompts while preserving useful model 
           <a href="evidence/open-loop-tpot-qps.png" download>TPOT 图</a> ·
           <a href="evidence/open-loop-raw.zip" download>原始数据与复现脚本</a> ·
           <a href="evidence/open-loop-report.md">验证报告</a>
-        </article>
-        <article class="card">
-          <h3>历史闭环实测 · 优化系统</h3>
-          <p>
-            4K 输入、固定 79 输出、closed-loop 并发扫描。合格条件：至少 99%
-            请求同时满足 TTFT ≤ 3000ms、请求平均 TPOT ≤ 100ms；完成与到达两个
-            cohort 均检查。曲线标明均值、P99 与 SLO，数据为已完成实验。
-          </p>
-          <div id="sweep-status">加载本次压测…</div>
-          <div id="sweep-ttft" class="chart"></div>
-          <div id="sweep-tpot" class="chart"></div>
-          <div id="sweep-table"></div>
-          <a href="evidence/optimized-sweep.csv" download>下载 CSV</a> ·
-          <a href="evidence/optimized-ttft-qps.png" download>TTFT 图</a> ·
-          <a href="evidence/optimized-tpot-qps.png" download>TPOT 图</a> ·
-          <a href="evidence/optimized-sweep-raw.zip" download
-            >下载原始请求和环境</a
-          >
         </article>
       </section>
 

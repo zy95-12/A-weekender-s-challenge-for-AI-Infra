@@ -391,20 +391,6 @@ async function evidence() {
         ["GSM8K index", "问题", "输入 token 数"],
         d["accuracy-samples"].map((r) => [r.index, r.question, r.tokens]),
       );
-    const b = d["baseline-c16"];
-    $("#breakdown").innerHTML = ["ttft", "tpot"]
-      .map(
-        (k) =>
-          `<h4>${k.toUpperCase()}：${b.breakdown[k].total_ms.toFixed(2)}ms</h4>` +
-          table(
-            ["实测区间", "平均耗时 ms"],
-            Object.entries(b.breakdown[k].parts_ms).map(([x, y]) => [
-              x,
-              y.toFixed(3),
-            ]),
-          ),
-      )
-      .join("");
     const openLoop = d["open-loop-sweep"];
     if (openLoop) {
       openLoopChart("#open-loop-ttft", openLoop.points, "ttft", 3000);
@@ -441,40 +427,7 @@ async function evidence() {
     } else
       $("#open-loop-status").textContent =
         "开环实验进行中，尚未发布完整对比结果";
-    const sweep = d["optimized-sweep"];
-    if (sweep) {
-      const points = sweep.points.map((r) => ({
-        concurrency: r.concurrency,
-        qps: r.completed_qps,
-        ttft_mean_ms: r.mean_ttft_ms,
-        tpot_mean_ms: r.mean_tpot_ms,
-        ttft_p99_ms: r.p99_ttft_ms,
-        tpot_p99_ms: r.p99_tpot_ms,
-      }));
-      chart("#sweep-ttft", points, "ttft_mean_ms", 3000);
-      chart("#sweep-tpot", points, "tpot_mean_ms", 100);
-      $("#sweep-status").textContent = sweep.conclusion;
-      $("#sweep-table").innerHTML = table(
-        [
-          "C",
-          "QPS",
-          "TTFT mean/P99 ms",
-          "TPOT mean/P99 ms",
-          "完成/到达 SLO %",
-          "窗口 s",
-        ],
-        sweep.points.map((r) => [
-          r.concurrency,
-          r.completed_qps.toFixed(3),
-          r.mean_ttft_ms.toFixed(1) + " / " + r.p99_ttft_ms.toFixed(1),
-          r.mean_tpot_ms.toFixed(2) + " / " + r.p99_tpot_ms.toFixed(2),
-          (r.slo_attainment * 100).toFixed(2) +
-            " / " +
-            (r.start_cohort_slo_attainment * 100).toFixed(2),
-          r.duration_s.toFixed(1),
-        ]),
-      );
-    } else $("#sweep-status").textContent = "新增扫描尚未归档，不展示占位数字";
+
   } catch (e) {
     toast("证据加载失败：" + e.message);
   }
