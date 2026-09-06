@@ -43,6 +43,10 @@ class DemoTest(unittest.TestCase):
         self.assertIn("功能实现 / FUNCTIONAL BASELINE", page)
         self.assertIn("与原生完整模型推理的精度对比", page)
         self.assertEqual(page.count("1,028"), 3)
+        self.assertIn("系统优化 / SYSTEM OPTIMIZATION", page)
+        self.assertIn("6,331.4 ms", page)
+        self.assertEqual(page.count('class="optimization-card card"'), 4)
+        self.assertIn("1.98 QPS", page)
 
     def test_backend_contract_rejects_reserved_and_bad_inputs(self) -> None:
         spec = importlib.util.spec_from_file_location("demo_server", DEMO_DIR / "server.py")

@@ -131,8 +131,33 @@
     </section>
 
     <section class="section optimization" id="optimization" aria-labelledby="optimization-title">
-      <div class="eyebrow"><span>05</span> 推理性能优化 / RESERVED</div>
-      <div class="placeholder-card"><div><span>COMING NEXT</span><h2 id="optimization-title">优化实验区</h2><p>Continuous batching、Chunked Prefill、并行策略与 PD 分离等优化将在这里统一呈现。</p></div><div class="placeholder-lines"><i></i><i></i><i></i></div></div>
+      <div class="section-head compact-head"><div class="eyebrow" id="optimization-title"><span>05</span> 系统优化 / SYSTEM OPTIMIZATION</div><a class="text-link" target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/issues/6">查看优化实验 Issue #6 ↗</a></div>
+
+      <div class="breakdown-card card">
+        <div class="breakdown-head"><div><small>BASELINE BOTTLENECK · C16</small><h3>TTFT / TPOT 时间拆解</h3><p>Qwen2.5-3B · 4K input / 79 output · TP2+2 · 10 Gbps / 10 ms RTT</p></div><div class="breakdown-kpis"><div><small>Mean TTFT</small><b>6,331.4 <em>ms</em></b></div><div><small>Mean TPOT</small><b>106.98 <em>ms</em></b></div><div><small>Observed QPS</small><b>1.091</b></div></div></div>
+        <div class="breakdown-bars">
+          <div class="breakdown-row"><div class="breakdown-label"><b>TTFT</b><span>6,331.4 ms</span></div><div class="stacked-bar"><i class="seg queue" style="width:87.3%" title="排队/资源争用 5524.9 ms"></i><i class="seg wan" style="width:7.2%" title="WAN与数据路径 456.1 ms"></i><i class="seg operator" style="width:4.3%" title="算子关键路径 270.8 ms"></i><i class="seg runtime" style="width:1.2%" title="运行时与边界差额 79.5 ms"></i></div></div>
+          <div class="breakdown-row"><div class="breakdown-label"><b>TPOT</b><span>106.98 ms</span></div><div class="stacked-bar"><i class="seg queue" style="width:69.7%" title="排队/资源争用 74.54 ms"></i><i class="seg wan" style="width:10.9%" title="WAN与数据路径 11.70 ms"></i><i class="seg operator" style="width:8.7%" title="算子关键路径 9.28 ms"></i><i class="seg runtime" style="width:10.7%" title="运行时与边界差额 11.45 ms"></i></div></div>
+        </div>
+        <div class="breakdown-legend"><span><i class="queue"></i>排队 / 资源争用</span><span><i class="wan"></i>WAN 与数据路径</span><span><i class="operator"></i>算子执行</span><span><i class="runtime"></i>运行时 / 边界差额</span></div>
+        <div class="breakdown-detail">
+          <div><b>TTFT</b><span>5,524.9 ms</span><small>排队与争用 · 87.3%</small></div><div><b></b><span>456.1 ms</span><small>32 MiB 双向数据路径 · 7.2%</small></div><div><b></b><span>270.8 ms</span><small>Prefill 算子关键路径 · 4.3%</small></div><div><b></b><span>79.5 ms</span><small>未归因运行时 · 1.2%</small></div>
+          <div><b>TPOT</b><span>74.54 ms</span><small>排队与争用 · 69.7%</small></div><div><b></b><span>11.70 ms</span><small>Decode 双向数据路径 · 10.9%</small></div><div><b></b><span>9.28 ms</span><small>Decode 算子关键路径 · 8.7%</small></div><div><b></b><span>11.45 ms</span><small>未归因运行时 · 10.7%</small></div>
+        </div>
+        <div class="breakdown-note"><b>口径说明</b><p>C16 总量来自 Issue #6 实测。分项为归因估算：以同配置 C1 作为无排队服务基线，以 Issue #5 的 32 MiB WAN 标定和 vLLM fused-operator profile 拆分数据路径与算子时间；它不是 C16 同步 profiling 的逐项直接测量。</p><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/f1c25cfd17c99131043e74afa51e634496562861/docs/evidence/issue-6/concurrency-4k-tp22/curves.csv">查看原始曲线数据 ↗</a></div>
+      </div>
+
+      <div class="optimization-grid">
+        <article class="optimization-card card"><div class="optimization-number">01</div><div class="problem"><span>问题</span><b>端云通信开销大</b></div><h3>WAN 数据路径优化</h3><p>减少序列化、内存副本和云侧 IPC 开销，调优 TCP window，并保持相同 WAN 约束。优先降低大激活 Prefill 的传输服务时间。</p><div class="solution-tags"><span>SHM IPC</span><span>Wire fast path</span><span>TCP BDP</span></div></article>
+        <article class="optimization-card card"><div class="optimization-number">02</div><div class="problem"><span>问题</span><b>TTFT 服务时间中 WAN 占比大</b></div><h3>Chunked Prefill + 流水掩盖</h3><p>在无排队的 C1 服务基线中，WAN/数据路径约占 TTFT 的 56.5%。把长 Prefill 切成可推进的 chunk，形成端侧、WAN 与云侧多阶段流水，用计算和其他请求工作掩盖通信等待。</p><div class="solution-tags"><span>Chunk window</span><span>Async pipeline</span><span>Backpressure</span></div></article>
+        <article class="optimization-card card"><div class="optimization-number">03</div><div class="problem"><span>问题</span><b>排队气泡多</b></div><h3>端云协同 Scheduler</h3><p>调度器同时感知端侧 GPU、WAN 窗口、云侧 GPU 和在途事务；采用 decode 优先与有界 Prefill 推进，减少同步等待和流水气泡。</p><div class="solution-tags"><span>Decode first</span><span>Fair FCFS</span><span>In-flight aware</span></div></article>
+        <article class="optimization-card card"><div class="optimization-number">04</div><div class="problem"><span>问题</span><b>TTFT / TPOT 相互耦合</b></div><h3>PD 分离 + KV 换入流水</h3><p>将 Prefill 与 Decode 放到独立资源池，避免长 Prefill 阻塞逐 token Decode；把 KV 转移和换入安排到端侧计算窗口内，以端侧时间掩盖 KV 倒换。</p><div class="solution-tags"><span>Disaggregated serving</span><span>KV transfer</span><span>Overlap</span></div></article>
+      </div>
+
+      <div class="throughput-grid">
+        <div class="throughput-card card"><small>THEORETICAL CAPACITY · C16</small><h3>理论最大吞吐折算</h3><div class="formula"><span>QPS<sub>max</sub></span><i>≈</i><span>并发量 / Mean E2E</span><i>=</i><b>16 / 8.072s</b><i>=</i><strong>1.98 QPS</strong></div><p>Stage 1+2+3 在 C16 的实测为 1.965 QPS、118/118 请求满足当前 SLO，与 Little’s Law 折算值接近；对应输出吞吐约 <b>155 token/s</b>。这是当前 16 并发与 79-token 输出下的稳态近似，不是跨配置的硬件理论峰值。</p><div class="capacity-compare"><span>Baseline <b>1.09 QPS</b></span><i><em style="width:55%"></em></i><span>Stage 1+2+3 <b>1.98 QPS</b></span><i><em style="width:100%"></em></i><strong>约 +81%</strong></div></div>
+        <div class="resource-card card"><small>WITH MORE RESOURCES</small><h3>资源充足后的扩展方向</h3><ul><li><b>Stage Replica / DP：</b>端侧与云侧按瓶颈扩副本，配合粘性 KV 路由。</li><li><b>异构 TP / PP 搜索：</b>联合搜索层切分、TP、PP 与 placement，不假设加卡单调变快。</li><li><b>投机推理：</b>增加端侧 draft 计算，一次 WAN 往返确认多个 token。</li><li><b>RDMA / GPUDirect：</b>硬件条件具备时减少主机拷贝和 CPU 数据路径。</li><li><b>KV 与前缀缓存：</b>扩大 KV 容量、分层缓存及共享前缀，降低重复 Prefill。</li></ul></div>
+      </div>
     </section>
 
     <section class="section" id="modeling" aria-labelledby="modeling-title">
