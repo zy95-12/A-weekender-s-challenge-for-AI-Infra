@@ -13,7 +13,7 @@
   <header class="topbar">
     <a class="brand" href="#top"><span class="brand-mark">S</span><span>SplitShield</span><small>RESEARCH DEMO</small></a>
     <nav aria-label="页面导航">
-      <a href="#insight">洞察</a><a href="#security">安全分析</a><a href="#system">系统实现</a><a href="#modeling">性能建模</a>
+      <a href="#insight">洞察</a><a href="#security">安全分析</a><a href="#system">功能实现</a><a href="#modeling">性能建模</a><a href="#retrospective">协作复盘</a>
     </nav>
     <span class="status"><i></i> Demo ready</span>
   </header>
@@ -161,7 +161,7 @@
     </section>
 
     <section class="section" id="modeling" aria-labelledby="modeling-title">
-      <div class="section-head"><div><div class="eyebrow"><span>06</span> 推理性能建模 / LIVE SIMULATION</div><h2 id="modeling-title">从配置到曲线，<br>逐点运行系统仿真。</h2></div><span class="live-label"><i></i> Q4 event-driven backend</span></div>
+      <div class="section-head compact-head"><div class="eyebrow" id="modeling-title"><span>06</span> 推理性能建模 / LIVE SIMULATION</div><span class="live-label"><i></i> Q4 event-driven backend</span></div>
       <div class="modeling-grid">
         <form class="sim-panel card" id="sim-form">
           <div class="field"><label for="model">模型</label><select id="model" name="model"><option>Qwen3-32B</option><option>DeepSeek-V3</option><option>DeepSeek-V4</option></select></div>
@@ -180,6 +180,39 @@
           <div class="metric-cards"><div><small>最新 QPS</small><b id="metric-qps">—</b></div><div><small>Mean TTFT</small><b id="metric-ttft">—</b></div><div><small>Mean TPOT</small><b id="metric-tpot">—</b></div></div>
           <p class="fineprint model-note">默认组合调用 Q4 仿真器真实计算；A10 参数为解析 Roofline 预设、尚未经该模型实测校准，因此结果用于系统行为演示，不代表生产容量承诺。</p>
         </div>
+      </div>
+
+      <div class="validation-card card">
+        <div class="validation-head"><div><small>REPLAY VALIDATION</small><h3>仿真误差分析与实测回放</h3><p>Qwen2.5-3B · 32 个 PR #8 工况 · 4 种 TP 拓扑 × 4 种 ISL/OSL × C1/C4</p></div><span class="evidence-badge">REAL EVIDENCE</span></div>
+        <div class="validation-kpis"><div><small>Profiled TTFT MAPE</small><b>32.53%</b><span>Bias +21.21%</span></div><div><small>Profiled TPOT MAPE</small><b>11.84%</b><span>Bias −11.84%</span></div><div><small>Profiled QPS MAPE</small><b>12.58%</b><span>Bias +12.43%</span></div><div><small>QPS Pearson</small><b>0.996</b><span>趋势相关性高</span></div></div>
+        <div class="validation-body">
+          <div class="validation-table-wrap">
+            <table class="validation-table">
+              <thead><tr><th>验证层级</th><th>关键对象</th><th>MAPE / 偏差</th><th>结论</th></tr></thead>
+              <tbody>
+                <tr><td>算子</td><td>FA Prefill / Decode</td><td>9.43% / 5.50%</td><td>FA 相对接近</td></tr>
+                <tr><td>算子</td><td>MM / TP Collective</td><td>37.13% / 84.45%</td><td>NCCL 模型偏乐观</td></tr>
+                <tr><td>Layer / Stage</td><td>Cloud Middle · 27 层</td><td>25.01% / +3.30%</td><td>可复现层级趋势</td></tr>
+                <tr><td>Phase</td><td>Prefill / Decode GPU</td><td>30.27% / 26.15%</td><td>仍缺运行时残差</td></tr>
+                <tr><td>端到端 · Roofline</td><td>TTFT / TPOT / QPS</td><td>33.49% / 13.84% / 20.21%</td><td>顺序正确，绝对值不足</td></tr>
+                <tr><td>端到端 · Profiled</td><td>TTFT / TPOT / QPS</td><td>32.53% / 11.84% / 12.58%</td><td>QPS 相对改善 37.8%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="error-sources"><h4>主要误差来源</h4><ol><li><b>RPC staging：</b>长 Prefill 的 D2H、HTTP 打包/解析和 H2D 未完全进入模型。</li><li><b>TP 通信：</b>PCIe Roofline 低估实测 NCCL AllReduce 占用。</li><li><b>Kernel 选择：</b>逻辑 MM 无法完全复现 vLLM/CUTLASS 随 shape 选择与融合的路径。</li><li><b>运行时状态：</b>KV、block table、Python/CUDA 同步、调度排队和系统抖动仍有缺项。</li></ol></div>
+        </div>
+        <div class="holdout-card"><div><small>ISSUE #6 HOLDOUT · BASELINE CURVE</small><h4>未参与拟合的 QPS 曲线验证</h4><p>Baseline 六个并发点上，QPS / Mean TTFT / Mean TPOT 的 MAPE 分别为 <b>23.58%</b>、<b>60.62%</b>、<b>27.61%</b>；系统偏差分别为 <strong>+23.58%</strong>、<strong>−60.62%</strong>、<strong>+9.01%</strong>。仿真能复现吞吐饱和和延迟增长方向，但缺少真实高并发 request-level 队列，因此 TTFT 明显偏乐观。</p></div><span>行为有效<br>容量值待校准</span></div>
+        <div class="validation-links"><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/codex/q4-split-serving-simulator/Q4/docs/PR8_VALIDATION.md">PR #8 回放报告 ↗</a><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/codex/q4-split-serving-simulator/Q4/outputs/validation/pr8_accuracy_profiled.json">回放结果 JSON ↗</a><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/codex/q4-split-serving-simulator/Q4/docs/ISSUE6_QPS_VALIDATION.md">QPS 曲线验证报告 ↗</a><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/codex/q4-split-serving-simulator/Q4/outputs/validation/issue6_qps_curve/report.json">完整验证数据 ↗</a></div>
+        <p class="validation-boundary">Profiled 结果使用同一批 PR #8 聚合数据生成修正系数，属于机制回放而非 held-out 精度证明；Issue #6 曲线才是未参与拟合的独立验证。当前模型适合架构比较和调度行为分析，不应直接作为绝对 SLO 容量承诺。</p>
+      </div>
+    </section>
+
+    <section class="section retrospective" id="retrospective" aria-labelledby="retrospective-title">
+      <div class="section-head compact-head"><div class="eyebrow" id="retrospective-title"><span>07</span> AGENT 协作复盘 / RETROSPECTIVE</div><span class="research-label">待补充</span></div>
+      <div class="retrospective-lines">
+        <p><span>01</span>[待补充] Agent 分工与协作方式。</p>
+        <p><span>02</span>[待补充] 关键决策、迭代过程与经验。</p>
+        <p><span>03</span>[待补充] 后续可以改进的协作机制。</p>
       </div>
     </section>
   </main>

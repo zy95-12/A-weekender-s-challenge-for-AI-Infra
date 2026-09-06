@@ -47,6 +47,12 @@ class DemoTest(unittest.TestCase):
         self.assertIn("6,331.4 ms", page)
         self.assertEqual(page.count('class="optimization-card card"'), 4)
         self.assertIn("1.98 QPS", page)
+        self.assertNotIn("逐点运行系统仿真", page)
+        self.assertIn("仿真误差分析与实测回放", page)
+        self.assertIn("32.53%", page)
+        self.assertIn("ISSUE6_QPS_VALIDATION.md", joined)
+        self.assertIn("retrospective", parser.ids)
+        self.assertEqual(page.count("[待补充]"), 3)
 
     def test_backend_contract_rejects_reserved_and_bad_inputs(self) -> None:
         spec = importlib.util.spec_from_file_location("demo_server", DEMO_DIR / "server.py")

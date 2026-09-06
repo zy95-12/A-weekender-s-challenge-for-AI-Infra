@@ -40,7 +40,8 @@ ssh -L 8088:127.0.0.1:8088 <user>@<server-ip>
 3. **安全分析**：用户可以输入文本或自动生成 token，通过假矩阵交互回放 embedding 与最近邻反演过程；同时展示不同企业侧层数下的固定预算攻击结果。按钮不会在浏览器中运行 GPU 攻击。详见 [安全报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md)。
 4. **功能实现**：介绍 PR #8 的 Qwen2.5-3B、4/27/5、TP2+2 baseline，提供一行启动命令和产品交互，并展示三种切分与原生完整模型的真实精度对比。启动按钮和对话结果是假数据；精度表来自 [POC 实测报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue-4-real-split-vllm-poc/docs/poc-validation.md)。
 5. **系统优化**：拆解 4K、TP2+2、16 并发 baseline 的 TTFT/TPOT，说明 WAN 数据路径、Chunked Prefill/流水、端云协同调度和 PD 分离四条优化路线，并基于 Stage 1+2+3 实测折算理论吞吐。C16 总量是实测数据，分项是结合 C1、独立 WAN 标定与算子 profile 的归因估算。
-6. **性能建模**：前端依次调用 `POST /api/simulate`，每完成一个 closed-loop 并发点就更新 QPS—TTFT/TPOT 曲线。
+6. **性能建模**：前端依次调用 `POST /api/simulate`，每完成一个 closed-loop 并发点就更新 QPS—TTFT/TPOT 曲线；下方同时展示 PR #8 的 32 工况回放误差、Issue #6 holdout 曲线、系统偏差、主要误差来源和原始报告链接。
+7. **Agent 协作复盘**：页面末尾预留三句话，等待补充协作正文。
 
 当前真实可运行组合为 **Qwen3-32B / A10 / 9 卡 / 云侧 TP4**。A10 使用解析 Roofline 参数预设，尚未针对 Qwen3-32B 实测校准，适合演示 Roofline + DAG + event-driven 的系统行为，不应用作生产容量承诺。DeepSeek-V3/V4、H20、L20、Ascend 910B/950 以及其他卡数已保留表单和 API 契约，但后端会返回 `422 not_implemented`，不会生成伪曲线。
 
