@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "variants": [
+    {
+      "system": "baseline",
+      "points": 10,
+      "all_requests": 833,
+      "outputs_match": true,
+      "absolute_positions_valid": true,
+      "kv_handoff_order_valid": null,
+      "both_slo_cohorts_verified": true,
+      "steady_health_verified": true,
+      "drain_verified": true,
+      "source_hashes_match": true
+    },
+    {
+      "system": "optimized",
+      "points": 13,
+      "all_requests": 3352,
+      "outputs_match": true,
+      "absolute_positions_valid": true,
+      "kv_handoff_order_valid": true,
+      "both_slo_cohorts_verified": true,
+      "steady_health_verified": true,
+      "drain_verified": true,
+      "source_hashes_match": true
+    }
+  ]
+}

@@ -81,6 +81,8 @@ def main():
     ax.set(xlabel='Closed-loop client concurrency',ylabel='Completed QPS',title='Throughput knee and fixed-SLO boundary',xlim=(0,None),ylim=(0,None));ax.grid(alpha=.2)
     fig.legend(handles=handles,loc='outside lower center',ncol=2,fontsize=9)
     fig.savefig(OUT/'concurrency_qps.png');fig.savefig(OUT/'concurrency_qps.svg')
+    for path in OUT.glob('*.svg'):
+        path.write_text('\n'.join(line.rstrip() for line in path.read_text().splitlines())+'\n')
     print('Saved PNG and SVG charts to',OUT)
 
 

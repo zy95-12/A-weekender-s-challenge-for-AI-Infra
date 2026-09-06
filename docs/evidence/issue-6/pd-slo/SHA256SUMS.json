@@ -1,0 +1,62 @@
+{
+  "curve.csv": {
+    "bytes": 8232,
+    "sha256": "0326aa6c55b60e519111ed178bd33bbb3cb6c157c1ddb684546827c782462b62"
+  },
+  "tpot_qps.png": {
+    "bytes": 228435,
+    "sha256": "f4f3aa1c62c1778801444fa00e89b7b315d9c3712e9b470e8d7d41b6569930fd"
+  },
+  "cpu_tests.log": {
+    "bytes": 1096,
+    "sha256": "0005472bbabf62b22b953c7bda02f9d23f4c168937f273a4400fb4dbb5f7faa9"
+  },
+  "all_points.csv": {
+    "bytes": 10335,
+    "sha256": "4849482f17e7ba56333adcbb764060c67798ce673fecd655424213c92fb9eb05"
+  },
+  "plot_environment.txt": {
+    "bytes": 189,
+    "sha256": "cd8fd362817c22dee5b2266a27acaac7414dca1cebdc8ccafc925e58d9b1842a"
+  },
+  "optimized_raw.zip": {
+    "bytes": 18471840,
+    "sha256": "d07b8f4e64d62ecf86fa1300c867670722c1f1061afb0f26f0f4eed5f28543d2"
+  },
+  "concurrency_qps.png": {
+    "bytes": 131643,
+    "sha256": "f06a317c9016ca5792a41db12ae132ce2dcfdb4fd41afc0dfb07dcb8b2c3701c"
+  },
+  "ttft_qps.svg": {
+    "bytes": 112028,
+    "sha256": "5af06ea03f6affc2c1d8b37df95c3bbf76585279c8bb095fa170a1861f80ce48"
+  },
+  "audit.json": {
+    "bytes": 718,
+    "sha256": "d2f60b3ad20827d39a0c6d1c6d68a12a9b59e1b0fbd77c837da18c1d2036fded"
+  },
+  "baseline_raw.zip": {
+    "bytes": 5822255,
+    "sha256": "c522d8d34be98b1341594b66025c3cdd30c4c99a74174a2af6852a73810a11e4"
+  },
+  "tpot_qps.svg": {
+    "bytes": 116884,
+    "sha256": "697ec613fb7e98c6544a4489ba4c4584d66b7e5f2a3b5c4d9e632ff1f960ad8a"
+  },
+  "selection.json": {
+    "bytes": 3986,
+    "sha256": "a3795b3ae6995b869155283ca967a027f08bb67e0c3d82a9584dda9c77b07bb4"
+  },
+  "concurrency_qps.svg": {
+    "bytes": 71815,
+    "sha256": "2c1a582f8a65aea9be42c6533ad1f0eb0d4631eb85a26d6ac6e952c9aee63cf2"
+  },
+  "reproduce.zip": {
+    "bytes": 146984,
+    "sha256": "f4f44477491283d03604a5420da77b5f21c0ded4f96073c48863c040ab843ada"
+  },
+  "ttft_qps.png": {
+    "bytes": 214897,
+    "sha256": "de1a7ed899a76747c74761a0e22d38e6b132794f43f7ca06c85caf6927e65be3"
+  }
+}
