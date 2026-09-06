@@ -425,7 +425,37 @@ Security inference should protect private prompts while preserving useful model 
           <code>./poc up --preset optimized --wan</code>
         </article>
         <article class="card">
-          <h3>优化后新增实测 · QPS—TTFT / QPS—TPOT</h3>
+          <h3>开环实测 · Baseline 与优化系统</h3>
+          <p>
+            同一模型、四张 A10、4K 输入 / 79 输出、WAN 每方向 10Gbps / 单向
+            5ms。 Baseline 为 TP2+2，优化系统为企业 TP1 + 两个 TP1 P + TP1 D；
+            两者服务端 max_active=96、KV
+            blocks=32768。相同到达率使用相同泊松请求计划，客户端不限制并发。
+          </p>
+          <p>
+            横轴为实测完成 QPS，不是设定到达率。延迟按测量窗口内到达的请求统计，
+            TTFT 从计划到达时刻起算，包含发包延误；TPOT 是每条请求的平均 token
+            间隔。 合格要求到达、完成两个 cohort 均有至少 99% 请求同时满足 TTFT
+            ≤ 3s、TPOT ≤ 100ms，错误计失败。 每点预热 30s，粗扫测量
+            60s、高负载点 120s，再保持到达 30s 后排空。
+          </p>
+          <div id="open-loop-status">加载真实开环对比…</div>
+          <div id="open-loop-ttft" class="chart"></div>
+          <div id="open-loop-tpot" class="chart"></div>
+          <div id="open-loop-table"></div>
+          <p>
+            泊松采样的实际到达率会偏离目标值；每点一个 seed=17
+            的随机轨迹，不表示长期生产容量或精确最大 QPS。达标 QPS
+            只计算同时满足两项 SLO 的完成请求。
+          </p>
+          <a href="evidence/open-loop-sweep.csv" download>下载 CSV</a> ·
+          <a href="evidence/open-loop-ttft-qps.png" download>TTFT 图</a> ·
+          <a href="evidence/open-loop-tpot-qps.png" download>TPOT 图</a> ·
+          <a href="evidence/open-loop-raw.zip" download>原始数据与复现脚本</a> ·
+          <a href="evidence/open-loop-report.md">验证报告</a>
+        </article>
+        <article class="card">
+          <h3>历史闭环实测 · 优化系统</h3>
           <p>
             4K 输入、固定 79 输出、closed-loop 并发扫描。合格条件：至少 99%
             请求同时满足 TTFT ≤ 3000ms、请求平均 TPOT ≤ 100ms；完成与到达两个
