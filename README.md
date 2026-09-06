@@ -8,9 +8,15 @@ python3 demo/server.py --host 127.0.0.1 --port 8088
 
 本机访问 <http://127.0.0.1:8088>；远程机器可用 `ssh -L 8088:127.0.0.1:8088 <user>@<server>` 转发端口。UI 和仿真需要 Python 3.11+；启动真实推理还需要 Linux/root、4 × A10、模型权重和已准备好的 vLLM 环境。服务、攻击、仿真和对话在 UI 后端串行执行，以免实验相互竞争。
 
+### 摘要
+
+大模型的安全推理是企业上云关注的关键问题之一。本项目围绕大模型安全推理的 SplitInfer 方案，开展了安全性分析、功能实现、系统优化和性能建模。实验表明，加深企业端部署层数可以降低 token 被明文恢复的成功率；在特定 SLO（4K 上下文输入，TTFT ≤ 3s、TPOT ≤ 100ms）下，按本次最高已测合格点比较，优化系统吞吐达到 baseline 的约 **15.1 倍（0.317 QPS → 4.775 QPS）**。项目同时实现了面向多种硬件配置与模型的理论性能建模框架，为 SplitInfer 方案的落地提供参考。
+
+恢复率与数据分布相关；吞吐比较来自单次有限窗口，baseline 合格点仅有18条到达请求，不代表精确容量提升倍数。当前实测校准集中在 Qwen2.5-3B / A10，跨模型、跨硬件的预测精度尚未验证。
+
 ### 01 背景
 
-大模型已经进入企业核心业务，私有输入也随之进入云端。TLS 保护传输链路，但在服务端终止后，明文和中间状态仍可能暴露给运行时。本项目从安全攻击、功能实现、系统优化、性能建模四个方面分析 Split-Infer 的能力与边界。
+**大模型已进入企业核心业务，数据安全上云成为基础设施的关键问题。** 私有输入随模型使用进入云端。TLS 保护传输链路，但在服务端终止后，明文和中间状态仍可能暴露给运行时。本项目从安全攻击、功能实现、系统优化、性能建模四个方面分析 Split-Infer 的能力与边界。
 
 ### 02 大模型安全推理的业界洞察
 
@@ -46,6 +52,16 @@ printf '%s\n' '{"text":"Security inference should protect private prompts."}' \
 
 `hidden.npy` 是实际生成的 FP16 矩阵，`encode.json` 记录 shape、dtype、摘要和耗时，`recover.json` 记录逐位置恢复结果。简单 MLP 的归档实验同时显示，增加企业侧前层深度可以降低当前攻击下的 token 恢复率，但结果与数据分布、攻击器和训练预算强相关，不能作为绝对安全证明。后续性能实验把 **Split 4 / 27 / 5** 作为研究起点；定向噪声可能进一步提升隐私，但本项目尚未实现或测量该防护。数据见 [security-depth.json](demo/evidence/security-depth.json)，攻击实现和局限见 [Demo 说明](demo/README.md)。
 
+企业端深度与 MLP token 恢复率（同 demo 的归档数据）：
+
+| 企业前层数 | 4K 样本恢复率 | 独立公开测试恢复率 |
+|---|---:|---:|
+| 4 | 53.98% | 82.71% |
+| 9 | 40.41% | 79.96% |
+| 18 | 23.83% | 76.03% |
+| 27 | 20.79% | 75.43% |
+| 36 | 9.59% | 60.33% |
+
 ### 04 功能实现
 
 Baseline 使用 Qwen2.5-3B-Instruct FP16 权重：企业侧运行首尾层，云侧运行中间层，并使用 vLLM partial runner、FlashAttention、Paged KV 和独立 TP 通信组。默认切分为 4/27/5，企业与云各 TP=2，部署在 4 × A10 上，对外提供 OpenAI-like API。
@@ -66,41 +82,95 @@ curl http://127.0.0.1:8000/v1/chat/completions \
 
 浏览器显示的 TTFT/TPOT 按收到的 token 事件计时，因此包含网络、代理和浏览器开销。精度验证固定 8 道 GSM8K 输入，对齐 token 和绝对位置，以 teacher forcing 比较原生单卡完整模型与 Split TP2+2 的 logits cosine、top1 一致率及 top-k overlap；它不比较自由生成答案是否完全一致。详见[原生 TP1 精度报告](docs/gsm8k-native-tp1.md)和[完整 serving 实现](docs/integrated-serving.md)。
 
+原生完整模型 TP1 与 Split 4/27/5、TP2+2 的精度实测：
+
+| 阶段 | 位置数 | Logits cosine 均值 / 最低 | Top1 一致 | Top-5 overlap 均值 / 最低 | Top-10 overlap 均值 / 最低 | Top-20 overlap 均值 / 最低 |
+|---|---:|---:|---:|---:|---:|---:|
+| Prefill | 8 | 0.99999665 / 0.99999465 | 8/8 | 100.00% / 100.00% | 100.00% / 100.00% | 100.00% / 100.00% |
+| Decode | 56 | 0.99999659 / 0.99999193 | 56/56 | 100.00% / 100.00% | 99.29% / 90.00% | 99.64% / 95.00% |
+
 ### 05 真实系统优化
 
-C16 baseline 的 96 请求、4K 输入/79 输出 trace 显示：平均 TTFT 为 6331.412 ms，其中 prefill step 为 734.972 ms、其余等待与交付残差为 5596.440 ms；平均 TPOT 为 106.975 ms，其中 decode step 为 35.966 ms、残差为 71.009 ms。RPC 区间还包含打包和 IPC，不能全部解释为纯 WAN；企业/云区间也不是纯 GPU kernel 时间。可下载[原始 trace](demo/evidence/baseline-c16-raw.zip)，或运行 `python3 scripts/check_demo_evidence.py` 独立复算。
+**C16 Baseline 实测耗时**：4K 输入 / 79 输出、TP2+2，96条完成请求、7488个 decode 步骤。下表为均值，来自同一批请求的 trace。
 
-当前推荐配置依次处理数据路径开销、长 prefill 阻塞、流水气泡以及 P/D 资源耦合：
+| 实测区间 | TTFT 拆解（ms） | TPOT 拆解（ms） |
+|---|---:|---:|
+| 上行 RPC 区间 | 115.63 | 5.52 |
+| 下行 RPC 区间 | 154.76 | 5.68 |
+| 云侧处理区间 | 341.75 | 14.69 |
+| 企业侧处理及本步其余开销 | 122.83 | 10.08 |
+| 本步以外等待及交付残差 | 5596.44 | 71.01 |
+| 端到端合计 | 6331.41 | 106.98 |
+
+这张表来自历史 C16 闭环测量，仅用于分析耗时来源；下方吞吐曲线统一使用开环实测。RPC 区间包含主机处理，云侧区间不等于纯 GPU kernel 时间；步外残差包含调度等待、其他请求执行和交付开销，不能全部视为纯排队。[原始请求与 trace](demo/evidence/baseline-c16-raw.zip)可运行 `python3 scripts/check_demo_evidence.py` 独立复算。
+
+**分析结论：**
+
+1. **通信开销与云侧处理同量级，需要优化通信路径。** SplitInfer 引入了显著的端云通信开销，往返 RPC 耗时与云侧处理时间相当，远高于仅按“通信量 / 带宽”估算的时间。差额包含固定链路时延，以及序列化、内存拷贝、IPC 等额外成本；应结合 profiling 削减可避免的操作，不能将差额全部视为冗余传输。
+2. **通信瓶颈持续存在，还需要用流水隐藏等待。** 减少通信路径中的额外开销后，端云传输与固定链路时延仍然存在。需要让不同请求的计算、传输和 KV 迁移尽可能重叠，减少通信阻塞计算的时间。
+3. **大并发下，请求等待是主要开销，需要端云协同调度。** C16 下，请求在计算步骤之外的等待远大于单步执行时间。应协同安排企业前后层、云侧 prefill/decode 与 KV 就绪时机，减少排队和相互阻塞，才能将局部加速转化为 SLO 下的吞吐提升。
+
+**已实现的优化与推荐配置：**
 
 | 优化 | 已实现的行为 | 当前配置 |
 |---|---|---|
-| Stage1 数据路径 | SHM IPC、wire fast、16 MiB socket buffer；仍有 D2H/H2D | 开启 |
-| Chunked prefill / decode-first | 2048-token chunk，decode quota=4；不是 mixed P/D batch | 开启 |
-| 异步流水 | 多请求计算和传输在途，D window=2 | 开启 |
-| PD 与双 P 副本 | Enterprise TP1 + 2 × P TP1 + D TP1，P window=3 | 开启 |
-| 独立控制通道 | readiness 使用独立 worker pipe | 开启 |
-| Chunk KV 提前迁移 | 能力已实现，但实测未证明整体更优 | 关闭，可选 |
+| 通信路径优化：SHM / wire fast / TCP buffer | 共享内存 IPC、减少打包开销、16 MiB socket buffer；仍有 D2H/H2D，不是跨 WAN 零拷贝 | 开启 |
+| 分块预填充与解码优先调度 | 2048-token chunk，decode quota=4；不是 mixed P/D batch | 开启 |
+| 计算与通信异步流水 | 多请求计算和传输在途，D window=2；不保证任意并发都有收益 | 开启 |
+| PD 与双 P 副本 | 企业 TP1 + 2 × P TP1 + D TP1，P window=3 | 开启 |
+| 独立控制通道 | readiness 使用独立 worker pipe；reserve/release 仍有普通 executor 路径 | 开启 |
+| Chunk KV 提前迁移 | 能力已实现，但实测未证明整体更优；推荐整段 prompt 迁移 | 关闭，可选 |
 
-真实四卡 closed-loop 扫描采用 4K/79 workload；联合 SLO 要求至少 99% 请求同时满足 TTFT ≤ 3 s、请求平均 TPOT ≤ 100 ms，并同时检查完成与到达 cohort。最高已测合格点是 **C44 / 5.365 QPS**；C46 和 C48 不合格，主要触及 TPOT 限制。由于未测 C45，也未做长期生产压力验证，这不是精确的全局最大容量。
-
-![优化后 TTFT-QPS 曲线](demo/evidence/optimized-ttft-qps.png)
-
-![优化后 TPOT-QPS 曲线](demo/evidence/optimized-tpot-qps.png)
-
-[CSV](demo/evidence/optimized-sweep.csv) · [原始请求、trace 和环境](demo/evidence/optimized-sweep-raw.zip) · [完整验证报告](docs/live-demo-validation.md)
-
-复现实测扫描：
+连续 batching 已有；混合 prefill/decode batch 与动态 P/mix/D 角色切换未实现，不计入收益；投机推理未包含。
 
 ```bash
 ./poc up --preset optimized --wan
-.venv/bin/python scripts/demo_sweep.py --output results/my-demo-sweep
-python3 scripts/package_demo_evidence.py --sweep results/my-demo-sweep \
-  --serving-results "$(cat run/current_results)" --output results/my-demo-evidence
+./poc up --preset baseline --wan
 ```
+
+**Baseline 与优化系统的开环实测：**
+
+同一模型、四张 A10、4K 输入 / 79 输出，WAN 每方向10Gbps、单向5ms。Baseline 为 TP2+2，优化系统为企业 TP1 + 两个 TP1 P + TP1 D；两者统一 max_active=96、kv_blocks=32768。同一目标到达率使用相同泊松请求计划，客户端不限制并发。
+
+横轴为实测完成 QPS，不是设定到达率。延迟按测量窗口内到达请求统计，TTFT 包含客户端发包延误，TPOT 是每条请求的平均 token 间隔。合格要求到达、完成两个 cohort 均有至少99%请求同时满足 TTFT≤3s、TPOT≤100ms，错误计失败。达标 QPS 只计算满足联合 SLO 的完成请求。
+
+| 系统 | 目标 / 实际到达率（请求/s） | 完成 / 达标 QPS | TTFT 均值/P99 ms | TPOT 均值/P99 ms | 到达 / 完成 SLO % | 平均 / 峰值在途 | 到达请求数 | 测量 s |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Baseline | 0.500 / 0.300 | 0.317 / 0.317 | 886.0 / 1508.9 | 44.13 / 62.00 | 100.00 / 100.00 | 1.4 / 4 | 18 | 60 |
+| Baseline | 0.750 / 0.550 | 0.533 / 0.533 | 978.1 / 2015.7 | 56.08 / 114.84 | 96.97 / 100.00 | 2.8 / 7 | 33 | 60 |
+| Baseline | 1.000 / 0.883 | 0.717 / 0.450 | 1179.2 / 2317.7 | 120.63 / 269.06 | 52.83 / 62.79 | 9.1 / 26 | 53 | 60 |
+| 优化系统 | 0.500 / 0.300 | 0.317 / 0.317 | 667.2 / 713.0 | 32.39 / 34.58 | 100.00 / 100.00 | 1.0 / 4 | 18 | 60 |
+| 优化系统 | 1.000 / 0.883 | 0.883 / 0.883 | 633.8 / 735.4 | 35.24 / 38.90 | 100.00 / 100.00 | 3.1 / 7 | 53 | 60 |
+| 优化系统 | 1.500 / 1.533 | 1.433 / 1.433 | 616.2 / 821.8 | 40.01 / 48.29 | 100.00 / 100.00 | 5.4 / 13 | 92 | 60 |
+| 优化系统 | 2.000 / 1.983 | 2.033 / 2.033 | 614.7 / 1146.2 | 42.48 / 54.81 | 100.00 / 100.00 | 7.9 / 17 | 119 | 60 |
+| 优化系统 | 3.000 / 3.067 | 3.167 / 3.167 | 661.5 / 1147.5 | 51.23 / 61.90 | 100.00 / 100.00 | 14.4 / 25 | 184 | 60 |
+| 优化系统 | 4.136 / 4.433 | 4.425 / 4.425 | 885.2 / 2008.2 | 69.40 / 89.74 | 100.00 / 100.00 | 28.1 / 47 | 532 | 120 |
+| 优化系统 | 4.440 / 4.700 | 4.775 / 4.775 | 998.9 / 2307.0 | 76.90 / 95.84 | 100.00 / 100.00 | 33.1 / 51 | 564 | 120 |
+| 优化系统 | 4.744 / 5.042 | 5.042 / 4.508 | 1121.8 / 2756.8 | 86.44 / 106.30 | 89.42 / 89.42 | 39.6 / 58 | 605 | 120 |
+
+优化系统本次最高已测合格点完成 **4.775 QPS**，目标到达率4.440/s、实际4.700/s；更高目标4.744/s的点联合达标率为89.42%，主要触及TPOT限制。相比 baseline 最高已测合格点0.317 QPS，约为15.1倍；baseline 该点仅18条到达请求，不能据此推断精确容量提升倍数。
+
+每点预热30秒、粗扫测量60秒（高负载点120秒）、继续到达30秒后排空；每点只有一个 seed=17 的随机轨迹。实际到达率会偏离目标值；短窗口结果不表示长期生产容量或精确最大QPS。
+
+![开环 TTFT–QPS：Baseline 与优化系统](demo/evidence/open-loop-ttft-qps.png)
+
+![开环 TPOT–QPS：Baseline 与优化系统](demo/evidence/open-loop-tpot-qps.png)
+
+[CSV](demo/evidence/open-loop-sweep.csv) · [原始请求、计划、trace和环境](demo/evidence/open-loop-raw.zip) · [开环实测报告](demo/evidence/open-loop-report.md) · [完整验证报告](docs/live-demo-validation.md)
+
+复现开环扫描（独占四卡服务，结束后恢复默认 baseline WAN）：
+
+```bash
+.venv/bin/python scripts/open_loop_sweep.py --out results/my-open-loop
+.venv/bin/python scripts/package_open_loop.py --source results/my-open-loop
+python3 scripts/plot_open_loop.py
+```
+
+绘图需 matplotlib；启动命令和开关详见 [serving 文档](docs/integrated-serving.md)。
 
 ### 06 推理性能建模
 
-[Q4 仿真器](Q4/README.md)使用 DAG + event-driven 执行，支持 baseline behavioral scheduler 和固定版本的真实 PD scheduler 源码。当前 Demo **只开放** Qwen2.5-3B、A10 × 4、Split 4/27/5、4096 输入/79 输出：optimized 使用 C40 empirical command/host profile，baseline 使用 operator/host cost。每个并发点都会实际执行，不读取结果缓存；除校准点外均是预测值。
+[Q4 仿真器](Q4/README.md)支持通过模型结构与硬件参数配置进行理论性能建模，使用 DAG + event-driven 执行，支持 baseline behavioral scheduler 和固定版本的真实 PD scheduler 源码。理论框架可配置多模型与多硬件，但跨模型、跨硬件的预测精度尚未通过实测验证。当前 Demo **只开放** Qwen2.5-3B、A10 × 4、Split 4/27/5、4096 输入/79 输出：optimized 使用 C40 empirical command/host profile，baseline 使用 operator/host cost。每个并发点都会实际执行，不读取结果缓存；除校准点外均是预测值。
 
 页面“运行仿真”会对输入的并发点逐一调用 [demo/simulate.py](demo/simulate.py)。单点 CLI 复现如下：
 
