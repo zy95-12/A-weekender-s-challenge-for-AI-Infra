@@ -98,20 +98,35 @@
     </section>
 
     <section class="section" id="system" aria-labelledby="system-title">
-      <div class="section-head"><div><div class="eyebrow"><span>04</span> SPLIT-INFER 系统实现</div><h2 id="system-title">真实权重、真实执行路径，<br>端云协同 baseline。</h2></div><a class="text-link" target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/8">查看 baseline PR #8 ↗</a></div>
+      <div class="section-head compact-head"><div class="eyebrow" id="system-title"><span>04</span> 功能实现 / FUNCTIONAL BASELINE</div><a class="text-link" target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/8">查看 baseline PR #8 ↗</a></div>
       <div class="system-grid">
         <div class="system-copy">
-          <p>Baseline 使用 Qwen2.5-3B-Instruct FP16 权重，企业侧执行首尾层，云侧执行中间层；以 vLLM partial runner、FlashAttention、Paged KV 和独立 TP 通信组完成真实 split serving。</p>
+          <p>Baseline 基于 Qwen2.5-3B-Instruct FP16 真实权重，将模型拆为企业侧 Front/Back 与云侧 Middle 三段：企业侧保留输入、输出与首尾层，云侧承担主要计算；系统复用 vLLM partial runner、FlashAttention、Paged KV 和独立 NCCL TP 通信组，通过 HTTP RPC 仅传输 Hidden State 与 Residual，并提供 OpenAI-compatible 对话接口。</p>
           <div class="spec-grid"><div><small>默认切分</small><b>4 / 27 / 5</b></div><div><small>并行策略</small><b>TP 2 + 2</b></div><div><small>部署硬件</small><b>4 × A10</b></div><div><small>接口</small><b>OpenAI-like</b></div></div>
-          <div class="command"><code>./poc up --wan</code><button data-copy="./poc up --wan">复制</button></div>
+          <div class="launch-row"><div class="command"><code>./poc up --wan</code><button data-copy="./poc up --wan">复制</button></div><button class="launch-button" id="service-toggle">启动 Demo</button></div>
           <p class="fineprint">右侧为交互界面假数据，仅展示产品形态；不会在浏览器中启动 PR #8 的 GPU 服务。</p>
         </div>
         <div class="chat-shell">
-          <div class="chat-head"><div><i id="service-dot"></i><b>Split-Infer Chat</b><small id="service-state">服务未启动</small></div><button id="service-toggle">启动 Demo</button></div>
+          <div class="chat-head"><div><i id="service-dot"></i><b>Split-Infer Chat</b><small id="service-state">服务未启动</small></div><span class="mock-badge">MOCK UI</span></div>
           <div class="messages" id="messages"><div class="message assistant"><span>S</span><p>启动 baseline 后，可以在这里体验端云切分推理。</p></div></div>
           <form class="chat-input" id="chat-form"><input id="chat-text" aria-label="对话输入" value="为什么安全推理很重要？"><button aria-label="发送">↑</button></form>
           <div class="chat-metrics"><span>TTFT <b id="chat-ttft">—</b></span><span>TPOT <b id="chat-tpot">—</b></span><span>WAN RTT <b>10 ms</b></span></div>
         </div>
+      </div>
+      <div class="accuracy-card card">
+        <div class="accuracy-head"><div><small>REAL MODEL PARITY</small><h3>与原生完整模型推理的精度对比</h3><p>参考项为原生 vLLM TP2、FP16、greedy；覆盖 128 / 1024 / 4096 / 8192 输入长度及 256 步 Decode。</p></div><span class="pass-badge">实测 PASS</span></div>
+        <div class="accuracy-table-wrap">
+          <table class="accuracy-table">
+            <thead><tr><th>推理路径</th><th>比较位置</th><th>最大 MAE / 绝对误差</th><th>Top-1 / Top-5</th><th>Greedy token-ID</th><th>结果</th></tr></thead>
+            <tbody>
+              <tr class="reference-row"><td>原生完整模型 · vLLM TP2</td><td>Reference</td><td>—</td><td>—</td><td>Reference</td><td><span>基准</span></td></tr>
+              <tr><td>Split · 4 / 27 / 5</td><td>1,028</td><td>0 / 0</td><td>100% / 100%</td><td>前 32 tokens 一致</td><td><b>PASS</b></td></tr>
+              <tr><td>Split · 9 / 18 / 9</td><td>1,028</td><td>0 / 0</td><td>100% / 100%</td><td>前 32 tokens 一致</td><td><b>PASS</b></td></tr>
+              <tr><td>Split · 13 / 9 / 14</td><td>1,028</td><td>0 / 0</td><td>100% / 100%</td><td>前 32 tokens 一致</td><td><b>PASS</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="accuracy-foot"><p>三种切分在同 TP 对照下逐值一致，FP32 cosine 最小值为 0.99999988；这证明功能与数值精度验收通过，不代表性能 SLO 已满足。</p><a target="_blank" rel="noreferrer" href="https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue-4-real-split-vllm-poc/docs/poc-validation.md">阅读完整实验报告 ↗</a></div>
       </div>
     </section>
 

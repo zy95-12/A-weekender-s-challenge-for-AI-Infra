@@ -32,6 +32,7 @@ class DemoTest(unittest.TestCase):
         self.assertIn("docs/01_tech_insight.md", joined)
         self.assertIn("embedding_attack.py", joined)
         self.assertIn("pull/8", joined)
+        self.assertIn("docs/poc-validation.md", joined)
         self.assertNotIn("研究主线", page)
         for technology in ("Confidential Computing", "数据最小化", "Split Inference", "全同态加密", "安全多方计算"):
             self.assertIn(technology, page)
@@ -39,6 +40,9 @@ class DemoTest(unittest.TestCase):
         self.assertIn("Hidden State 不安全", page)
         self.assertIn('id="attack-input"', page)
         self.assertIn('id="token-generate"', page)
+        self.assertIn("功能实现 / FUNCTIONAL BASELINE", page)
+        self.assertIn("与原生完整模型推理的精度对比", page)
+        self.assertEqual(page.count("1,028"), 3)
 
     def test_backend_contract_rejects_reserved_and_bad_inputs(self) -> None:
         spec = importlib.util.spec_from_file_location("demo_server", DEMO_DIR / "server.py")

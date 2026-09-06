@@ -38,7 +38,7 @@ ssh -L 8088:127.0.0.1:8088 <user>@<server-ip>
 1. **背景**：说明云端大模型运行时隐私问题。
 2. **业界洞察**：只提炼主仓 [完整洞察报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/main/docs/01_tech_insight.md) 的核心结论。
 3. **安全分析**：用户可以输入文本或自动生成 token，通过假矩阵交互回放 embedding 与最近邻反演过程；同时展示不同企业侧层数下的固定预算攻击结果。按钮不会在浏览器中运行 GPU 攻击。详见 [安全报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue3-hidden-state-security/docs/hidden-state-security.md)。
-4. **系统实现**：介绍 PR #8 的 Qwen2.5-3B、4/27/5、TP2+2 baseline。启动按钮和对话结果是假数据，只表达产品交互；真实部署见 [PR #8](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/pull/8)。
+4. **功能实现**：介绍 PR #8 的 Qwen2.5-3B、4/27/5、TP2+2 baseline，提供一行启动命令和产品交互，并展示三种切分与原生完整模型的真实精度对比。启动按钮和对话结果是假数据；精度表来自 [POC 实测报告](https://github.com/zy95-12/A-weekender-s-challenge-for-AI-Infra/blob/feat/issue-4-real-split-vllm-poc/docs/poc-validation.md)。
 5. **性能优化**：只保留后续扩展位置。
 6. **性能建模**：前端依次调用 `POST /api/simulate`，每完成一个 closed-loop 并发点就更新 QPS—TTFT/TPOT 曲线。
 

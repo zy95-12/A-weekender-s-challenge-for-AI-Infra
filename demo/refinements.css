@@ -197,6 +197,153 @@ h3 {
   font-size: 14px;
 }
 
+.compact-head {
+  margin-bottom: 34px;
+}
+
+.compact-head .eyebrow {
+  margin-bottom: 0;
+}
+
+.launch-row {
+  display: flex;
+  gap: 9px;
+}
+
+.launch-row .command {
+  flex: 1;
+}
+
+.launch-button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 9px;
+  background: var(--cyan);
+  padding: 0 18px;
+  color: #06201e;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.launch-button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.mock-badge {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 4px 8px;
+  color: var(--muted);
+  font-size: 8px;
+  letter-spacing: .12em;
+}
+
+.accuracy-card {
+  margin-top: 18px;
+  padding: 27px;
+}
+
+.accuracy-head,
+.accuracy-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.accuracy-head {
+  align-items: flex-start;
+}
+
+.accuracy-head small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: .14em;
+}
+
+.accuracy-head h3 {
+  margin-top: 4px;
+}
+
+.accuracy-head p,
+.accuracy-foot p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.pass-badge {
+  flex: 0 0 auto;
+  border: 1px solid rgba(67, 227, 207, .3);
+  border-radius: 20px;
+  background: rgba(67, 227, 207, .07);
+  padding: 6px 10px;
+  color: var(--cyan);
+  font-size: 10px;
+}
+
+.accuracy-table-wrap {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.accuracy-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 10px;
+}
+
+.accuracy-table th,
+.accuracy-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 10px;
+}
+
+.accuracy-table th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.accuracy-table td {
+  color: #b9c9cf;
+  font-family: ui-monospace, monospace;
+}
+
+.accuracy-table td:first-child {
+  color: var(--text);
+  font-family: inherit;
+}
+
+.accuracy-table td b {
+  color: var(--cyan);
+}
+
+.reference-row {
+  background: rgba(167, 139, 250, .04);
+}
+
+.reference-row td span {
+  color: var(--violet);
+}
+
+.accuracy-foot {
+  align-items: center;
+  margin-top: 14px;
+}
+
+.accuracy-foot p {
+  max-width: 760px;
+}
+
+.accuracy-foot a {
+  flex: 0 0 auto;
+  color: var(--cyan);
+  font-size: 10px;
+  text-decoration: none;
+}
+
 @media (max-width: 900px) {
   .technology-grid {
     grid-template-columns: 1fr 1fr;
@@ -223,5 +370,16 @@ h3 {
 
   .technology-grid .tee-card {
     grid-column: auto;
+  }
+
+  .launch-row,
+  .accuracy-head,
+  .accuracy-foot {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .launch-button {
+    min-height: 42px;
   }
 }
