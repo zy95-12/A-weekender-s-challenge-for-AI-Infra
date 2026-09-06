@@ -54,12 +54,16 @@ class PDScheduler(PipelineScheduler):
                 if not hasattr(job,'pd_ready'):
                     job.pd_ready=self.control.submit(self.control_post,'/pd/wait',{'request_id':job.id})
 
+    @property
+    def prefill_window(self):
+        return getattr(self.args,'pd_prefill_window',0) or self.window
+
     def eligible(self):
         counts={p:sum(t['command']['phase']==p for t in self.inflight) for p in ['prefill','decode']}
         result=[]
         for job in super().eligible():
             phase='prefill' if job.front_position<len(job.ids) else 'decode'
-            if counts[phase]>=self.window:continue
+            if counts[phase]>=(self.prefill_window if phase=='prefill' else self.window):continue
             if phase=='decode':
                 if not hasattr(job,'pd_ready') or not job.pd_ready.done():continue
                 ready=job.pd_ready.result()
@@ -70,7 +74,7 @@ class PDScheduler(PipelineScheduler):
         return result
 
     def can_submit(self):
-        return len(self.inflight)<2*self.window
+        return len(self.inflight)<self.prefill_window+self.window
 
     def ready_task(self,tasks):
         decodes=[t for t in tasks if t['command']['phase']=='decode']

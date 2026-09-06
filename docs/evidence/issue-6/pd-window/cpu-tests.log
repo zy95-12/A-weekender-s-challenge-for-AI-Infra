@@ -1,0 +1,52 @@
+...............Already running; network reapplied and verified: http://127.0.0.1:8000
+START stop_previous
+PASS stop_previous (0.0s)
+START model_integrity
+PASS model_integrity (0.0s)
+START native_reference
+PASS native_reference (0.0s)
+START up_1_3
+PASS up_1_3 (0.0s)
+START correctness_1_3
+PASS correctness_1_3 (0.0s)
+START acceptance_1_3
+PASS acceptance_1_3 (0.0s)
+START down_1_3
+PASS down_1_3 (0.0s)
+START up_1_1
+PASS up_1_1 (0.0s)
+START correctness_1_1
+PASS correctness_1_1 (0.0s)
+START acceptance_1_1
+PASS acceptance_1_1 (0.0s)
+START down_1_1
+PASS down_1_1 (0.0s)
+START up_3_1
+PASS up_3_1 (0.0s)
+START correctness_3_1
+PASS correctness_3_1 (0.0s)
+START acceptance_3_1
+PASS acceptance_3_1 (0.0s)
+START down_3_1
+PASS down_3_1 (0.0s)
+START up_wan
+PASS up_wan (0.0s)
+START network_check
+
+................................................
+----------------------------------------------------------------------
+Ran 63 tests in 0.870s
+
+OK
+{
+  "completed": false,
+  "cells": 1,
+  "repetitions": 3,
+  "profile_batches": 0
+}
+{
+  "completed": true,
+  "cells": 1,
+  "repetitions": 3,
+  "profile_batches": 0
+}

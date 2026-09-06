@@ -1,0 +1,39 @@
+[
+  {
+    "pid": 67426,
+    "batches": 296,
+    "kernel_sum_mean_ms": {
+      "NCCL": 18.99170353378378,
+      "other": 4.103702942567567,
+      "GEMM": 30.174203070945946,
+      "attention": 0.16216933783783785
+    },
+    "kernel_union_mean_ms": 53.43177888513513,
+    "copies": []
+  },
+  {
+    "pid": 67425,
+    "batches": 296,
+    "kernel_sum_mean_ms": {
+      "NCCL": 18.29805110472973,
+      "other": 4.136677695945946,
+      "GEMM": 30.11673525337838,
+      "attention": 0.1607921047297297
+    },
+    "kernel_union_mean_ms": 52.71225615878378,
+    "copies": [
+      {
+        "kind": 1,
+        "count": 592,
+        "mean_ms_per_batch": 0.5774059256756756,
+        "bytes_per_batch": 8388608.0
+      },
+      {
+        "kind": 2,
+        "count": 592,
+        "mean_ms_per_batch": 0.4452258614864865,
+        "bytes_per_batch": 8388608.0
+      }
+    ]
+  }
+]

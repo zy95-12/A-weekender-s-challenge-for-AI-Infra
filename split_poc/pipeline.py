@@ -23,7 +23,7 @@ from split_poc.wire import pack, unpack
 class PipelineScheduler(Scheduler):
     def __init__(self, executor, args, eos):
         self.window = args.pipeline_window
-        self.transfers = concurrent.futures.ThreadPoolExecutor(max_workers=self.window*(2 if getattr(args,'pd',False) else 1))
+        self.transfers = concurrent.futures.ThreadPoolExecutor(max_workers=self.window + ((getattr(args,'pd_prefill_window',0) or self.window) if getattr(args,'pd',False) else 0))
         self.inflight = []
         self.admission = KVAdmission(args.kv_blocks)
         self.waiting_admission = None

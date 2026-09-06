@@ -131,6 +131,7 @@ def up(args):
         common += ["--tcp-buffer-mib", str(args.tcp_buffer_mib), "--pipeline-window", str(args.pipeline_window)]
         common += ["--max-active", str(args.max_active), "--kv-blocks", str(args.kv_blocks)]
         if args.pd:
+            common += ['--pd-prefill-window',str(args.pd_prefill_window)]
             common += ['--pd','--pd-epoch',args.pd_epoch,'--prefill-tp',str(args.prefill_tp),
                        '--decode-tp',str(args.decode_tp),'--cloud-decode','http://10.205.0.2:8002']
             if role!='enterprise':common+=['--pd-role','decode' if role=='cloud_decode' else 'prefill']
@@ -199,6 +200,7 @@ if __name__ == "__main__":
     parser.add_argument("--decode-quota", type=int, default=1)
     parser.add_argument("--tcp-buffer-mib", type=int, default=0)
     parser.add_argument("--phase-profile", action="store_true")
+    parser.add_argument('--pd-prefill-window',type=int,default=0,help='PD prefill in-flight limit; 0 inherits pipeline-window; decode keeps pipeline-window')
     parser.add_argument("--pipeline-window", type=int, default=0)
     parser.add_argument('--pd',action='store_true',help='Separate cloud prefill and decode GPU groups')
     parser.add_argument('--prefill-tp',type=int,choices=[1,2],default=2)
@@ -213,6 +215,8 @@ if __name__ == "__main__":
     if args.kv_blocks < 1:parser.error("KV blocks must be positive")
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:
         parser.error("Invalid prefill chunk or decode quota")
+    if not 0 <= args.pd_prefill_window <= 8 or (args.pd_prefill_window and not args.pd):
+        parser.error('PD prefill window requires PD and must be 0..8')
     if not 0 <= args.pipeline_window <= 8:
         parser.error("Pipeline window must be 0..8")
     if not 0 <= args.tcp_buffer_mib <= 64:

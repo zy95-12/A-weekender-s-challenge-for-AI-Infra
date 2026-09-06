@@ -126,7 +126,7 @@ class PDTests(unittest.TestCase):
         self.assertEqual(obj.records,{})
 
     def test_pending_kv_and_full_prefill_window_do_not_block_ready_decode(self):
-        obj=PDScheduler.__new__(PDScheduler);obj.window=2
+        obj=PDScheduler.__new__(PDScheduler);obj.window=2;obj.args=SimpleNamespace(pd_prefill_window=0)
         obj.inflight=[{'command':{'phase':'prefill'}} for _ in range(2)]
         def job(ready):
             f=concurrent.futures.Future()
@@ -135,6 +135,24 @@ class PDTests(unittest.TestCase):
                                    prefilled=True,outstanding=0,pd_ready=f,pd_logged=True)
         waiting,ready=job(False),job(True);obj.active=[waiting,ready]
         self.assertEqual(obj.eligible(),[ready]);self.assertTrue(obj.can_submit())
+
+    def test_larger_prefill_window_preserves_decode_limit(self):
+        obj=PDScheduler.__new__(PDScheduler);obj.window=2
+        for size in [3,4]:
+            obj.args=SimpleNamespace(pd_prefill_window=size)
+            p=SimpleNamespace(cancelled=False,finished=False,front_position=0,ids=[1]*4096,prefilled=False,outstanding=0)
+            f=concurrent.futures.Future();f.set_result({'state':'ready'})
+            d=SimpleNamespace(cancelled=False,finished=False,front_position=4096,ids=[1]*4096,
+                prefilled=True,outstanding=0,pd_ready=f,pd_logged=True)
+            obj.active=[p,d]
+            obj.inflight=[{'command':{'phase':'prefill'}} for _ in range(size-1)]+[{'command':{'phase':'decode'}}]*2
+            self.assertEqual(obj.eligible(),[p]);self.assertTrue(obj.can_submit())
+            obj.inflight.append({'command':{'phase':'prefill'}})
+            self.assertEqual(obj.eligible(),[]);self.assertFalse(obj.can_submit())
+            obj.inflight.pop(0)
+            obj.inflight.pop()
+            obj.inflight.pop()
+            self.assertIn(d,obj.eligible())
 
 
 if __name__=='__main__':unittest.main()

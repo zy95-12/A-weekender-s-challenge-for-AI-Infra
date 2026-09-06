@@ -575,6 +575,7 @@ def main():
     parser.add_argument("--scheduler-policy", choices=["legacy","decode-first"], default="legacy")
     parser.add_argument("--decode-quota", type=int, default=1, help="Maximum decode rounds before one waiting prefill chunk")
     parser.add_argument("--tcp-buffer-mib", type=int, default=0, help="0 preserves default sockets; nonzero requires Linux CAP_NET_ADMIN")
+    parser.add_argument('--pd-prefill-window',type=int,default=0,help='PD prefill in-flight limit; 0 inherits pipeline-window; decode keeps pipeline-window')
     parser.add_argument("--pipeline-window", type=int, default=0, help="0 disables async front/RPC/back pipeline")
     parser.add_argument("--phase-profile", action="store_true",
                         help="Detailed synchronous GPU stage timings; disable for baseline throughput")
@@ -592,6 +593,8 @@ def main():
         parser.error('PD requires pipelining and an explicit launch epoch')
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:
         parser.error("Invalid prefill chunk or decode quota")
+    if not 0 <= args.pd_prefill_window <= 8 or (args.pd_prefill_window and not args.pd):
+        parser.error('PD prefill window requires PD and must be 0..8')
     if not 0 <= args.pipeline_window <= 8:
         parser.error("Pipeline window must be 0..8")
     if not 0 <= args.tcp_buffer_mib <= 64:
