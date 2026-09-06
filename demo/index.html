@@ -4,8 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="大模型安全推理研究演示：洞察、Split Inference 安全分析、系统实现与性能仿真。">
-  <title>SplitShield · 大模型安全推理研究演示</title>
+  <title>Split-Infer 优化/建模 Demo 演示 · SplitShield</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="refinements.css">
 </head>
 <body>
   <div class="noise" aria-hidden="true"></div>
@@ -19,13 +20,14 @@
 
   <main id="top">
     <section class="hero section" aria-labelledby="hero-title">
-      <div class="eyebrow"><span>01</span> 背景 / WHY IT MATTERS</div>
+      <div class="demo-label">SplitShield · Research Demo</div>
+      <h1 id="hero-title" class="demo-title">Split-Infer 优化/建模<br><em>Demo 演示</em></h1>
       <div class="hero-grid">
         <div>
+          <div class="eyebrow"><span>01</span> 背景 / WHY IT MATTERS</div>
           <p class="kicker">让智能可用，也让数据保持私密</p>
-          <h1 id="hero-title">大模型进入关键业务，<br><em>安全推理</em>成为基础设施问题。</h1>
+          <h2 class="background-title">大模型进入关键业务，<br><em>安全推理</em>成为基础设施问题。</h2>
           <p class="lede">模型能力快速增长，私有输入也随之进入云端。传输加密只保护链路，无法自动解决运行时数据暴露。本项目从安全攻击、系统实现与性能建模三个层面，研究 Split Inference 的能力与边界。</p>
-          <div class="hero-actions"><a class="button primary" href="#security">查看安全实验</a><a class="button ghost" href="#modeling">运行性能仿真</a></div>
         </div>
         <div class="hero-visual" aria-label="端云切分推理示意图">
           <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>

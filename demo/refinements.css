@@ -1,0 +1,65 @@
+/* Presentation hierarchy refinements kept separate from the compact base theme. */
+.hero {
+  padding-top: 78px;
+  background: radial-gradient(circle at 72% 38%, rgba(67, 227, 207, .09), transparent 33%);
+}
+
+.demo-label {
+  margin-bottom: 12px;
+  color: var(--cyan);
+  font-size: 11px;
+  letter-spacing: .19em;
+  text-transform: uppercase;
+}
+
+.demo-title {
+  margin: 0 0 66px;
+  font-size: clamp(48px, 6vw, 78px);
+  line-height: 1.08;
+  letter-spacing: -.05em;
+}
+
+.demo-title em,
+.background-title em {
+  color: var(--cyan);
+  font-style: normal;
+}
+
+/* The numbered chapter label should read as a heading, not metadata. */
+.eyebrow {
+  margin-bottom: 22px;
+  color: #c3d1d5;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: .13em;
+}
+
+/* Keep the chapter statement subordinate to its chapter label. */
+h2 {
+  font-size: clamp(28px, 3.2vw, 40px);
+  line-height: 1.24;
+}
+
+h3 {
+  font-size: 18px;
+}
+
+.background-title {
+  font-size: clamp(30px, 3.5vw, 44px);
+  line-height: 1.2;
+}
+
+.kicker {
+  font-size: 12px;
+}
+
+.lede {
+  font-size: 15px;
+}
+
+@media (max-width: 600px) {
+  .demo-title {
+    margin-bottom: 48px;
+    font-size: clamp(40px, 13vw, 58px);
+  }
+}
