@@ -129,7 +129,7 @@ def up(args):
         common += ["--prefill-chunk-size", str(args.prefill_chunk_size),
                    "--scheduler-policy", args.scheduler_policy, "--decode-quota", str(args.decode_quota)]
         common += ["--tcp-buffer-mib", str(args.tcp_buffer_mib), "--pipeline-window", str(args.pipeline_window)]
-        common += ["--max-active", str(args.max_active)]
+        common += ["--max-active", str(args.max_active), "--kv-blocks", str(args.kv_blocks)]
         if args.pd:
             common += ['--pd','--pd-epoch',args.pd_epoch,'--prefill-tp',str(args.prefill_tp),
                        '--decode-tp',str(args.decode_tp),'--cloud-decode','http://10.205.0.2:8002']
@@ -190,7 +190,8 @@ if __name__ == "__main__":
     parser.add_argument("--bandwidth-gbps", type=float, default=10)
     parser.add_argument("--profile", action="store_true")
     parser.add_argument("--operator-profile", action="store_true", help="Record operator tensor metadata and NVTX ranges; requires --profile")
-    parser.add_argument("--max-active", type=int, choices=range(1,17), default=8)
+    parser.add_argument("--kv-blocks", type=int, default=8192, help="KV pages per pool; size for the intended concurrency")
+    parser.add_argument("--max-active", type=int, choices=range(1,129), default=8)
     parser.add_argument("--ipc-mode", choices=["pipe", "shm"], default="pipe")
     parser.add_argument("--wire-fast", action="store_true")
     parser.add_argument("--prefill-chunk-size", type=int, default=0)
@@ -209,6 +210,7 @@ if __name__ == "__main__":
         parser.error('PD on this four-GPU host requires E1, P+D=3 and --pipeline-window')
     if args.operator_profile and not args.profile:
         parser.error("--operator-profile requires --profile")
+    if args.kv_blocks < 1:parser.error("KV blocks must be positive")
     if not 0 <= args.prefill_chunk_size <= 16384 or args.decode_quota < 1:
         parser.error("Invalid prefill chunk or decode quota")
     if not 0 <= args.pipeline_window <= 8:
