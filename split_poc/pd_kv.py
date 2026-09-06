@@ -34,7 +34,7 @@ class KVTransfer:
             raise RuntimeError('vLLM NCCL KV communicator unavailable')
         self.stream=torch.cuda.Stream(device=self.rank)
         self.thread=concurrent.futures.ThreadPoolExecutor(max_workers=1,thread_name_prefix='kv-copy')
-        self.records={};self.released=set();self.lock=threading.Lock()
+        self.records={};self.released=set();self.lock=threading.RLock()
 
     def reserve(self, request_id, prompt_len, max_len):
         signature=(prompt_len,max_len)
@@ -45,27 +45,41 @@ class KVTransfer:
                 raise ValueError('Conflicting KV reservation')
             return
         self.runner.pool.reserve(request_id,prompt_len if self.role=='prefill' else max_len)
-        self.records[request_id]=dict(signature=signature,state='reserved',future=None)
+        self.records[request_id]=dict(signature=signature,state='reserved',future=None,enqueued_until=0,ranges={},computed_until=0,event=None)
 
-    def start(self, request_id):
-        record=self.records[request_id]
-        if record['future'] is not None:return
-        if self.role=='prefill' and self.runner.pool.requests[request_id]['length']!=record['signature'][0]:
-            raise ValueError('Export before complete prompt KV')
-        # The source compute stream has committed all KV writes before copying.
-        ready=torch.cuda.Event();ready.record()
+    def note_computed(self, items):
+        # Record on the actual forward stream, never on the control thread.
+        event=torch.cuda.Event();event.record()
+        with self.lock:
+            for item in items:
+                record=self.records[item['request_id']]
+                record.update(computed_until=item['position']+item['query_len'],event=event)
+
+    def start(self, request_id, start=0, end=None):
+        record=self.records[request_id];length=record['signature'][0]
+        end=length if end is None else end
+        if type(start) is not int or type(end) is not int or not 0<=start<end<=length:
+            raise ValueError('Invalid KV range')
+        if start%16 or (end!=length and end%16):raise ValueError('Partial nonfinal KV page')
+        if (start,end) in record['ranges']:return
+        if start!=record['enqueued_until']:raise ValueError('Noncontiguous KV range')
+        if self.role=='prefill' and end>record['computed_until']:
+            raise ValueError('Export before computed prefix')
+        ready=record['event'] if self.role=='prefill' else None
         record['state']='copying'
-        record['future']=self.thread.submit(self.copy,request_id,ready)
+        future=self.thread.submit(self.copy,request_id,ready,start,end)
+        record['ranges'][start,end]=future
+        record.update(future=future,enqueued_until=end)
 
     @torch.inference_mode()
-    def copy(self, request_id, ready):
+    def copy(self, request_id, ready, start_position, end_position):
         torch.cuda.set_device(self.rank)
-        record=self.records[request_id];length=record['signature'][0]
-        blocks=self.runner.pool.requests[request_id]['blocks'][:(length+15)//16]
+        length=end_position-start_position
+        blocks=self.runner.pool.requests[request_id]['blocks'][start_position//16:(end_position+15)//16]
         layers=list(self.runner.model.model.layers.values())
         start=time.perf_counter_ns();checksums={}
         with torch.cuda.stream(self.stream):
-            self.stream.wait_event(ready)
+            if ready is not None:self.stream.wait_event(ready)
             ids=torch.tensor(blocks,device='cuda',dtype=torch.long)
             shape=(len(layers),2,len(blocks),16,128)
             if self.role=='prefill':
@@ -95,7 +109,7 @@ class KVTransfer:
             done=torch.cuda.Event();done.record()
         done.synchronize()
         return dict(start_ns=start,end_ns=time.perf_counter_ns(),checksums=checksums,
-                    logical_bytes=len(layers)*2*length*2*128*2)
+                    logical_bytes=len(layers)*2*length*2*128*2,range_start=start_position,range_end=end_position)
 
     def status(self, ids):
         result={}
@@ -103,7 +117,7 @@ class KVTransfer:
             if rid in self.released:
                 result[rid]={'state':'released'};continue
             record=self.records[rid];future=record['future']
-            value={'state':record['state']}
+            value={'state':record['state'],'enqueued_until':record['enqueued_until']}
             if future is not None and future.done():
                 value.update(future.result())
                 if value['state']=='copying':value['state']='copied'
@@ -114,8 +128,10 @@ class KVTransfer:
         record=self.records[rid]
         if record['state']=='ready':return
         future=record['future']
-        if self.role!='decode' or future is None or not future.done():
+        if (self.role!='decode' or future is None or not future.done()
+            or record['enqueued_until']!=record['signature'][0]):
             raise ValueError('Cannot commit incomplete D KV')
+        for pending in record['ranges'].values():pending.result()
         future.result()
         self.runner.pool.requests[rid]['length']=record['signature'][0]
         record['state']='ready'
@@ -127,6 +143,9 @@ class KVTransfer:
                 future=record['future']
                 if future is not None:
                     if not future.done():raise ValueError('Cannot free in-flight KV')
+                    for pending in record['ranges'].values():
+                        if not pending.done():raise ValueError('Cannot free in-flight KV range')
+                        pending.result()
                     future.result()
         self.runner.pool.release(ids)
         for rid in ids:
@@ -135,9 +154,12 @@ class KVTransfer:
         if len(self.released)>8192:self.released=set(list(self.released)[-4096:])
 
     def execute(self, command):
+        with self.lock:return self._execute(command)
+
+    def _execute(self, command):
         op=command['op'];ids=command.get('ids',[])
         if op=='pd_reserve':self.reserve(command['request_id'],command['prompt_len'],command['max_len'])
-        elif op=='pd_start':self.start(command['request_id'])
+        elif op=='pd_start':self.start(command['request_id'],command.get('start',0),command.get('end'))
         elif op=='pd_status':return self.status(ids)
         elif op=='pd_commit':self.commit(command['request_id'])
         elif op=='pd_release':self.release(ids)

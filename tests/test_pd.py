@@ -5,7 +5,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from split_poc.runtime import KVPool
+from split_poc.runtime import KVPool,Executor
 from split_poc.pd_kv import KVTransfer,head_routes
 from split_poc.pd_control import PDControl
 from split_poc.pd_scheduler import PDScheduler
@@ -49,7 +49,7 @@ class PDTests(unittest.TestCase):
 
     def test_no_commit_or_reuse_before_cuda_copy_completion(self):
         obj=self.transfer();future=concurrent.futures.Future()
-        obj.records['a'].update(future=future,state='copying')
+        obj.records['a'].update(future=future,state='copying',enqueued_until=17)
         with self.assertRaises(ValueError):obj.commit('a')
         with self.assertRaises(ValueError):obj.release(['a'])
         self.assertEqual(obj.runner.pool.requests['a']['length'],0)
@@ -63,9 +63,56 @@ class PDTests(unittest.TestCase):
     def test_failed_shard_cannot_become_ready(self):
         obj=self.transfer();future=concurrent.futures.Future()
         future.set_exception(RuntimeError('missing shard'))
-        obj.records['a'].update(future=future,state='copying')
+        obj.records['a'].update(future=future,state='copying',enqueued_until=17)
         with self.assertRaisesRegex(RuntimeError,'missing shard'):obj.commit('a')
         self.assertEqual(obj.runner.pool.requests['a']['length'],0)
+
+    def test_pd_status_bypasses_busy_gpu_command_lock(self):
+        obj=Executor.__new__(Executor);obj.lock=threading.Lock();obj.pd_lock=threading.Lock()
+        obj.healthy=True;pipe=Mock();obj.pd_pipes=[pipe]
+        pipe.poll.return_value=True;pipe.recv.return_value={'result':{'a':{'state':'copied'}}}
+        pool=concurrent.futures.ThreadPoolExecutor()
+        obj.lock.acquire()
+        try:
+            future=pool.submit(obj.call,{'op':'pd_status','ids':['a']})
+            self.assertEqual(future.result(timeout=1),{'ranks':[{'a':{'state':'copied'}}]})
+        finally:
+            obj.lock.release();pool.shutdown(wait=True)
+
+    def test_chunk_ranges_are_contiguous_idempotent_and_final_only_commit(self):
+        obj=self.transfer();obj.thread=Mock()
+        first=concurrent.futures.Future();last=concurrent.futures.Future()
+        obj.thread.submit.side_effect=[first,last]
+        with self.assertRaisesRegex(ValueError,'Partial'):obj.start('a',0,15)
+        with self.assertRaisesRegex(ValueError,'Noncontiguous'):obj.start('a',16,17)
+        obj.start('a',0,16);obj.start('a',0,16)
+        self.assertEqual(obj.thread.submit.call_count,1)
+        first.set_result({})
+        with self.assertRaisesRegex(ValueError,'incomplete'):obj.commit('a')
+        obj.start('a',16,17)
+        with self.assertRaisesRegex(ValueError,'incomplete'):obj.commit('a')
+        with self.assertRaisesRegex(ValueError,'in-flight'):obj.release(['a'])
+        last.set_result({});obj.commit('a')
+        self.assertEqual(obj.runner.pool.requests['a']['length'],17)
+        obj.release(['a']);self.assertEqual(len(obj.runner.pool.free),8)
+
+    def test_source_cannot_export_uncomputed_pages(self):
+        obj=self.transfer();obj.role='prefill';obj.thread=Mock()
+        with self.assertRaisesRegex(ValueError,'computed prefix'):obj.start('a',0,16)
+        obj.records['a'].update(computed_until=16,event=object())
+        obj.start('a',0,16)
+        with self.assertRaisesRegex(ValueError,'computed prefix'):obj.start('a',16,17)
+
+    def test_chunk_boundary_rounds_down_until_final(self):
+        obj=PDControl.__new__(PDControl);obj.condition=threading.Condition()
+        obj.args=SimpleNamespace(pd_chunk_transfer=True);obj.tasks=Mock()
+        obj.records={'a':dict(signature=(33,49),enqueued_until=0,future=None,state='prefill')}
+        def forward(pos,n):
+            obj.after_forward(dict(phase='prefill',items=[dict(request_id='a',position=pos,query_len=n)]))
+        forward(0,15);obj.tasks.submit.assert_not_called()
+        forward(15,14);self.assertEqual(obj.tasks.submit.call_args.args[2:4],(0,16))
+        previous=obj.records['a']['future']
+        forward(29,4);self.assertEqual(obj.tasks.submit.call_args.args[2:],(16,33,previous))
 
     def test_cancel_drains_before_remote_release(self):
         obj=PDControl.__new__(PDControl);future=concurrent.futures.Future()

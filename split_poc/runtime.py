@@ -279,6 +279,7 @@ class Runner:
                     hidden, residual = self.model.layers(positions, hidden, residual,
                                                          range(self.model.front, self.model.end))
                 self.pool.commit(items)
+                if self.pd and self.args.get('pd_role')=='prefill':self.pd.note_computed(items)
                 if self.rank == 0:
                     t = time.perf_counter()
                     output = [hidden.cpu().numpy(), residual.cpu().numpy()]
@@ -357,12 +358,23 @@ class Runner:
         return None
 
 
-def worker(rank, args, pipe):
+def worker(rank, args, pipe, pd_pipe=None):
     mailbox = None
     try:
         if rank == 0 and args.get("local_ipc_names"):
             mailbox = LocalMailbox(args["local_ipc_names"])
         runner = Runner(rank, args)
+        if pd_pipe is not None:
+            def control_loop():
+                torch.cuda.set_device(rank)
+                try:
+                    while True:
+                        command=pd_pipe.recv()
+                        if command['op']=='stop':return
+                        try:pd_pipe.send({'result':runner.pd.execute(command)})
+                        except Exception:pd_pipe.send({'error':traceback.format_exc()})
+                except (EOFError,OSError):return
+            threading.Thread(target=control_loop,daemon=True,name='pd-control').start()
         from vllm.distributed import get_tp_group
         communicator = getattr(get_tp_group().device_communicator, "pynccl_comm", None)
         nccl = getattr(communicator, "nccl", None)
@@ -424,6 +436,7 @@ class Executor:
         if self.mailbox:
             args = {**args, "local_ipc_names": self.mailbox.names}
         self.pipes, self.processes = [], []
+        self.pd_pipes=[];self.pd_lock=threading.Lock()
         self.worker_audits = []
         self.healthy = True
         self.lock = threading.Lock()
@@ -438,9 +451,12 @@ class Executor:
         ctx = mp.get_context("spawn")
         for rank in range(args["tp"]):
             parent, child = ctx.Pipe()
-            process = ctx.Process(target=worker, args=(rank, args, child), daemon=True)
+            pd_parent,pd_child=ctx.Pipe() if args.get('pd_role') else (None,None)
+            process = ctx.Process(target=worker, args=(rank, args, child,pd_child), daemon=True)
             process.start()
             child.close()
+            if pd_child is not None:
+                pd_child.close();self.pd_pipes.append(pd_parent)
             self.pipes.append(parent)
             self.processes.append(process)
         for pipe in self.pipes:
@@ -452,6 +468,20 @@ class Executor:
             self.worker_audits.append(reply["audit"])
 
     def call(self, command, arrays=None):
+        if self.pd_pipes and command['op'] in ('pd_start','pd_status','pd_commit'):
+            with self.pd_lock:
+                if not self.healthy:raise RuntimeError('Executor unhealthy; restart required')
+                try:
+                    for pipe in self.pd_pipes:pipe.send(command)
+                    replies=[]
+                    for pipe in self.pd_pipes:
+                        if not pipe.poll(30):raise TimeoutError('PD control timeout')
+                        reply=pipe.recv()
+                        if 'error' in reply:raise RuntimeError(reply['error'])
+                        replies.append(reply['result'])
+                    return {'ranks':replies} if command['op']=='pd_status' else replies[0]
+                except BaseException:
+                    self.healthy=False;raise
         with self.lock:
             return self._call(command, arrays)
 
@@ -493,5 +523,7 @@ class Executor:
                 process.terminate()
         for process in self.processes:
             process.join(timeout=10)
+        for pipe in self.pd_pipes:
+            with contextlib.suppress(Exception):pipe.close()
         if self.mailbox:
             self.mailbox.close()

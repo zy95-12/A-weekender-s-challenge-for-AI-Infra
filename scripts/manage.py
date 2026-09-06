@@ -135,6 +135,7 @@ def up(args):
                        '--decode-tp',str(args.decode_tp),'--cloud-decode','http://10.205.0.2:8002']
             if role!='enterprise':common+=['--pd-role','decode' if role=='cloud_decode' else 'prefill']
             if args.pd_verify_kv:common+=['--pd-verify-kv']
+            if args.pd_chunk_transfer:common+=['--pd-chunk-transfer']
         if args.profile or args.phase_profile:
             common.append("--phase-profile")
         if not args.profile:
@@ -202,6 +203,7 @@ if __name__ == "__main__":
     parser.add_argument('--prefill-tp',type=int,choices=[1,2],default=2)
     parser.add_argument('--decode-tp',type=int,choices=[1,2],default=1)
     parser.add_argument('--pd-verify-kv',action='store_true',help='Diagnostic exact KV copy hashes; excluded from benchmarks')
+    parser.add_argument('--pd-chunk-transfer',action='store_true',help='Migrate completed KV pages after each prefill chunk')
     args = parser.parse_args()
     if args.pd and (args.prefill_tp+args.decode_tp!=3 or args.enterprise_tp not in (None,1) or not args.pipeline_window):
         parser.error('PD on this four-GPU host requires E1, P+D=3 and --pipeline-window')

@@ -39,7 +39,7 @@ class PDControl:
             try:self.executor.call(command)
             except BaseException:
                 self.remote({'op':'pd_release','ids':[rid]});raise
-            self.records[rid]={'signature':(length,maximum),'state':'prefill','future':None}
+            self.records[rid]={'signature':(length,maximum),'state':'prefill','future':None,'enqueued_until':0,'chunks':[]}
         return {'ok':True}
 
     def after_forward(self, command):
@@ -47,19 +47,27 @@ class PDControl:
         with self.condition:
             for item in command['items']:
                 rid=item['request_id'];record=self.records[rid]
-                if item['position']+item['query_len']==record['signature'][0]:
-                    if record['future'] is not None:raise ValueError('Duplicate final prefill')
-                    record['state']='copying'
-                    record['future']=self.tasks.submit(self.migrate,rid)
+                length=record['signature'][0]
+                end=item['position']+item['query_len']
+                if end!=length:
+                    if not getattr(self.args,'pd_chunk_transfer',False):continue
+                    end=end//16*16
+                start=record['enqueued_until']
+                if end<=start:continue
+                previous=record['future']
+                record.update(state='copying',enqueued_until=end)
+                record['future']=self.tasks.submit(self.migrate,rid,start,end,previous)
 
-    def migrate(self, rid):
+    def migrate(self, rid, start, end, previous):
         try:
+            if previous is not None:previous.result()
+            final=end==self.records[rid]['signature'][0]
             started=time.perf_counter_ns()
             # NCCL send/recv has no application tags. All workers must enqueue
             # the same request order even when two control tasks overlap.
             with self.dispatch:
-                self.remote({'op':'pd_start','request_id':rid})
-                self.executor.call({'op':'pd_start','request_id':rid})
+                self.remote({'op':'pd_start','request_id':rid,'start':start,'end':end})
+                self.executor.call({'op':'pd_start','request_id':rid,'start':start,'end':end})
             deadline=time.monotonic()+30
             send={'ranks':[]}
             while True:
@@ -72,17 +80,22 @@ class PDControl:
                 source={k:v for r in send['ranks'] for k,v in r[rid]['checksums'].items()}
                 target={k:v for r in receive['ranks'] for k,v in r[rid]['checksums'].items()}
                 if source!=target or set(source)!={'0','1'}:raise RuntimeError('KV payload mismatch')
-            self.remote({'op':'pd_commit','request_id':rid})
+            if final:self.remote({'op':'pd_commit','request_id':rid})
             with self.condition:
-                self.records[rid].update(state='ready',transfer_start_ns=started,
-                    kv_ready_ns=time.perf_counter_ns(),source=send['ranks'],destination=receive['ranks'])
-                self.condition.notify_all()
+                if final:
+                    self.records[rid].update(state='ready',transfer_start_ns=started,
+                        kv_ready_ns=time.perf_counter_ns(),source=send['ranks'],destination=receive['ranks'])
+                    self.condition.notify_all()
             # Destination commit is sufficient for decode readiness. Source
             # cleanup may wait behind another P batch without delaying D.
             while not send['ranks'] or not all(r[rid]['state']=='copied' for r in send['ranks']):
                 send=self.executor.call({'op':'pd_status','ids':[rid]})
                 if time.monotonic()>deadline:raise TimeoutError('Source completion timeout')
                 if not all(r[rid]['state']=='copied' for r in send['ranks']):time.sleep(.001)
+            chunk=dict(range_start=start,range_end=end,transfer_start_ns=started,
+                       source=send['ranks'],destination=receive['ranks'])
+            with self.condition:self.records[rid]['chunks'].append(chunk)
+            if not final:return
             released=self.executor.call({'op':'pd_release','ids':[rid]})
             self.metrics['kv_used_blocks']=released['kv_used_blocks']
             with self.condition:

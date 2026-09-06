@@ -56,11 +56,22 @@ async def main():
     for name in ['split_trace.jsonl','pd_trace.jsonl','pd_kv_trace.jsonl','enterprise_config.json','cloud_prefill_config.json','cloud_decode_config.json']:
         shutil.copyfile(live/name,OUT/name)
     transfers=[json.loads(line) for line in (OUT/'pd_kv_trace.jsonl').read_text().splitlines()]
+    chunk_count=0
     for r in transfers:
-        src={k:v for rank in r['source'] for k,v in rank[r['request_id']]['checksums'].items()}
-        dst={k:v for rank in r['destination'] for k,v in rank[r['request_id']]['checksums'].items()}
-        assert src==dst and set(src)=={'0','1'}
-    result={'passed':True,'concurrency':args.concurrency,'requests':len(rows),'exact_kv_transfers':len(transfers),'cancel_cases':2,
+        chunks=r.get('chunks',[r]);end=0
+        for chunk in chunks:
+            src={k:v for rank in chunk['source'] for k,v in rank[r['request_id']]['checksums'].items()}
+            dst={k:v for rank in chunk['destination'] for k,v in rank[r['request_id']]['checksums'].items()}
+            assert src==dst and set(src)=={'0','1'}
+            if 'range_start' in chunk:
+                assert chunk['range_start']==end
+                end=chunk['range_end']
+                for rank in chunk['source']+chunk['destination']:
+                    assert rank[r['request_id']]['range_end']==end
+            chunk_count+=1
+        if 'chunks' in r:
+            assert all(rank[r['request_id']]['enqueued_until']==end for rank in r['destination'])
+    result={'passed':True,'concurrency':args.concurrency,'requests':len(rows),'exact_kv_transfers':len(transfers),'exact_kv_chunks':chunk_count,'cancel_cases':2,
             'nonaligned_prompt_tokens':257,'max_tokens_one':True}
     (OUT/'audit.json').write_text(json.dumps(result,indent=2));print(json.dumps(result),flush=True)
 
