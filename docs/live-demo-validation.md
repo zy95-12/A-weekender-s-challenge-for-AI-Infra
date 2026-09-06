@@ -28,7 +28,7 @@ Headless Chromium 从服务停止状态打开页面，点击启动按钮，后�
 
 ## Baseline / 优化系统开环对比
 
-05 章节已切换到独立泊松到达的双系统对比，闭环扫描和 C16 闭环耗时拆解仅保留历史归档，不在 demo 展示。完整结果、各点时长及统计限制见 [开环实测报告](../demo/evidence/open-loop-report.md)，[CSV](../demo/evidence/open-loop-sweep.csv) 和 [原始请求、计划、trace及复现脚本](../demo/evidence/open-loop-raw.zip)。
+05 章节已切换到独立泊松到达的双系统对比，闭环扫描和 C16 耗时拆解图表仅保留历史归档；demo 保留 C16 的通信、流水与调度分析结论。完整结果、各点时长及统计限制见 [开环实测报告](../demo/evidence/open-loop-report.md)，[CSV](../demo/evidence/open-loop-sweep.csv) 和 [原始请求、计划、trace及复现脚本](../demo/evidence/open-loop-raw.zip)。
 
 客户端没有并发上限，也不以完成事件补请求；相同到达率使用相同随机计划。两套系统统一 max_active=96 / kv_blocks=32768。TTFT 从计划到达时刻起算，包括发包延误；超时/错误计失败。表中同时给出设定到达率、实际到达率、完成QPS和达标QPS，不把这些量混同。均值/P99 按到达cohort展示，联合SLO对到达与完成cohort均检查。比较包含相同四卡资源上的拓扑和stage1/2/3整体变化，不是单个优化的消融。
 

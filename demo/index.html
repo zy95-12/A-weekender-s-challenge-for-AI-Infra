@@ -344,6 +344,34 @@ Security inference should protect private prompts while preserving useful model 
       >
         <div class="eyebrow"><span>05</span> 真实系统优化</div>
         <h2 id="optimization-title">开环负载下，比较 SLO 与吞吐。</h2>
+        <article class="card" id="baseline-analysis">
+          <h3>C16 Baseline：通信、流水与调度是优化重点</h3>
+          <p>
+            <strong>通信开销与云侧处理同量级，需要优化通信路径。</strong>
+            SplitInfer 引入了显著的端云通信开销，往返 RPC
+            耗时与云侧处理时间相当， 远高于仅按“通信量 /
+            带宽”估算的时间。差额包含固定链路时延，以及序列化、 内存拷贝、IPC
+            等额外成本；应结合 profiling
+            削减可避免的操作，不能将差额全部视为冗余传输。
+          </p>
+          <p>
+            <strong>通信瓶颈持续存在，还需要用流水隐藏等待。</strong>
+            减少通信路径中的额外开销后，端云传输与固定链路时延仍然存在。
+            需要让不同请求的计算、传输和 KV
+            迁移尽可能重叠，减少通信阻塞计算的时间。
+          </p>
+          <p>
+            <strong>大并发下，请求等待是主要开销，需要端云协同调度。</strong>
+            C16 下，请求在计算步骤之外的等待远大于单步执行时间。
+            应协同安排企业前后层、云侧 prefill/decode 与 KV 就绪时机，
+            减少排队和相互阻塞，才能将局部加速转化为 SLO 下的吞吐提升。
+          </p>
+          <p class="muted">
+            结论来自 C16 Baseline 的历史 trace 分析；RPC 区间包含主机处理，
+            云侧处理区间也不等于纯 GPU kernel
+            时间。下方性能曲线统一使用开环实测。
+          </p>
+        </article>
         <article class="card">
           <h3>已实现的优化与推荐配置</h3>
           <table>
@@ -356,7 +384,7 @@ Security inference should protect private prompts while preserving useful model 
             </thead>
             <tbody>
               <tr>
-                <td>Stage1：SHM / wire fast / TCP buffer</td>
+                <td>通信路径优化：SHM / wire fast / TCP buffer</td>
                 <td>
                   共享内存 IPC、减少 wire 打包开销、16 MiB socket buffer；仍存在
                   D2H/H2D，未实现跨 WAN 零拷贝。
@@ -364,7 +392,7 @@ Security inference should protect private prompts while preserving useful model 
                 <td>开启</td>
               </tr>
               <tr>
-                <td>Stage2：chunked prefill / decode-first</td>
+                <td>分块预填充与解码优先调度</td>
                 <td>
                   prefill 按 2048 tokens 切块，decode quota=4，减少完整 prefill
                   对 decode 的阻塞；不是混合 P/D batch。
@@ -372,7 +400,7 @@ Security inference should protect private prompts while preserving useful model 
                 <td>开启</td>
               </tr>
               <tr>
-                <td>Stage3：异步流水</td>
+                <td>计算与通信异步流水</td>
                 <td>
                   允许多个请求的计算和传输在途，D
                   窗口=2；不保证任意并发下都有收益。

@@ -27,7 +27,7 @@ UI 进程退出不会停止 serving；停止服务使用 `./poc down`。
 - **方案分析**：`Q1/demo_attack.py` 调用 PR #15 原版 `retrieval.recover`，把输入编码为 FP16 embedding，然后真实执行全词表 FP32 余弦最近邻恢复。CPU 实现，不是密码学加解密，也不声称反演了 4 层后的 serving 激活。每次运行可下载 NPY 和逐位置 JSON，真实耗时包含在结果中。原始 IDs 只用于检索之后评分。
 - **功能实现**：固定 `./poc up --wan`；轮询实际健康状态。回复来自模型，TTFT/TPOT 来自浏览器 token 事件计时，包含网络、代理和浏览器开销；少于两个输出 token 时 TPOT 不定义。
 - **精度**：只展示 Split 4/27/5 对原生完整单卡 TP1/full-prefill 的 8 道 GSM8K 真实归档结果。逐绝对位置对齐，decode 使用同一 teacher-forcing 序列；不比较自由回答。`accuracy-samples.json` 展示这 8 组不同输入。原生与 Split TP2+2 已于2026-09-07重新采集，现采用 logits cosine、top1 一致率和 top-5/10/20 overlap，不沿用绝对误差门槛；原始 logits、模型版本和门槛见 [精度报告](../docs/gsm8k-native-tp1.md)。
-- **优化曲线**：05 章节主要展示 baseline 与优化系统的真实开环对比：同一目标到达率使用相同泊松请求计划，客户端不限制并发，服务端统一 max_active=96 / kv_blocks=32768。横轴为实测完成 QPS，均值/P99 按计划到达 cohort 计算；TTFT 包括发包延误，错误计失败，到达和完成 cohort 均须至少99%请求同时满足两项SLO。显示每点实际到达率、在途并发和测量时长；页面不展示闭环测试结果。见 [开环报告](evidence/open-loop-report.md)。
+- **优化曲线**：05 章节主要展示 baseline 与优化系统的真实开环对比：同一目标到达率使用相同泊松请求计划，客户端不限制并发，服务端统一 max_active=96 / kv_blocks=32768。横轴为实测完成 QPS，均值/P99 按计划到达 cohort 计算；TTFT 包括发包延误，错误计失败，到达和完成 cohort 均须至少99%请求同时满足两项SLO。显示每点实际到达率、在途并发和测量时长；页面不展示闭环测试曲线与指标表；保留 C16 历史 trace 的通信、流水和调度分析结论。见 [开环报告](evidence/open-loop-report.md)。
 - **仿真**：`demo/simulate.py` 对接当前主线 Q4，只开放 Qwen2.5-3B/A10/4K/79。optimized 使用 vendored real-serving scheduler、C40 empirical command 和 host profile，seed17；baseline 使用 behavioral scheduler、operator/host cost，沿用 baseline 精度回归的活动上限（C1 为8，其余为16）。每点真实执行、不缓存结果；不同并发仍是预测，参见 [校准与局限](../Q4/docs/CALIBRATION_AND_LIMITS.md)。
 
 ## 复现开环对比
