@@ -869,7 +869,7 @@ class Simulator:
     def _transaction_bytes(self, item: WorkItem) -> float:
         one_way = (
             item.token_count
-            * self.config.model.hidden_size
+            * self.config.model.activation_width
             * self.config.model.dtype_bytes
             * self.config.network.activation_tensor_count
             + self.config.network.protocol_overhead_bytes

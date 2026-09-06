@@ -1,0 +1,13 @@
+{
+  "qwen3_32b": {
+    "url": "https://huggingface.co/Qwen/Qwen3-32B/resolve/9216db5781bf21249d130ec9da846c4624c16137/config.json",
+    "sha256": "97e295b63283935788fac5e4f8860862a56d4089538cafc93f0431f2ebe483bb",
+    "retrieved": "2026-09-07"
+  },
+  "deepseek_v4_flash": {
+    "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash/resolve/60d8d70770c6776ff598c94bb586a859a38244f1/config.json",
+    "sha256": "b628e63398a645abc711d92207f8737dd8140f7a4ef1e0a5b3616019e0ddd818",
+    "retrieved": "2026-09-07",
+    "implementation_url": "https://github.com/huggingface/transformers/blob/a353632607c59463e6ced86a44c2de3c2cd62d5e/src/transformers/models/deepseek_v4/modeling_deepseek_v4.py"
+  }
+}

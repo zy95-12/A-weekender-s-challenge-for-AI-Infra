@@ -2,7 +2,7 @@
 
 ## 功能/回归
 
-从 Q4 运行 `python3 -m unittest discover -s tests -q`。当前 99 项 CPU 测试覆盖配置、DAG、batch/窗口、PD admission、原源码决策 oracle、乱序响应、CPU/GPU 提交重叠、分布采样及 post-back CPU 工作。真实模块与源码快照使用相同事件序列的 oracle 在 `tests/fixtures/serving_decisions.json`。
+从 Q4 运行 `python3 -m unittest discover -s tests -q`。当前 108 项 CPU 测试覆盖配置、DAG、batch/窗口、PD admission、原源码决策 oracle、乱序响应、CPU/GPU 提交重叠、分布采样及 post-back CPU 工作。真实模块与源码快照使用相同事件序列的 oracle 在 `tests/fixtures/serving_decisions.json`。
 
 `python3 tools/validate_release.py` 在干净 checkout、无 GPU 和外部 `/root/...` 目录依赖下复现 baseline C1/C8/C16 以及 PD seed 17/29/43。该检查是数值回归，不是重新采集硬件数据。输出保存在 `outputs/release-validation`。
 
@@ -73,3 +73,5 @@ Q4 99 项、demo 2 项、根目录 serving 78 项测试通过；JavaScript 语�
 ## 开环独立验证
 
 已回放 11 个真实开环到达计划，结果和复现见 [开环误差报告](OPEN_LOOP_VALIDATION.md)。沿用原成本表，不能将旧闭环校准精度直接视为开环容量预测精度。
+
+新增8组GPU重复验证及19组MAPE/偏差汇总见[重复验证报告](REPEATED_OPEN_LOOP.md)。公开硬件与模型选项已做容量隔离和两后端prefill/decode功能检查，尚无跨设备GPU实测精度。

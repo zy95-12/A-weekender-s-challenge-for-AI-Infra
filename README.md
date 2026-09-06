@@ -170,17 +170,55 @@ python3 scripts/plot_open_loop.py
 
 ### 06 推理性能建模
 
-[Q4 仿真器](Q4/README.md)支持通过模型结构与硬件参数配置进行理论性能建模，使用 DAG + event-driven 执行，支持 baseline behavioral scheduler 和固定版本的真实 PD scheduler 源码。理论框架可配置多模型与多硬件，但跨模型、跨硬件的预测精度尚未通过实测验证。当前 Demo **只开放** Qwen2.5-3B、A10 × 4、Split 4/27/5、4096 输入/79 输出：optimized 使用 C40 empirical command/host profile，baseline 使用 operator/host cost。每个并发点都会实际执行，不读取结果缓存；除校准点外均是预测值。
+[Q4 仿真器](Q4/README.md)从模型结构构建计算/通信 DAG，使用 **Roofline + profiling 修正**估算成本，通过 **event-driven** 引擎产生资源竞争、排队和流水重叠。WAN 使用实测曲线修正拷贝、序列化、IPC 和传输成本；优化 PD 直接复用真实 Scheduler 源码，baseline 使用行为调度模型。
 
-页面“运行仿真”会对输入的并发点逐一调用 [demo/simulate.py](demo/simulate.py)。单点 CLI 复现如下：
+Demo 第六部分提供开环到达率输入和硬件/模型下拉项，每个点实际执行仿真、不缓存结果：
+
+| 选项 | 支持范围 |
+|---|---|
+| 硬件 | A10、L20 48GB、H20 96GB、Ascend910B 64GB |
+| 模型 | Qwen2.5-3B、Qwen3-32B、DeepSeek V4-Flash |
+| 成本 | A10/3B使用原operator或command/host/WAN校准；其他组合仅公开参数Roofline，关闭A10校准表 |
+| 部署 | 企业首4/尾5层，自动按权重+96请求KV容量选择TP，显示实际总卡数；不是固定4卡比较 |
+| 负载 | 4K输入/79输出，独立泊松到达，预热30s、测量60/120s、继续发包30s后排空 |
+
+V4-Flash包含路由/共享专家MoE、低秩投影、SWA/CSA/HCA压缩注意力和mHC；当前按 **BF16反量化后的架构场景**建模，不声称FP4/FP8加速、EP或实际推理服务支持。硬件公开参数、HF固定版本和局限见[理论模式说明](Q4/docs/PUBLIC_ROOFLINE.md)。新设备/模型的预测不纳入实测精度表。
+
+<!-- SIMULATION_ACCURACY_START -->
+Qwen2.5-3B / 4×A10 / 4K输入、79输出；19组开环实测对照（原11组 seed17 + 新8组 seed29/43）。精确回放实测到达计划，成本抽样固定seed17；未使用这些结果重新拟合成本。
+
+经过算子profiling、command/host及WAN等修正后的误差，单位为百分比；MAPE为实验点等权的平均绝对相对误差，偏差为有符号均值。
+
+| 系统 | 组数 | QPS MAPE / 偏差 | TTFT均值 MAPE / 偏差 | TPOT均值 MAPE / 偏差 | TTFT P99 MAPE | TPOT P99 MAPE |
+|---|---:|---:|---:|---:|---:|---:|
+| Baseline · 算子/CPU/WAN修正 | 5 | 4.5 / +0.02 | 4.3 / -4.26 | 34.5 / -34.48 | 4.4 | 25.3 |
+| 优化 PD · command/host profiling修正 | 14 | 0.7 / +0.00 | 16.0 / -15.96 | 19.4 / +19.39 | 14.6 | 14.6 |
+| 全部实验（点间等权） | 19 | 1.7 / +0.01 | 12.9 / -12.88 | 23.4 / +5.21 | 11.9 | 17.4 |
+
+① Decode与排队仍有残差：Baseline 5组 TPOT 均值 MAPE=34.5%，平均有符号偏差=-34.5%。原 λ=1 组的平均在途请求实测9.07、仿真5.95（−34.4%）；仅完成QPS接近并不代表延迟准确。
+
+② 尾部与相关性：19组中有4组被仿真误判为SLO通过。原优化 λ=4.744 组 TPOT 均值误差仅+1.6%，但P99实测106.30ms、仿真97.02ms，实际达标率89.42%，预测100%。独立成本抽样未保留阶段间/时间上的相关性；这是待验证的机制原因，不能仅凭总指标完成归因。
+
+③ Profiling覆盖不等于全部精确命中：原优化 λ=4.440 的每个decode stage共2259次成本查询，精确batch占30.9%、插值62.9%、外推6.2%；host查询中70.1%借用邻近batch按请求分摊。C40成本表用于低负载有外推风险。
+
+④ 到达波动与有限样本：Baseline λ=.75 的三个实测种子，TPOT均值范围56.1–81.2ms，达标率70.7%–97.0%。每组仿真精确回放同组实测时间表，因此这个波动不是该组仿真误差的借口，但说明单种子不能代表长期SLO容量。
+
+优化系统的边界重复结果也需注意：λ=4.440 的 seed43 完成4.725 QPS，但达标率94.26%、TPOT P99=104.76ms。原15.1倍是seed17最高观测通过点的比较，不是多种子稳定容量提升。
+
+⑤ 可迁移的是DAG、事件依赖和调度规则；算子/command/CPU收尾、WAN搬运、互联有效带宽与融合方式需重新校准。L20/H20/Ascend910B及其他模型仅提供公开参数理论预测，不纳入上述实测精度表。
+
+[逐点CSV](demo/evidence/simulation-accuracy.csv) · [完整统计JSON](demo/evidence/simulation-accuracy.json) · [补测原始记录与预测](demo/evidence/simulation-validation-raw.zip)
+<!-- SIMULATION_ACCURACY_END -->
+
+页面“运行仿真”调用 [demo/simulate.py](demo/simulate.py)。单点复现：
 
 ```bash
-printf '%s\n' '{"variant":"optimized","concurrency":40}' > /tmp/split-sim-input.json
+printf '%s\n' '{"variant":"optimized","workload_mode":"open_loop","arrival_rate_qps":0.5,"model":"qwen3-32b","hardware":"h20"}' > /tmp/split-sim-input.json
 python3 demo/simulate.py /tmp/split-sim-input.json /tmp/split-sim-output.json
 cat /tmp/split-sim-output.json
 ```
 
-归档的 C40 seed17 结果为 5.233 QPS、平均 TTFT 723.99 ms、平均 TPOT 87.47 ms；这是仿真预测，不是 GPU 实测。算子覆盖、系统偏差、外推边界和未实现能力见[校准与局限](Q4/docs/CALIBRATION_AND_LIMITS.md)、[Q4 验证](Q4/docs/VALIDATION.md)和[C40 回放结果](demo/evidence/simulation-c40-validation.json)。完整配置、trace、逐请求时间线和可交互甘特图的运行方法见 [Q4 README](Q4/README.md)。
+误差来源与校准范围见[校准与局限](Q4/docs/CALIBRATION_AND_LIMITS.md)、[开环验证](Q4/docs/OPEN_LOOP_VALIDATION.md)。可迁移的是结构、事件依赖和调度；kernel、CPU/锁、WAN搬运、互联有效带宽仍需按环境重新校准。
 
 ### 页面交互与代码入口
 
@@ -189,7 +227,7 @@ cat /tmp/split-sim-output.json
 | 生成激活 / 恢复 Token | 上述 `Q1/demo_attack.py --phase encode/recover`；[实现](Q1/demo_attack.py) |
 | 启动 Demo | `./poc up --wan`；停止使用 `./poc down` |
 | 发送对话 | 上述 `/v1/chat/completions` curl；[代理实现](demo/server.py) |
-| 运行并发仿真 | 上述 `demo/simulate.py`，或按 [Q4 CLI](Q4/README.md)输出完整 trace/Gantt |
+| 运行开环仿真 | 上述 `demo/simulate.py`，或按 [Q4 CLI](Q4/README.md)输出完整 trace/Gantt |
 | 下载实验结果 | [Demo 证据目录](demo/evidence)和[验收报告](docs/live-demo-validation.md) |
 
 前端实际使用的异步接口、任务产物位置和浏览器端到端验证方法统一记录在 [demo/README.md](demo/README.md)。

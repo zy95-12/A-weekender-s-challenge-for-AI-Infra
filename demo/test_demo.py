@@ -23,6 +23,25 @@ class ContractTests(unittest.TestCase):
             {"variant": "optimized", "concurrency": 40},
         )
 
+    def test_public_model_open_loop_contract(self):
+        valid = {
+            "variant": "optimized",
+            "workload_mode": "open_loop",
+            "arrival_rate_qps": 0.5,
+            "model": "deepseek-v4-flash",
+            "hardware": "ascend910b",
+        }
+        self.assertEqual(server.validate_sim(valid), valid)
+        for change in [
+            {"arrival_rate_qps": float("nan")},
+            {"arrival_rate_qps": True},
+            {"model": "deepseek-v3"},
+            {"hardware": "unknown"},
+            {"concurrency": 1},
+        ]:
+            with self.assertRaises(ValueError):
+                server.validate_sim({**valid, **change})
+
     def test_attack_needs_successful_encode(self):
         with self.assertRaises(ValueError):
             server.launch("recover", {"encode_id": "../../x"})

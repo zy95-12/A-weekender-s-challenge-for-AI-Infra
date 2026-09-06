@@ -8,6 +8,7 @@
 - [校准、硬编码、迁移要求和未解决问题](docs/CALIBRATION_AND_LIMITS.md)
 - [验证结果与复现](docs/VALIDATION.md)
 - [开环实测回放与误差报告](docs/OPEN_LOOP_VALIDATION.md)
+- [公开硬件与其他模型 Roofline](docs/PUBLIC_ROOFLINE.md)
 - [完整 Web demo](../demo/README.md)
 
 ## 快速运行
@@ -115,4 +116,4 @@ python3 Q4/scripts/compare_open_loop.py \
 可用 `--point optimized/refine-4.440` 只回放一个点。比较器固定沿用旧成本表，
 将两系统的服务端活动上限设为实测的 96、KV blocks 设为 32768；不拟合本次结果。
 输出逐请求预测、解析后配置、双 cohort 汇总、带符号相对误差 CSV/JSON。
-Demo 06 的并发输入仍是闭环接口；开环入口为此 CLI 和回放工具。
+Demo 06 已使用开环到达率输入，并提供模型/硬件下拉项；旧并发API保留兼容。

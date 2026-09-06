@@ -789,7 +789,11 @@ class Qwen3WorkloadModel:
 class RooflineModel:
     def __init__(self, config: SimulationConfig):
         self.config = config
-        self.workloads = Qwen3WorkloadModel(config)
+        if config.model.architecture == "deepseek_v4":
+            from .deepseek_v4 import DeepSeekV4WorkloadModel
+            self.workloads = DeepSeekV4WorkloadModel(config)
+        else:
+            self.workloads = Qwen3WorkloadModel(config)
         self.profiles = ProfilingDatabase(config.performance_profile)
         self.coverage: dict[str, dict[str, int]] = {}
 
@@ -822,7 +826,7 @@ class RooflineModel:
                         0.0,
                         float(
                             tokens
-                            * self.config.model.hidden_size
+                            * self.config.model.activation_width
                             * self.config.model.dtype_bytes
                         ),
                     ),
@@ -936,7 +940,7 @@ class NetworkModel:
     def payload_bytes(self, items: Sequence[WorkItem]) -> float:
         tensor_bytes = (
             sum(item.token_count for item in items)
-            * self.config.model.hidden_size
+            * self.config.model.activation_width
             * self.config.model.dtype_bytes
             * self.config.network.activation_tensor_count
         )
@@ -1047,16 +1051,22 @@ class NetworkModel:
                 (SubOperation(stage.value, "control", duration, "PD control"),))
         if stage == Stage.PD_KV_TRANSFER:
             payload = float(sum(item.token_count for item in items) * self.config.stage("cloud_middle").num_layers * 2 * self.config.model.kv_width * self.config.model.dtype_bytes)
+            if self.config.model.architecture == "deepseek_v4":
+                from .deepseek_v4 import cache_bytes
+                cloud = self.config.stage("cloud_middle")
+                payload = float(sum(cache_bytes(self.config.model, layer, item.token_start + item.token_count) for item in items for layer in range(cloud.layer_start, cloud.layer_end)))
             pd = self.config.scheduler.pd_disaggregation
             serialization = payload / (pd.kv_transfer_bandwidth_gb_s * 1e9)
             latency = pd.kv_transfer_latency_ms / 1000.0
             shape = f"{self.config.model.dtype} KV[{sum(item.token_count for item in items)}, {self.config.stage('cloud_middle').num_layers}, 2, {self.config.model.kv_width}]"
+            if self.config.model.architecture == "deepseek_v4":
+                shape = f"{self.config.model.dtype} SWA/compressed shared-KV + buffers: {payload:g} bytes"
             return PerformanceEstimate(0.0, 0.0, payload, 0.0, serialization, 0.0, latency, serialization + latency, shape, (SubOperation("pd_kv_transfer", "communication", serialization + latency, shape),))
         payload = self.payload_bytes(items)
         tensors = self.config.network.activation_tensor_count
         shape = (
             f"{tensors} x {self.config.model.dtype} "
-            f"[{sum(item.token_count for item in items)}, {self.config.model.hidden_size}]"
+            f"[{sum(item.token_count for item in items)}, {self.config.model.activation_width}]"
         )
         calibrated = self._calibrated_estimate(stage, items, payload, shape)
         if calibrated is not None:

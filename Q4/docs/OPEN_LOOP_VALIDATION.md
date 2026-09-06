@@ -73,6 +73,6 @@ TTFT/TPOT 单位 ms，均值来自 arrival cohort。
 - [逐请求预测/配置/覆盖率 ZIP](validation/open_loop/predictions.zip)：11点完整排空后的 token 时间线。
 - [回放命令](../README.md#开环负载与实测回放)。模型仿真无需GPU；绘图可使用`Q4/scripts/plot_open_loop.py`，需要 matplotlib。
 
-此报告为既有实测的独立负载回放，不是新增GPU压测，也未修改Demo 06的闭环输入界面。
+此报告对应首版11点回放。后续Demo已切换开环界面并新增8组GPU补测，19组统计见[Demo精度数据](../../demo/evidence/simulation-accuracy.json)。
 
 验证：104项单元测试通过；CLI开环冒烟通过；`tools/validate_release.py` 的 baseline C1/C8/C16 与 PD 三种子闭环回归通过，原结果保持不变。

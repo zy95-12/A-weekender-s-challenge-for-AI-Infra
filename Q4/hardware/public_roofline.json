@@ -1,0 +1,11 @@
+{
+  "as_of": "2026-09-07",
+  "units": {"compute": "dense FP16/BF16 TFLOPS", "bandwidth": "decimal GB/s", "capacity": "decimal GB"},
+  "assumptions": "Theoretical only: compute/memory efficiencies 0.7, launch 10us, interconnect latency 8us; none calibrated on these devices. Link bandwidth is one-direction. TP groups above 8 devices use assumed 25GB/s inter-node bandwidth.",
+  "devices": {
+    "a10": {"label": "NVIDIA A10", "peak_flops_tflops": 125, "hbm_bandwidth_gb_s": 600, "memory_gb": 23, "interconnect_bandwidth_gb_s": 24, "sources": ["https://www.nvidia.com/en-us/data-center/products/a10-gpu/"], "note": "Existing A10 config retained; 23GB usable-memory assumption."},
+    "l20": {"label": "NVIDIA L20 48GB", "peak_flops_tflops": 119.5, "hbm_bandwidth_gb_s": 864, "memory_gb": 48, "interconnect_bandwidth_gb_s": 32, "sources": ["https://arxiv.org/html/2504.02263v2", "https://www.ctyun.cn/document/10029787/10348867"], "note": "MegaScale-Infer Table 3; PCIe4 x16 32GB/s per direction is a theoretical topology assumption."},
+    "h20": {"label": "NVIDIA H20 96GB", "peak_flops_tflops": 148, "hbm_bandwidth_gb_s": 4000, "memory_gb": 96, "interconnect_bandwidth_gb_s": 450, "sources": ["https://arxiv.org/html/2511.00796v1", "https://docs.nvidia.com/ai-enterprise/release-6/6.7/infra-software/vgpu/reference/hopper.html"], "note": "AReaL-Hex experimental hardware: 148TFLOPS, 4TB/s, 450GB/s one-direction NVLink; 96GB SKU."},
+    "ascend910b": {"label": "Ascend 910B 64GB（理论320T）", "peak_flops_tflops": 320, "hbm_bandwidth_gb_s": 1600, "memory_gb": 64, "interconnect_bandwidth_gb_s": 196, "sources": ["https://ascend-rs.org/en/ch09-performance.html", "https://github.com/rainbay001-dotcom/xPU-simulator", "https://arxiv.org/html/2604.09752v1"], "note": "Research-reported parameters, not a unified vendor SKU guarantee: 320T based on 910B2 GEMM report, 1600GB/s from public simulator; 196GB/s one-direction HCCS is an uncalibrated assumption. CANN/vector/MTE details not modeled."}
+  }
+}

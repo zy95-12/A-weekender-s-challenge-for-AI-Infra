@@ -27,6 +27,12 @@ class ModelConfig:
     attention_bias: bool = False
     tie_word_embeddings: bool = False
 
+    architecture_config: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def activation_width(self) -> int:
+        return self.hidden_size * self.architecture_config.get("hc_mult", 1)
+
     @property
     def query_width(self) -> int:
         return self.num_attention_heads * self.head_dim
@@ -37,6 +43,10 @@ class ModelConfig:
 
     @property
     def parameters_per_layer(self) -> int:
+        if self.architecture == "deepseek_v4":
+            from .deepseek_v4 import layer_parameters
+
+            return max(layer_parameters(self, layer) for layer in range(self.num_layers))
         attention = (
             self.hidden_size * self.query_width
             + 2 * self.hidden_size * self.kv_width
@@ -471,6 +481,8 @@ def parse_config(data: dict[str, Any]) -> SimulationConfig:
         dtype_bytes=int(model_data.get("dtype_bytes", inferred_dtype_bytes or 2)),
         attention_bias=bool(model_data.get("attention_bias", False)),
         tie_word_embeddings=bool(model_data.get("tie_word_embeddings", False)),
+        architecture_config=(dict(model_data) if model_data.get("model_type") == "deepseek_v4"
+                             else dict(model_data.get("architecture_config", {}))),
     )
 
     topology_data = _required(data, "topology", "root")
@@ -782,8 +794,8 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("model dimensions must be positive")
     if config.model.dtype_bytes <= 0:
         raise ConfigError("model.dtype_bytes must be positive")
-    if config.model.architecture not in {"qwen2", "qwen3"}:
-        raise ConfigError("model architecture must be qwen2 or qwen3")
+    if config.model.architecture not in {"qwen2", "qwen3", "deepseek_v4"}:
+        raise ConfigError("model architecture must be qwen2, qwen3 or deepseek_v4")
     if min(
         config.model.intermediate_size,
         config.model.num_attention_heads,
@@ -793,6 +805,25 @@ def validate_config(config: SimulationConfig) -> None:
         raise ConfigError("Qwen model dimensions must be positive")
     if config.model.num_attention_heads % config.model.num_key_value_heads != 0:
         raise ConfigError("num_attention_heads must be divisible by num_key_value_heads")
+
+    if config.model.architecture == "deepseek_v4":
+        c = config.model.architecture_config
+        required = (
+            "q_lora_rank", "o_lora_rank", "o_groups", "moe_intermediate_size",
+            "n_routed_experts", "n_shared_experts", "num_experts_per_tok", "hc_mult",
+            "hc_sinkhorn_iters", "index_n_heads", "index_head_dim", "index_topk", "sliding_window",
+        )
+        if (any(type(c.get(k)) is not int or c[k] <= 0 for k in required)
+            or type(c.get("num_hash_layers")) is not int
+            or not 0 <= c["num_hash_layers"] <= config.model.num_layers):
+            raise ConfigError("DeepSeek V4 requires its complete positive HF architecture dimensions")
+        ratios = c.get("compress_ratios")
+        if (c["num_experts_per_tok"] > c["n_routed_experts"]
+            or not isinstance(ratios, (list, tuple)) or len(ratios) < config.model.num_layers
+            or any(r not in (0, 4, 128) for r in ratios)):
+            raise ConfigError("invalid DeepSeek V4 expert routing or compression schedule")
+        if config.performance_profile.enabled:
+            raise ConfigError("DeepSeek V4 currently supports uncalibrated Roofline only")
 
     expected_names = ["edge_front", "cloud_middle", "edge_tail"]
     if [stage.name for stage in config.stages] != expected_names:
