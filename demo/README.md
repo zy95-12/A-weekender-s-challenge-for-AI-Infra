@@ -28,7 +28,7 @@ UI 进程退出不会停止 serving；停止服务使用 `./poc down`。
 - **功能实现**：固定 `./poc up --wan`；轮询实际健康状态。回复来自模型，TTFT/TPOT 来自浏览器 token 事件计时，包含网络、代理和浏览器开销；少于两个输出 token 时 TPOT 不定义。
 - **精度**：只展示 Split 4/27/5 对原生完整单卡 TP1/full-prefill 的 8 道 GSM8K 真实归档结果。逐绝对位置对齐，decode 使用同一 teacher-forcing 序列；不比较自由回答。`accuracy-samples.json` 展示这 8 组不同输入。原生与 Split TP2+2 已于2026-09-07重新采集，现采用 logits cosine、top1 一致率和 top-5/10/20 overlap，不沿用绝对误差门槛；原始 logits、模型版本和门槛见 [精度报告](../docs/gsm8k-native-tp1.md)。
 - **优化曲线**：05 章节主要展示 baseline 与优化系统的真实开环对比：同一目标到达率使用相同泊松请求计划，客户端不限制并发，服务端统一 max_active=96 / kv_blocks=32768。横轴为实测完成 QPS，均值/P99 按计划到达 cohort 计算；TTFT 包括发包延误，错误计失败，到达和完成 cohort 均须至少99%请求同时满足两项SLO。显示每点实际到达率、在途并发和测量时长；页面不展示闭环吞吐曲线；保留 C16 Baseline 的实测耗时表，并在表格下方展示通信、流水和调度分析结论。见 [开环报告](evidence/open-loop-report.md)。
-- **仿真**：`demo/simulate.py` 对接Q4开环。A10/Qwen2.5-3B使用已有算子或command/host/WAN修正；新增L20/H20/Ascend910B、Qwen3-32B/DeepSeek V4-Flash下拉项使用公开参数Roofline，关闭A10校准表。每点实际执行。理论模式按96请求的权重+KV容量自动选TP，输出总卡数；V4为BF16架构近似，不声称FP4/FP8加速或真实模型服务支持。方案、精度表和误差证据在第六部分；见[公开参数与局限](../Q4/docs/PUBLIC_ROOFLINE.md)。
+- **仿真**：`demo/simulate.py` 对接Q4开环。A10/Qwen2.5-3B使用已有算子或command/host/WAN修正；新增L20/H20/Ascend910B、Qwen3-32B/DeepSeek V4-Flash下拉项使用公开参数Roofline，关闭A10校准表。每点实际执行。理论模式按96请求的权重+KV容量自动选TP，输出总卡数；V4为BF16架构近似，不声称FP4/FP8加速或真实模型服务支持。方案、精度表和误差证据在第七部分；见[公开参数与局限](../Q4/docs/PUBLIC_ROOFLINE.md)。
 
 
 ## 复现开环对比
