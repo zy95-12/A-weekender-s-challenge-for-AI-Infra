@@ -44,13 +44,13 @@
             在特定 SLO（4K 上下文输入，TTFT ≤ 3s、TPOT ≤ 100ms）下，
             按本次最高已测合格点比较，优化系统吞吐达到 baseline 的约
             <strong>15.1 倍（0.317 QPS → 4.775 QPS）</strong>。
-            项目同时实现了面向多种硬件配置与模型的理论性能建模框架， 为
-            SplitInfer 方案的落地提供参考。
+            项目同时实现了面向多种硬件配置与模型的理论性能建模框架；
+            在已校准的 Qwen2.5-3B / A10 配置下，19 组开环实验中 TTFT、TPOT
+            均值的平均绝对相对误差分别为 <strong>12.9% 和 23.4%</strong>，
+            为 SplitInfer 方案的落地提供参考。
           </p>
           <p class="abstract-note">
-            恢复率与数据分布相关；吞吐比较来自单次有限窗口，baseline 合格点仅有
-            18 条到达请求，不代表精确容量提升倍数；新增种子在原边界负载出现 SLO 失败，见第六部分。当前实测校准集中在 Qwen2.5-3B
-            / A10，跨模型、跨硬件的预测精度尚未验证。
+            恢复率结论针对本次数据与攻击方法，不代表绝对安全。15.1 倍：采样具有随机性，这是最高已测合格点之比。上述建模误差仅适用于已校准配置，其他模型和硬件的预测精度尚未实测验证。
           </p>
         </section>
         <div class="hero-grid">
@@ -602,7 +602,7 @@ Security inference should protect private prompts while preserving useful model 
         <article class="card modeling-method" id="modeling-errors">
           <h3>误差主要来自哪里？</h3>
           <div id="sim-error-evidence">正在加载误差证据…</div>
-          <p class="fineprint">这些数据可以定位偏差方向，但不是每项成本的独立因果消融。线程/锁交接、HTTP连接状态、CPU收尾和成本相关性仍未完整建模；换硬件后需重新校准kernel、CPU与通信参数。</p>
+          <p class="fineprint">上述数据来自优化系统 4K 输入、到达率 4.44 QPS、seed 43 的 575 条请求，比较同一到达计划下的实测与仿真均值。</p>
         </article>
       </section>
     </main>

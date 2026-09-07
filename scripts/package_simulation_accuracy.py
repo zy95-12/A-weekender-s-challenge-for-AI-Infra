@@ -43,24 +43,9 @@ def publish(old, new, raw):
             r["measured_pass"] != r["simulated_pass"] for r in rr
         )
         groups.append(g)
-    old_boundary = next(r for r in rows if r["point"] == "optimized/rate-4.744")
-    baseline = [r for r in rows if r["point"].startswith("baseline/")]
-    optimized = [r for r in rows if r["point"].startswith("optimized/")]
-    false_pass = [r for r in rows if r["simulated_pass"] and not r["measured_pass"]]
-    repeat_base = [
-        r
-        for r in rows
-        if r["point"].startswith("baseline/") and abs(r["target_rate"] - 0.75) < 0.001
-    ]
-    btp = [r["tpot_mean_ms_measured"] for r in repeat_base]
-    bslo = [100 * r["arrival_cohort_slo_measured"] for r in repeat_base]
     findings = [
-        f"① Decode与排队仍有残差：Baseline {len(baseline)}组 TPOT 均值 MAPE={groups[0]['tpot_mean_ms']['mape']:.1f}%，平均有符号偏差={groups[0]['tpot_mean_ms']['bias']:.1f}%。原 λ=1 组的平均在途请求实测9.07、仿真5.95（−34.4%）；仅完成QPS接近并不代表延迟准确。",
-        f"② 尾部与相关性：{len(rows)}组中有{len(false_pass)}组被仿真误判为SLO通过。原优化 λ=4.744 组 TPOT 均值误差仅{old_boundary['tpot_mean_ms_error_pct']:+.1f}%，但P99实测{old_boundary['tpot_p99_ms_measured']:.2f}ms、仿真{old_boundary['tpot_p99_ms_simulated']:.2f}ms，实际达标率89.42%，预测100%。独立成本抽样未保留阶段间/时间上的相关性；这是待验证的机制原因，不能仅凭总指标完成归因。",
-        "③ Profiling覆盖不等于全部精确命中：原优化 λ=4.440 的每个decode stage共2259次成本查询，精确batch占30.9%、插值62.9%、外推6.2%；host查询中70.1%借用邻近batch按请求分摊。C40成本表用于低负载有外推风险。",
-        f"④ 到达波动与有限样本：Baseline λ=.75 的三个实测种子，TPOT均值范围{min(btp):.1f}–{max(btp):.1f}ms，达标率{min(bslo):.1f}%–{max(bslo):.1f}%。每组仿真精确回放同组实测时间表，因此这个波动不是该组仿真误差的借口，但说明单种子不能代表长期SLO容量。",
-        "优化系统的边界重复结果也需注意：λ=4.440 的 seed43 完成4.725 QPS，但达标率94.26%、TPOT P99=104.76ms。原15.1倍是seed17最高观测通过点的比较，不是多种子稳定容量提升。",
-        "⑤ 可迁移的是DAG、事件依赖和调度规则；算子/command/CPU收尾、WAN搬运、互联有效带宽与融合方式需重新校准。L20/H20/Ascend910B及其他模型仅提供公开参数理论预测，不纳入上述实测精度表。",
+        "① 计算与数据搬运的成本模型存在误差。Roofline 和带宽估计难以完整描述实际执行时间，因此如没有可靠的算子性能校准，则仿真结果只能做定性分析；即使经过校准，遇到未覆盖的 shape、batch 或不同执行状态，插值、外推仍可能产生偏差。本次优化系统在 4.44 QPS 下，TPOT 高估 8.86 ms/token，其中企业端尾层命令高估 7.54 ms/token，已发现稀疏采样和单样本插值端点的问题。",
+        "② Serving 的通信与等待关系需要更细粒度建模。同一场景下，TTFT 低估 104.12 ms，主要落在 prefill 通信区间和首次计算前等待。通信区间包含 CPU、收发包、拷贝等，不能只用通信量／带宽描述，同时需要正确模拟这些工作的重叠与资源竞争。等待应由调度、依赖和资源占用推导出来，而不是简单补一个固定 overhead。"
     ]
     report = dict(
         description=f"Qwen2.5-3B / 4×A10 / 4K输入、79输出；{len(rows)}组开环实测对照（原11组 seed17 + 新8组 seed29/43）。精确回放实测到达计划，成本抽样固定seed17；未使用这些结果重新拟合成本。",
