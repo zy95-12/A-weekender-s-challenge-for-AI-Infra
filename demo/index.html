@@ -495,7 +495,7 @@ Security inference should protect private prompts while preserving useful model 
           <p>
             泊松采样的实际到达率会偏离目标值；每点一个 seed=17
             的随机轨迹，不表示长期生产容量或精确最大 QPS。达标 QPS
-            只计算同时满足两项 SLO 的完成请求。第六部分新增重复实验中，λ=4.440 的 seed43 达标率为94.26%；原最高通过点不能视为跨种子稳定容量。
+            只计算同时满足两项 SLO 的完成请求。第七部分新增重复实验中，λ=4.440 的 seed43 达标率为94.26%；原最高通过点不能视为跨种子稳定容量。
           </p>
           <a href="evidence/open-loop-sweep.csv" download>下载 CSV</a> ·
           <a href="evidence/open-loop-ttft-qps.png" download>TTFT 图</a> ·
@@ -503,8 +503,16 @@ Security inference should protect private prompts while preserving useful model 
           <a href="evidence/open-loop-raw.zip" download>原始数据与复现脚本</a> ·
           <a href="evidence/open-loop-report.md">验证报告</a>
         </article>
+      </section>
+
+      <section class="section" id="optimization-directions" aria-labelledby="optimization-directions-title">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow"><span>06</span> 性能优化空间与下一步优化方向</div>
+            <h2 id="optimization-directions-title">性能优化空间与下一步优化方向</h2>
+          </div>
+        </div>
         <article class="card" id="optimization-conclusions">
-          <h3>优化分析结论与下一步</h3>
           <p>当前瓶颈是资源分工与端云流水，尚不能认定 GPU 计算已经整体打满。在最高已测合格点 4.775 QPS 下，企业 E、云 P0/P1、云 D 的计算命令覆盖率分别为 75.5%、78.2% / 80.6%、26.6%。继续加压至完成 5.042 QPS 时，TPOT P99 从 95.84 ms 升至 106.30 ms，D 的命令覆盖率仍只有 25.7%，说明 SLO 在 D 持续计算打满前就已触顶。</p>
           <div id="capacity-analysis">
             <h4>理论折算：从节点服务时间到容量</h4>
@@ -537,7 +545,7 @@ Q系统,容量 ≈ minᵢ(Qᵢ,容量)</code></pre>
         <div class="section-head">
           <div>
             <div class="eyebrow">
-              <span>06</span> 推理性能建模 / LIVE SIMULATION
+              <span>07</span> 推理性能建模 / LIVE SIMULATION
             </div>
             <h2 id="modeling-title">推理性能建模</h2>
           </div>
