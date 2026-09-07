@@ -503,6 +503,15 @@ Security inference should protect private prompts while preserving useful model 
           <a href="evidence/open-loop-raw.zip" download>原始数据与复现脚本</a> ·
           <a href="evidence/open-loop-report.md">验证报告</a>
         </article>
+        <article class="card" id="optimization-conclusions">
+          <h3>优化分析结论与下一步</h3>
+          <p>当前瓶颈是资源分工与端云流水，尚不能认定 GPU 计算已经整体打满。在最高已测合格点 4.775 QPS 下，企业 E、云 P0/P1、云 D 的计算命令覆盖率分别为 75.5%、78.2% / 80.6%、26.6%。继续加压至完成 5.042 QPS 时，TPOT P99 从 95.84 ms 升至 106.30 ms，D 的命令覆盖率仍只有 25.7%，说明 SLO 在 D 持续计算打满前就已触顶。</p>
+          <p>按 QPS容量 ≈ minᵢ(QPS实测 / 命令覆盖率ᵢ) 折算，在 batch 效率、路由比例和每请求服务成本不变的假设下，当前拓扑的命令服务容量约为 5.9～6.0 QPS；4.775 QPS 约为该估算的 80%。这是局部容量估算，不是已验证的 SLO 上限；随机到达产生的排队会使延迟提前超标。</p>
+          <p>下一步一：调整节点分工，提高容量上限。让 D 承接部分 prefill，以利用 P/D 负载差异；采用 decode 优先、prefill 分块和 token 预算限制，避免新任务阻塞 decode。P 压力缓解后，企业 E 可能成为下一处瓶颈，其按当前成本折算的容量约为 6.32 QPS。</p>
+          <p>下一步二：优化企业端 CPU、数据搬运和提交路径。优先减少正常推理中的完整 logits 回传 CPU、重复元数据构造，以及响应到计算提交的交接开销。这既可能缩短每轮关键路径、使 SLO 吞吐更接近容量，也可能降低服务成本、进一步提高容量上限。两项优化应分别验证，再测叠加效果，沿用相同开环到达序列对比 TTFT / TPOT 尾延迟和最高合格 QPS。</p>
+          <p class="fineprint">计算命令覆盖率包含命令内 CPU / IPC / 拷贝，已扣除云侧命令排队，不等于纯 GPU kernel 利用率。企业端两段等待合计 21.91 ms/token，混合了排队、CPU 处理和依赖等待，不能全部算作可回收收益。上述下一步方案尚未实现或验证，不计入当前性能提升。</p>
+          <a href="evidence/open-loop-service-check.json">查看开环节点服务时间数据</a>
+        </article>
       </section>
 
       <section class="section" id="modeling" aria-labelledby="modeling-title">
