@@ -506,7 +506,26 @@ Security inference should protect private prompts while preserving useful model 
         <article class="card" id="optimization-conclusions">
           <h3>优化分析结论与下一步</h3>
           <p>当前瓶颈是资源分工与端云流水，尚不能认定 GPU 计算已经整体打满。在最高已测合格点 4.775 QPS 下，企业 E、云 P0/P1、云 D 的计算命令覆盖率分别为 75.5%、78.2% / 80.6%、26.6%。继续加压至完成 5.042 QPS 时，TPOT P99 从 95.84 ms 升至 106.30 ms，D 的命令覆盖率仍只有 25.7%，说明 SLO 在 D 持续计算打满前就已触顶。</p>
-          <p>按 QPS容量 ≈ minᵢ(QPS实测 / 命令覆盖率ᵢ) 折算，在 batch 效率、路由比例和每请求服务成本不变的假设下，当前拓扑的命令服务容量约为 5.9～6.0 QPS；4.775 QPS 约为该估算的 80%。这是局部容量估算，不是已验证的 SLO 上限；随机到达产生的排队会使延迟提前超标。</p>
+          <div id="capacity-analysis">
+            <h4>理论折算：从节点服务时间到容量</h4>
+            <p>以最高已测合格点为折算基准：测量窗口 T = 120 s，完成吞吐 Q₀ = 4.775 请求/s，窗口内完成 N = Q₀ × T = 573 条请求。延迟统计使用到达 cohort（564 条），此处容量折算使用完成请求数，两者口径不同。</p>
+            <p>Bᵢ 为节点 i 在窗口内计算命令区间取并集后的覆盖时间；Uᵢ 为覆盖率（使用 0～1 的小数）；Dᵢ 为按系统完成请求摊销的节点服务需求，单位 s/请求。命令时间包含 CPU / IPC / 拷贝，云侧已扣除命令排队，不是纯 GPU kernel 时间；命令区间之外也不能全部视为 GPU 空闲。</p>
+            <pre class="capacity-formulas"><code>Uᵢ = Bᵢ / T
+Q₀ = N / T
+Dᵢ ≈ Bᵢ / N = Uᵢ / Q₀
+Qᵢ,容量 ≈ 1 / Dᵢ = Q₀ / Uᵢ
+Q系统,容量 ≈ minᵢ(Qᵢ,容量)</code></pre>
+            <div style="overflow-x: auto"><table>
+              <thead><tr><th>节点与工作</th><th>命令覆盖 Bᵢ (s)</th><th>命令外时间 (s)</th><th>覆盖率 Uᵢ</th><th>服务需求 Dᵢ (ms/系统请求)</th><th>折算系统容量 (QPS)</th></tr></thead>
+              <tbody><tr><td>企业 E：前层＋尾层，prefill / decode</td><td>90.64</td><td>29.36</td><td>75.53%</td><td>158.18</td><td>6.32</td></tr><tr><td>云 P0：中间层 prefill</td><td>93.83</td><td>26.17</td><td>78.19%</td><td>163.75</td><td>6.11</td></tr><tr><td>云 P1：中间层 prefill</td><td>96.73</td><td>23.27</td><td>80.61%</td><td>168.82</td><td>5.92</td></tr><tr><td>云 D：中间层 decode</td><td>31.98</td><td>88.02</td><td>26.65%</td><td>55.81</td><td>17.92</td></tr></tbody>
+            </table></div>
+            <p>P0/P1 的服务需求按全部系统完成请求摊销，最后一列表示保留当前路由比例时的系统吞吐上限，不是单个 P 独立处理请求的速率。企业 E 的 90.64 s 中，prefill 前层 / 尾层为 32.97 / 23.71 s，decode 前层 / 尾层为 12.41 / 21.55 s。</p>
+            <p>当前路由下，瓶颈为 P1：Q系统,容量 ≈ min(6.32, 6.11, 5.92, 17.92) = 5.92 QPS。若两个 P 完全均衡，Q云P,均衡 ≈ 2Q₀ / (U_P0 + U_P1) = 6.01 QPS，仍低于企业 E 的 6.32 QPS；因此当前拓扑的局部容量估算约为 5.9～6.0 QPS。</p>
+            <h4>SLO 下的容量还需考虑排队</h4>
+            <pre class="capacity-formulas"><code>Q系统,SLO ≈ minᵢ(ρᵢ* / Dᵢ)</code></pre>
+            <p>ρᵢ* 是满足联合 SLO 时节点允许的覆盖率，需要用开环实测或经过校准的仿真确定，不能直接设为 100%。4.775 QPS 约为上述满载容量估算的 80%；实际完成 5.042 QPS 时，TPOT P99 已达 106.30 ms，说明 SLO 在命令服务打满前就已触顶。</p>
+            <p class="fineprint">折算假设 batch 效率、路由比例和每请求服务成本不变，并近似忽略有限窗口内跨边界请求的影响。它用于判断瓶颈和优化方向，不是独立验证的容量预测；增加负载或让 D 承接 prefill 后，需要重新测量服务需求。</p>
+          </div>
           <p>下一步一：调整节点分工，提高容量上限。让 D 承接部分 prefill，以利用 P/D 负载差异；采用 decode 优先、prefill 分块和 token 预算限制，避免新任务阻塞 decode。P 压力缓解后，企业 E 可能成为下一处瓶颈，其按当前成本折算的容量约为 6.32 QPS。</p>
           <p>下一步二：优化企业端 CPU、数据搬运和提交路径。优先减少正常推理中的完整 logits 回传 CPU、重复元数据构造，以及响应到计算提交的交接开销。这既可能缩短每轮关键路径、使 SLO 吞吐更接近容量，也可能降低服务成本、进一步提高容量上限。两项优化应分别验证，再测叠加效果，沿用相同开环到达序列对比 TTFT / TPOT 尾延迟和最高合格 QPS。</p>
           <p class="fineprint">计算命令覆盖率包含命令内 CPU / IPC / 拷贝，已扣除云侧命令排队，不等于纯 GPU kernel 利用率。企业端两段等待合计 21.91 ms/token，混合了排队、CPU 处理和依赖等待，不能全部算作可回收收益。上述下一步方案尚未实现或验证，不计入当前性能提升。</p>
