@@ -2,7 +2,7 @@
 """Local research UI: real subprocess jobs, serving SSE, and Q4 simulation."""
 
 from __future__ import annotations
-import argparse, hashlib, json, subprocess, sys, threading, time, uuid
+import argparse, hashlib, json, math, subprocess, sys, threading, time, uuid
 import urllib.request, urllib.error
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -31,16 +31,45 @@ def health():
 
 
 def validate_sim(payload):
-    if set(payload) - {"variant", "concurrency"}:
-        raise ValueError(
-            "Only variant and concurrency are supported; model and workload are fixed"
-        )
+    allowed = {
+        "variant",
+        "concurrency",
+        "workload_mode",
+        "arrival_rate_qps",
+        "model",
+        "hardware",
+    }
+    if set(payload) - allowed:
+        raise ValueError("Unsupported simulation parameter")
     if payload.get("variant") not in ("baseline", "optimized"):
         raise ValueError("Choose baseline or optimized")
-    c = payload.get("concurrency")
-    if type(c) is not int or not 1 <= c <= 96:
-        raise ValueError("Concurrency must be an integer in 1–96")
-    return {"variant": payload["variant"], "concurrency": c}
+    if payload.get("model", "qwen2.5-3b") not in (
+        "qwen2.5-3b",
+        "qwen3-32b",
+        "deepseek-v4-flash",
+    ):
+        raise ValueError("Unknown model")
+    if payload.get("hardware", "a10") not in ("a10", "l20", "h20", "ascend910b"):
+        raise ValueError("Unknown hardware")
+    if payload.get("workload_mode", "closed_loop") == "open_loop":
+        rate = payload.get("arrival_rate_qps")
+        if (
+            type(rate) not in (int, float)
+            or not math.isfinite(rate)
+            or not 0.05 <= rate <= 8
+        ):
+            raise ValueError("Arrival rate must be finite and in 0.05–8 QPS")
+        if "concurrency" in payload:
+            raise ValueError("Open loop has no client concurrency cap")
+    elif payload.get("workload_mode", "closed_loop") == "closed_loop":
+        c = payload.get("concurrency")
+        if type(c) is not int or not 1 <= c <= 96:
+            raise ValueError("Concurrency must be an integer in 1–96")
+        if "arrival_rate_qps" in payload:
+            raise ValueError("Closed loop does not use arrival rate")
+    else:
+        raise ValueError("Unknown workload mode")
+    return dict(payload)
 
 
 def launch(kind, payload):
@@ -135,15 +164,30 @@ def launch(kind, payload):
                 "Q1/retrieval.py",
                 "scripts/manage.py",
             ]
+            if kind == "simulate":
+                source_files += [
+                    str(p.relative_to(ROOT))
+                    for folder in (
+                        "split_serving_sim",
+                        "models",
+                        "hardware",
+                        "profiles",
+                        "configs",
+                    )
+                    for p in sorted((ROOT / "Q4" / folder).rglob("*"))
+                    if p.is_file() and p.suffix in (".py", ".json")
+                ]
             provenance = {
                 "command": command,
+                "requested_model": payload.get("model") if kind == "simulate" else None,
                 "sources_sha256": {
                     name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
                     for name in source_files
                 },
                 "model_revision": (
                     (ROOT / "models/qwen/revision.txt").read_text().strip()
-                    if (ROOT / "models/qwen/revision.txt").is_file()
+                    if kind != "simulate"
+                    and (ROOT / "models/qwen/revision.txt").is_file()
                     else None
                 ),
             }

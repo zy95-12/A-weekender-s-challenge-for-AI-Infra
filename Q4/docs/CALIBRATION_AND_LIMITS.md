@@ -39,10 +39,10 @@ command 模式不重复叠加 host submission，并移除已包含的 D2H/H2D/cl
 |---|---|---|
 | `presets.py` optimized | 企业 TP1、max_active 96、KV blocks 32768、禁止 mixed batch；默认双 P TP1+D TP1、chunk2048、P/D window3/2、quota4 | 这是实验预设，会覆盖部分输入 JSON；TP/window/chunk/quota 有 CLI 开关，其他值需修改预设或直接构造目标配置 |
 | `vendor/serving/manifest.json` | 调度源码固定到 `34c809c...`，包含真实 1 ms wait/sleep 行为 | serving 改动后需同步快照、哈希与决策测试；当前没有自动跟随 main |
-| 虚拟 serving | PP1，1–2 个 P replica，固定长度 closed-loop，warmup=0 或 concurrency；成功路径 | 新 PP 拓扑、异构请求、取消/错误恢复需扩展执行接口，不能仅换 cost JSON |
+| 虚拟 serving | PP1，1–2 个 P replica，closed-loop / open-loop；闭环 warmup=0 或 concurrency；成功路径 | 新 PP 拓扑、异构请求、取消/错误恢复需扩展执行接口，不能仅换 cost JSON |
 | KV 与模型占位 | 真实 KVAdmission 默认 16-token block；虚拟 token 为 0，KV 使用计数部分为占位输出 | 更改 block 大小时要同步原逻辑；仿真不执行模型、不验 logits，不模拟每个角色的真实 KV 张量 |
 | command 校准工具 | decode context 4096–4175；本轮采集/回归为 4K/79 | 这是工具中的工况限定；换长度要重新构建范围和数据，不可把现表当成长上下文通用表 |
-| 模型算子图 | Qwen2/Qwen3 类 dense decoder 及已支持融合/attention 形式 | 新架构需要核对算子图；MoE/MLA 等未实现不能只换模型名 |
+| 模型算子图 | Qwen2/Qwen3 类 dense decoder 及已支持融合/attention 形式 | 新架构需要核对算子图；V4-Flash已增加架构级MoE/压缩attention近似，其他MoE/MLA不能只换模型名 |
 | 并发和 stream | 简化 worker 串行 lane、critical-rank CPU 提交、有限 WAN 资源 | 多 stream 重叠、完整多 rank 到达与 cloud thread scheduling 未完整复现 |
 
 公开 Python API 的配置空间比真实源码后端支持范围大。不能把 behavioral 中可运行的 PP/mixed-batch 能力，等同于 serving 后端已验证。
@@ -51,7 +51,8 @@ command 模式不重复叠加 host submission，并移除已包含的 D2H/H2D/cl
 
 demo 的攻击按钮实际调用 PR #15 的 embedding 最近邻攻击，CPU 执行；不是密码学加密，也不是 4 层后的激活反演。启动按钮实际执行 `./poc up --wan`，对话转发根目录真实 serving SSE。精度、C16 拆解和优化曲线明确标注为真实归档实验。
 
-仿真区只开放 Qwen2.5-3B/A10/4 卡、4K 输入/79 输出、并发 1–96。optimized 使用当前 real-serving scheduler + C40 empirical command/host profile、seed17；baseline 使用 behavioral scheduler + operator/host cost、沿用 baseline 精度回归的活动上限（C1 为8，其余为16）。每点1024请求预算、60秒测量窗、warmup等于并发。没有重新拟合成本以匹配 demo 曲线。并发外推与 baseline 已知低估仍然存在，不能把仿真完成作为 SLO 容量验收。更多使用方式见 [demo README](../../demo/README.md)。
+仿真区默认4K输入/79输出，开环独立泊松到达；新增模型/硬件下拉项见[公开Roofline模式](PUBLIC_ROOFLINE.md)。只有Qwen2.5-3B/A10使用实测修正，其他组合关闭这些成本表。理论模型会按权重+KV需求扩大TP并显示卡数，不能作为同卡数或跨硬件精度证明。基于19组真实开环的误差汇总见Demo，成本表没有根据这些验证数据重新拟合。旧concurrency API仍保留闭环兼容。
+
 
 ## 5. 当前未解决的问题
 
@@ -60,7 +61,7 @@ demo 的攻击按钮实际调用 PR #15 的 embedding 最近邻攻击，CPU 执�
 3. **精度残差**：当前 C40 QPS +3.05%、TTFT −10.64%、TPOT −2.80%；是校准工况对照，不是独立泛化验收。baseline 小并发仍有显著误差。
 4. **成本相关性**：empirical 是独立抽样；原子成本包含部分内部等待，仍有重复/遗漏风险。不能用总数接近掩盖分项抵消。
 5. **PD 执行模型**：没有完整 NCCL status/重试、线程池容量、各角色独立 KV pool、真实云 PDControl 代码执行；release 和 KV 参数仍有占位值。
-6. **覆盖面**：无自动最大 SLO QPS 搜索、MoE/MLA、SP/CP/EP、运行中 replica 重平衡、投机推理；serving 无 mixed/preemption/PP。
+6. **覆盖面**：无自动最大 SLO QPS 搜索、通用MoE/MLA、SP/CP/EP、运行中 replica 重平衡、投机推理；serving 无 mixed/preemption/PP。
 7. **输出/资源**：serving 汇总的通用 utilization/average batch 为空；其完整 trace/decisions 暂未按配置上限裁剪，大规模任务仍需控制内存。
 
 ## 6. 迁移与重新校准顺序
@@ -68,3 +69,12 @@ demo 的攻击按钮实际调用 PR #15 的 embedding 最近邻攻击，CPU 执�
 先确认目标架构和调度协议受支持 → 更新模型/拓扑配置 → 校准算子或 command、CPU 收尾、搬运/网络及 PD 成本 → 检查精确/回退覆盖率 → 使用独立请求/工况验证分项和总指标。
 
 可复用的是队列规则、事件依赖、数据量公式和成本接口。**排队时间应由新成本和资源竞争产生，不应复制当前 28 ms/38 ms 等残差为新硬件常数。** 结构依赖漏建时先修实现，不能只重新 profiling。
+
+## 7. 开环外部验证
+
+新增独立到达与双 cohort 固定窗口统计，回放结果见 [开环报告](OPEN_LOOP_VALIDATION.md)。
+本次未重新校准：baseline 使用旧算子/CPU/WAN 模型，PD 使用旧 C40 command/host 表。
+开环与闭环可切换，但成功路径不模拟客户端连接池、超时、取消、HTTP 错误和重试。
+精确到达时间表消除了负载差异，不消除成本外推和线程/锁建模误差。
+实际输入到达后的 CPU/HTTP dispatch 并未单独校准；TTFT 比较使用客户端计划到达边界。
+本次只验证同模型、同硬件、4K/79；变量长度接口可表达不等于成本表已覆盖。

@@ -284,11 +284,11 @@ function chart(selector, points, key, limit) {
     if (points.some((v) => v[k] === undefined)) continue;
     svg += `<path d="${path(k)}" fill="none" stroke="${color}" stroke-width="2"/>`;
     points.forEach((v) => {
-      svg += `<circle cx="${x(v.qps)}" cy="${y(v[k])}" r="4" fill="${color}"><title>C${v.concurrency}: ${v[k].toFixed(2)}ms, ${v.qps.toFixed(3)} QPS ${label}</title></circle>`;
+      svg += `<circle cx="${x(v.qps)}" cy="${y(v[k])}" r="4" fill="${color}"><title>${v.arrival_rate_qps != null ? `λ${v.arrival_rate_qps}` : `C${v.concurrency}`}: ${v[k].toFixed(2)}ms, ${v.qps.toFixed(3)} QPS ${label}</title></circle>`;
     });
   }
   points.forEach((v, i) => {
-    svg += `<text x="${x(v.qps) + 3}" y="${y(v[key]) - 10 - (i % 2) * 12}" fill="#43e3cf" font-size="10">C${v.concurrency}</text>`;
+    svg += `<text x="${x(v.qps) + 3}" y="${y(v[key]) - 10 - (i % 2) * 12}" fill="#43e3cf" font-size="10">${v.arrival_rate_qps != null ? `λ${v.arrival_rate_qps}` : `C${v.concurrency}`}</text>`;
   });
   for (let i = 0; i <= 5; i++) {
     const tick = (maxX * i) / 5;
@@ -346,6 +346,12 @@ function openLoopChart(selector, points, metric, limit) {
 async function evidence() {
   try {
     const d = await api("/api/evidence");
+    const accuracy=d["simulation-accuracy"];
+    if(accuracy){
+      $("#sim-accuracy-note").textContent=accuracy.description;
+      $("#sim-accuracy-table").innerHTML=table(["系统 / 修正方式","实验组数","QPS MAPE / 偏差","TTFT均值 MAPE / 偏差","TPOT均值 MAPE / 偏差","TTFT P99 MAPE","TPOT P99 MAPE"],accuracy.groups.map(g=>[g.label,g.count,...["qps","ttft_mean_ms","tpot_mean_ms"].map(k=>`${g[k].mape.toFixed(1)}% / ${g[k].bias.toFixed(2)}%`),g.ttft_p99_ms.mape.toFixed(1)+"%",g.tpot_p99_ms.mape.toFixed(1)+"%"]));
+      $("#sim-error-evidence").innerHTML=accuracy.findings.map(f=>`<p>${esc(f)}</p>`).join("");
+    }
     if (d["security-depth"])
       $("#security-depth").innerHTML = table(
         ["前层深度", "4K 样本恢复率", "独立公开测试恢复率"],
@@ -456,26 +462,30 @@ $("#sim-form").addEventListener("submit", async (e) => {
   if (
     !levels.length ||
     levels.length > 16 ||
-    levels.some((c) => !Number.isInteger(c) || c < 1 || c > 96)
+    levels.some((c) => !Number.isFinite(c) || c < 0.05 || c > 8)
   ) {
-    toast("输入 1–16 个并发点，每点为 1–96 整数");
+    toast("输入 1–16 个到达率点，每点为 0.05–8 QPS");
     return;
   }
   const b = $("#sim-run");
   b.disabled = true;
   const points = [],
-    variant = $("#variant").value;
+    variant = $("#variant").value, model = $("#sim-model").value, hardware = $("#sim-hardware").value;
+  const controls = [...$("#sim-form").querySelectorAll("input,select")];
+  controls.forEach(el=>el.disabled=true);
   $("#chart").innerHTML =
     '<div id="sim-ttft"></div><div id="sim-tpot"></div><div id="sim-downloads"></div>';
   try {
     for (const [i, c] of levels.entries()) {
-      $("#sim-status").textContent = `实际仿真中：${variant} C${c}`;
-      const j = await job("/api/simulate", { variant, concurrency: c });
+      $("#sim-status").textContent = `实际仿真中：${variant} λ${c}`;
+      const j = await job("/api/simulate", { variant, workload_mode: "open_loop", arrival_rate_qps: c, model, hardware });
+      const meta=j.result.catalog;
+      $("#sim-result-note").textContent = `${meta.calibrated ? "已校准成本，结果仍为预测" : "公开参数 Roofline，未经实测校准"} · ${meta.model} · ${meta.hardware.label} × ${meta.total_devices} · Split ${meta.split.join(" / ")} · ${meta.dtype}。${meta.capacity_plan.map(r=>`${r.role} TP${r.tp}`).join(" / ")}。${meta.model.includes("DeepSeek-V4") ? "BF16理论场景，不计FP4/FP8加速" : meta.dtype}`;
       points.push(j.result.point);
       chart("#sim-ttft", points, "ttft_mean_ms", 3000);
       chart("#sim-tpot", points, "tpot_mean_ms", 100);
       $("#sim-downloads").innerHTML +=
-        `<a href="/api/artifacts/${j.id}/result.json">C${c} JSON</a> `;
+        `<a href="/api/artifacts/${j.id}/result.json">λ${c} JSON</a> `;
       $("#metric-qps").textContent = j.result.point.qps.toFixed(3);
       $("#metric-ttft").textContent =
         j.result.point.ttft_mean_ms.toFixed(1) + " ms";
@@ -490,6 +500,7 @@ $("#sim-form").addEventListener("submit", async (e) => {
     toast(e.message);
   } finally {
     b.disabled = false;
+    controls.forEach(el=>el.disabled=false);
   }
 });
 evidence();

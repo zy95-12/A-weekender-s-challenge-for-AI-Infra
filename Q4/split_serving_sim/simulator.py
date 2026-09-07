@@ -10,6 +10,7 @@ from .config import RequestSpec, SimulationConfig
 from .core import GPU_STAGES, NETWORK_STAGES, PerformanceEstimate, Phase, Stage, WorkItem
 from .dag import ExecutionDAG
 from .metrics import RequestRuntime, build_summary
+from . import open_loop
 from .kv_cache import PagedKVCache
 from .performance import NetworkModel, RooflineModel
 from .scheduler import SchedulerSnapshot, VLLMScheduler, PDScheduler
@@ -253,7 +254,11 @@ class Simulator:
             self.requests[request_id].finish_time or 0.0
             for request_id in self.launched_request_ids
         )
-        if self.config.workload.measurement_duration_s:
+        if self.config.workload.mode == "open_loop":
+            measured_start = self.config.workload.warmup_duration_s
+            measured_end = measured_start + self.config.workload.measurement_duration_s
+            selected_ids = {r["request_id"] for r in request_metrics if measured_start*1000 <= r["arrival_time_ms"] < measured_end*1000}
+        elif self.config.workload.measurement_duration_s:
             if self._measurement_start_time is None or self._measurement_end_time is None:
                 raise RuntimeError("closed-loop measurement window never started")
             measured_start = self._measurement_start_time
@@ -290,6 +295,8 @@ class Simulator:
             measured_end,
             self.config.slo,
         )
+        if self.config.workload.mode == "open_loop":
+            summary = open_loop.summary(request_metrics, measured_trace, measured_start, measured_end, self.config.slo, self.config.workload)
         full_duration = max(end_time - start_time, 0.0)
         summary["resource_utilization"] = {
             name: resource.busy_time / full_duration if full_duration else 0.0
@@ -297,15 +304,16 @@ class Simulator:
         }
         summary["resource_utilization_scope"] = "full_run_including_warmup"
         summary["total_requests_including_warmup_and_drain"] = len(request_metrics)
-        launched_warmup = min(
-            self.config.workload.warmup_requests, len(self.launched_request_ids)
-        )
+        launched_warmup = (sum(r["arrival_time_ms"] < measured_start*1000 for r in request_metrics)
+                           if self.config.workload.mode == "open_loop" else
+                           min(self.config.workload.warmup_requests, len(self.launched_request_ids)))
         summary["warmup_requests"] = launched_warmup
         summary["drain_requests_excluded"] = max(
             len(request_metrics) - len(measured_metrics) - launched_warmup, 0
         )
         summary["measurement_window"] = {
             "mode": (
+                "fixed_open_loop" if self.config.workload.mode == "open_loop" else
                 "fixed_duration_excluding_warmup_and_drain"
                 if self.config.workload.measurement_duration_s
                 else "finite_requests_including_final_drain"
@@ -442,6 +450,8 @@ class Simulator:
 
     def _request_specs(self) -> list[RequestSpec]:
         workload = self.config.workload
+        if workload.mode == "open_loop":
+            return open_loop.request_specs(workload)
         if workload.mode == "trace":
             return sorted(workload.requests, key=lambda item: (item.arrival_time_ms, item.request_id))
         random_source = random.Random(workload.random_seed)
@@ -859,7 +869,7 @@ class Simulator:
     def _transaction_bytes(self, item: WorkItem) -> float:
         one_way = (
             item.token_count
-            * self.config.model.hidden_size
+            * self.config.model.activation_width
             * self.config.model.dtype_bytes
             * self.config.network.activation_tensor_count
             + self.config.network.protocol_overhead_bytes

@@ -49,7 +49,7 @@
           </p>
           <p class="abstract-note">
             恢复率与数据分布相关；吞吐比较来自单次有限窗口，baseline 合格点仅有
-            18 条到达请求，不代表精确容量提升倍数。当前实测校准集中在 Qwen2.5-3B
+            18 条到达请求，不代表精确容量提升倍数；新增种子在原边界负载出现 SLO 失败，见第六部分。当前实测校准集中在 Qwen2.5-3B
             / A10，跨模型、跨硬件的预测精度尚未验证。
           </p>
         </section>
@@ -495,7 +495,7 @@ Security inference should protect private prompts while preserving useful model 
           <p>
             泊松采样的实际到达率会偏离目标值；每点一个 seed=17
             的随机轨迹，不表示长期生产容量或精确最大 QPS。达标 QPS
-            只计算同时满足两项 SLO 的完成请求。
+            只计算同时满足两项 SLO 的完成请求。第六部分新增重复实验中，λ=4.440 的 seed43 达标率为94.26%；原最高通过点不能视为跨种子稳定容量。
           </p>
           <a href="evidence/open-loop-sweep.csv" download>下载 CSV</a> ·
           <a href="evidence/open-loop-ttft-qps.png" download>TTFT 图</a> ·
@@ -511,29 +511,54 @@ Security inference should protect private prompts while preserving useful model 
             <div class="eyebrow">
               <span>06</span> 推理性能建模 / LIVE SIMULATION
             </div>
-            <h2 id="modeling-title">从配置到曲线，<br />逐点运行系统仿真。</h2>
+            <h2 id="modeling-title">推理性能建模</h2>
           </div>
           <span class="live-label"><i></i> Q4 event-driven backend</span>
         </div>
+        <article class="card modeling-method">
+          <h3>仿真方案</h3>
+          <p>从 Hugging Face 模型结构生成计算与通信 DAG，以 Roofline 估计算子计算、访存和集体通信成本，再用算子 profiling 与完整 forward 调用采样修正。事件驱动引擎按依赖与资源占用推进，排队和流水重叠由执行过程产生。</p>
+          <p>端云通信采用实测 WAN 曲线修正序列化、拷贝、IPC 与传输成本；优化 PD 对标并复用真实 Scheduler 源码，baseline 使用行为调度模型。开环请求按独立泊松时间表到达，QPS 统计窗口内完成请求，TTFT/TPOT 统计窗口内到达请求。</p>
+          <p class="fineprint">以上 profiling、command/host 与 WAN 修正仅用于已校准的 Qwen2.5-3B / A10 路径。其他硬件和模型使用公开参数 Roofline 与解析通信，不沿用 A10 校准表。</p>
+        </article>
+        <details class="card modeling-method">
+          <summary>理论硬件参数与公开来源</summary>
+          <p>L20：119.5 TFLOPS / 864 GB/s / 48GB；H20：148 TFLOPS / 4000 GB/s / 96GB；Ascend910B：320 TFLOPS / 1600 GB/s / 64GB。均为本次选用的稠密FP16/BF16参数，算力/访存效率暂取0.7，未实测校准。</p>
+          <p>来源：<a href="https://arxiv.org/html/2504.02263v2">L20 · MegaScale-Infer</a> · <a href="https://arxiv.org/html/2511.00796v1">H20 · AReaL-Hex</a> · <a href="https://ascend-rs.org/en/ch09-performance.html">910B2 GEMM报告</a> / <a href="https://github.com/rainbay001-dotcom/xPU-simulator">910B研究参数</a>。910B存在不同SKU，这组参数不代表所有910B规格。</p>
+          <p>模型结构：<a href="https://huggingface.co/Qwen/Qwen3-32B/blob/9216db5781bf21249d130ec9da846c4624c16137/config.json">Qwen3-32B 官方配置</a> · <a href="https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash/blob/60d8d70770c6776ff598c94bb586a859a38244f1/config.json">V4-Flash 官方配置</a>。模型/硬件下拉项仅改变理论仿真，不改变第四部分的真实推理服务。</p>
+        </details>
+        <article class="card modeling-method">
+          <h3>仿真精度 · 经过算子 profiling 等修正</h3>
+          <p id="sim-accuracy-note">正在加载真实开环验证数据…</p>
+          <div id="sim-accuracy-table"></div>
+          <p class="fineprint">MAPE = 各实验点 |仿真 / 实测 − 1| 的平均值，点间等权；另报告平均有符号偏差。均值指标误差不能代替尾部 SLO 验收。</p>
+          <p><a href="evidence/simulation-accuracy.json">完整统计 JSON</a> · <a href="evidence/simulation-accuracy.csv">逐点 CSV</a> · <a href="evidence/simulation-validation-raw.zip">补测原始数据与预测</a></p>
+        </article>
         <div class="modeling-grid">
           <form class="sim-panel card" id="sim-form">
-            <p>Qwen2.5-3B · A10 × 4 · Split 4 / 27 / 5 · 4096 输入 / 79 输出</p>
+            <p>4096 输入 / 79 输出 · 开环独立到达</p>
+            <div class="field"><label for="sim-model">模型</label><select id="sim-model">
+              <option value="qwen2.5-3b">Qwen2.5-3B · 已有实测校准</option>
+              <option value="qwen3-32b">Qwen3-32B · 理论 BF16</option>
+              <option value="deepseek-v4-flash">DeepSeek V4-Flash · 理论 BF16</option>
+            </select></div>
+            <div class="field"><label for="sim-hardware">硬件</label><select id="sim-hardware">
+              <option value="a10">NVIDIA A10</option><option value="l20">NVIDIA L20 · 48GB</option>
+              <option value="h20">NVIDIA H20 · 96GB</option><option value="ascend910b">Ascend 910B · 64GB 理论参数</option>
+            </select></div>
             <div class="field">
               <label for="variant">配置</label
               ><select id="variant">
-                <option value="optimized">优化 PD · 双 TP1 P</option>
-                <option value="baseline">Baseline · TP2+2</option>
+                <option value="optimized">优化 PD · 双 P 实例</option>
+                <option value="baseline">Baseline · 同步端云</option>
               </select>
             </div>
             <div class="field">
-              <label for="sim-levels">并发点（逗号分隔，1–96）</label
-              ><input id="sim-levels" value="1,8,16,24,32,40" />
+              <label for="sim-levels">到达率 λ（QPS，逗号分隔，0.05–8）</label
+              ><input id="sim-levels" value="0.5,1,4.44" />
             </div>
-            <p>
-              调用最新 Q4：优化配置使用实际 serving scheduler + empirical
-              command / host cost；baseline 使用 behavioral scheduler + operator
-              / host cost。输出为预测值，校准范围见文档。
-            </p>
+            <p id="sim-selection-note">Qwen2.5-3B / A10 使用已有校准成本。其他组合仅为理论预测；企业保留首4层、尾5层。按96条活动请求的权重和KV容量自动选择TP，结果会显示总卡数。</p>
+            <p class="fineprint">DeepSeek V4-Flash 建模 MoE、压缩注意力和 mHC；按 BF16 权重驻留估算，不假定 FP4/FP8 加速或真实 serving 已支持该模型。</p>
             <button
               class="button primary sim-button"
               type="submit"
@@ -557,7 +582,7 @@ Security inference should protect private prompts while preserving useful model 
             <div class="chart" id="chart">
               <div class="empty-chart">
                 <div class="pulse-ring"></div>
-                <b>等待运行</b><span>每完成一个并发点，曲线将在这里更新</span>
+                <b>等待运行</b><span>每完成一个到达率点，曲线将在这里更新</span>
               </div>
             </div>
             <div class="progress-wrap">
@@ -571,13 +596,14 @@ Security inference should protect private prompts while preserving useful model 
               <div><small>Mean TTFT</small><b id="metric-ttft">—</b></div>
               <div><small>Mean TPOT</small><b id="metric-tpot">—</b></div>
             </div>
-            <p class="fineprint model-note">
-              每个并发点实际运行仿真，无结果缓存。优化模型使用 C40
-              校准，其他并发为外推预测；baseline 已知仍有 TPOT
-              低估，不将仿真值当作实测。
-            </p>
+            <p class="fineprint model-note" id="sim-result-note">每个到达率点实际运行事件仿真，无结果缓存。其他硬件/模型未经实测校准；自动扩容后的总卡数不同，不是同卡数性能比较。</p>
           </div>
         </div>
+        <article class="card modeling-method" id="modeling-errors">
+          <h3>误差主要来自哪里？</h3>
+          <div id="sim-error-evidence">正在加载误差证据…</div>
+          <p class="fineprint">这些数据可以定位偏差方向，但不是每项成本的独立因果消融。线程/锁交接、HTTP连接状态、CPU收尾和成本相关性仍未完整建模；换硬件后需重新校准kernel、CPU与通信参数。</p>
+        </article>
       </section>
     </main>
 

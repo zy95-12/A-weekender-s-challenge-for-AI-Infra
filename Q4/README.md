@@ -7,6 +7,8 @@
 - [架构与配置边界](docs/ARCHITECTURE.md)
 - [校准、硬编码、迁移要求和未解决问题](docs/CALIBRATION_AND_LIMITS.md)
 - [验证结果与复现](docs/VALIDATION.md)
+- [开环实测回放与误差报告](docs/OPEN_LOOP_VALIDATION.md)
+- [公开硬件与其他模型 Roofline](docs/PUBLIC_ROOFLINE.md)
 - [完整 Web demo](../demo/README.md)
 
 ## 快速运行
@@ -65,7 +67,7 @@ python3 -m split_serving_sim \
 | `--command-sampling mean/empirical`、`--cost-seed` | 均值/实测分布抽样 |
 | `--serving-host-profile FILE` | CPU 收尾成本；不传即关闭 |
 
-布尔开关支持 `--no-*`。serving 要求 PD+pipeline、PP1、固定长度闭环、1–2 个 P replica，无 mixed batch/preemption。关闭 PD/pipeline 回退时选 behavioral。`--no-pd-admission` 在 serving 将 reserve/release 成本置零，仍保留真实准入顺序，不删除依赖。
+布尔开关支持 `--no-*`。serving 要求 PD+pipeline、PP1、闭环或开环、1–2 个 P replica，无 mixed batch/preemption。关闭 PD/pipeline 回退时选 behavioral。`--no-pd-admission` 在 serving 将 reserve/release 成本置零，仍保留真实准入顺序，不删除依赖。
 
 ## 验证和校准工具
 
@@ -81,3 +83,37 @@ python3 tools/validate_release.py
 `tools/build_issue5_profile.py` / `build_issue5_wan_calibration.py` 转换算子/WAN 数据；`build_pd_command_profile.py --include-distribution` 保留逐命令样本；`build_serving_host_profile.py` 提取 CPU 收尾成本。原始采集输入通过参数提供。
 
 最终证据在 `docs/validation/`，测试 oracle 在 `tests/fixtures/`。历史排查及中间数据保留于提交 `061f10b` 所在分析分支，不是主线运行依赖。已有 ISSUE*/PR8* 文档为历史研究记录，当前状态以本页链接的三个文档为准。
+
+## 开环负载与实测回放
+
+开环按独立时间表到达，完成请求不触发补发；服务端活动窗口继续限制实际准入。
+在上面的 PD 命令中，将 `--concurrency/--num-requests/--warmup-requests` 替换为：
+
+```bash
+--workload-mode open_loop --arrival-process poisson --arrival-rate-qps 4.440035098628993 \
+--random-seed 17 --warmup-duration-s 30 --measurement-duration-s 120 --arrival-tail-s 30
+```
+
+`num_requests` 在开环下不控制请求数。也可在 JSON 的 `workload.requests` 提供精确的
+`request_id/arrival_time_ms/input_tokens/output_tokens` 时间表，此时优先回放时间表。
+`concurrency` 和 `warmup_requests` 必须为 0；CLI 切换到开环时自动清除继承的闭环值。
+请求数由到达率与持续时间决定，过载不会降低发包率。停止发包后继续排空，超过
+`simulation.max_time_s` 则报错，不将未完成请求丢出统计。
+
+统计窗口采用 `[warmup, warmup + duration)`：顶层 QPS 来自窗口内完成请求，
+TTFT/TPOT 来自窗口内到达请求（包含窗口后才完成的慢请求）。`arrival_cohort`、
+`completion_cohort` 分别保留完整指标，两者联合 SLO 达标率均 ≥99% 才通过。
+TTFT 从计划到达时刻起算；另输出平均/峰值在途请求数和边界积压。
+
+从仓库根目录复现实测的 11 个开环点，无需 GPU：
+
+```bash
+python3 -m zipfile -e demo/evidence/open-loop-raw.zip /tmp/measured-open-loop
+python3 Q4/scripts/compare_open_loop.py \
+  --measured-root /tmp/measured-open-loop --output-dir /tmp/predicted-open-loop
+```
+
+可用 `--point optimized/refine-4.440` 只回放一个点。比较器固定沿用旧成本表，
+将两系统的服务端活动上限设为实测的 96、KV blocks 设为 32768；不拟合本次结果。
+输出逐请求预测、解析后配置、双 cohort 汇总、带符号相对误差 CSV/JSON。
+Demo 06 已使用开环到达率输入，并提供模型/硬件下拉项；旧并发API保留兼容。

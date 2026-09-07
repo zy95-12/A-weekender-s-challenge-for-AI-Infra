@@ -28,7 +28,8 @@ UI 进程退出不会停止 serving；停止服务使用 `./poc down`。
 - **功能实现**：固定 `./poc up --wan`；轮询实际健康状态。回复来自模型，TTFT/TPOT 来自浏览器 token 事件计时，包含网络、代理和浏览器开销；少于两个输出 token 时 TPOT 不定义。
 - **精度**：只展示 Split 4/27/5 对原生完整单卡 TP1/full-prefill 的 8 道 GSM8K 真实归档结果。逐绝对位置对齐，decode 使用同一 teacher-forcing 序列；不比较自由回答。`accuracy-samples.json` 展示这 8 组不同输入。原生与 Split TP2+2 已于2026-09-07重新采集，现采用 logits cosine、top1 一致率和 top-5/10/20 overlap，不沿用绝对误差门槛；原始 logits、模型版本和门槛见 [精度报告](../docs/gsm8k-native-tp1.md)。
 - **优化曲线**：05 章节主要展示 baseline 与优化系统的真实开环对比：同一目标到达率使用相同泊松请求计划，客户端不限制并发，服务端统一 max_active=96 / kv_blocks=32768。横轴为实测完成 QPS，均值/P99 按计划到达 cohort 计算；TTFT 包括发包延误，错误计失败，到达和完成 cohort 均须至少99%请求同时满足两项SLO。显示每点实际到达率、在途并发和测量时长；页面不展示闭环吞吐曲线；保留 C16 Baseline 的实测耗时表，并在表格下方展示通信、流水和调度分析结论。见 [开环报告](evidence/open-loop-report.md)。
-- **仿真**：`demo/simulate.py` 对接当前主线 Q4，只开放 Qwen2.5-3B/A10/4K/79。optimized 使用 vendored real-serving scheduler、C40 empirical command 和 host profile，seed17；baseline 使用 behavioral scheduler、operator/host cost，沿用 baseline 精度回归的活动上限（C1 为8，其余为16）。每点真实执行、不缓存结果；不同并发仍是预测，参见 [校准与局限](../Q4/docs/CALIBRATION_AND_LIMITS.md)。
+- **仿真**：`demo/simulate.py` 对接Q4开环。A10/Qwen2.5-3B使用已有算子或command/host/WAN修正；新增L20/H20/Ascend910B、Qwen3-32B/DeepSeek V4-Flash下拉项使用公开参数Roofline，关闭A10校准表。每点实际执行。理论模式按96请求的权重+KV容量自动选TP，输出总卡数；V4为BF16架构近似，不声称FP4/FP8加速或真实模型服务支持。方案、精度表和误差证据在第六部分；见[公开参数与局限](../Q4/docs/PUBLIC_ROOFLINE.md)。
+
 
 ## 复现开环对比
 
@@ -50,7 +51,7 @@ python3 scripts/plot_open_loop.py
 - `GET /api/health`：本工作目录服务的真实健康状态。
 - `POST /api/chat {"messages":[{"role":"user","content":"你好"}]}`：真实 SSE。
 - `POST /api/security/encode {"text":"…"}` / `POST /api/security/recover {"encode_id":"…"}`：真实生成与恢复。
-- `POST /api/simulate {"variant":"optimized","concurrency":40}`：当前 Q4 仿真。
+- `POST /api/simulate {"variant":"optimized","workload_mode":"open_loop","arrival_rate_qps":0.5,"model":"qwen3-32b","hardware":"h20"}`：开环仿真；旧concurrency闭环API仍兼容。
 - `GET /api/jobs/{id}`：实际状态、日志、结果；失败明确报告。
 - `GET /api/artifacts/{id}/{filename}`：下载本次产物。
 - `GET /api/evidence`：归档实测 JSON。
@@ -73,3 +74,17 @@ python3 scripts/check_demo_evidence.py
 本次完整验收与新增数据见 [验证报告](../docs/live-demo-validation.md)。
 
 05 章节可用 `node demo/browser_open_loop.cjs` 做只读浏览器验收（需要 Playwright/Chromium）：核对实际证据与表格/曲线一致，检查 CSV、图片、原始 ZIP 下载及桌面/移动视图，不启动模型或发送推理请求。
+
+## 仿真精度重复验证
+
+原11组seed17基础上，baseline λ=.75以及optimized λ=1/4.440/4.744各补seed29/43，共8组真实GPU实验。
+精确回放同一到达时间表，成本抽样固定seed17；不重新拟合成本。
+Demo表格用每组误差等权MAPE及有符号均值，区分arrival延迟和completion QPS。
+
+```bash
+python3 scripts/open_loop_validation.py --out results/repeated-validation
+python3 Q4/scripts/compare_open_loop.py --measured-root results/repeated-validation --output-dir results/repeated-predictions
+python3 scripts/package_simulation_accuracy.py --new results/repeated-predictions/comparison.json --raw results/repeated-validation
+```
+
+第一步独占GPU服务并在结束恢复baseline；后两步仅CPU。输出[汇总JSON](evidence/simulation-accuracy.json)、[逐点CSV](evidence/simulation-accuracy.csv)、[补测原始数据与预测ZIP](evidence/simulation-validation-raw.zip)。
