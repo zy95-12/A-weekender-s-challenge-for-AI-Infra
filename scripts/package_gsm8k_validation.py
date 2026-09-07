@@ -33,7 +33,10 @@ def main():
         for prefix in ['native-','split-']:
             files += [(p,str(p.relative_to(RAW))) for p in sorted((RAW/(prefix+variant)).rglob('*')) if p.is_file()]
         archive(variant+'_logits.zip',files)
-    files = [(p,'evaluation/'+p.name) for p in sorted(RAW.iterdir()) if p.is_file()]
+    # The selected prompts and manifest are sufficient for offline reproduction;
+    # do not duplicate the complete upstream datasets in the evidence archive.
+    files = [(p,'evaluation/'+p.name) for p in sorted(RAW.iterdir())
+             if p.is_file() and p.name not in {'train.jsonl','test.jsonl'}]
     for folder in ['scripts','split_poc','tests','configs']:
         files += [(p,'source/'+str(p.relative_to(ROOT))) for p in sorted((ROOT/folder).rglob('*'))
                   if p.is_file() and p.suffix in ['.py','.sh','.json'] and '__pycache__' not in p.parts]
