@@ -72,8 +72,6 @@
     "evaluation/optimized-up.log": "14ec99b444b3cbe352b97c6d7fcd4b92d3038305bddf1f55d542e03d0afd1de0",
     "evaluation/prompts.json": "6a0f3740a7f3b2781701cf335d2a1518365970042657b9f87e4c0badd63478f7",
     "evaluation/summary.json": "4552ecd8fd0e631c610273c32903ee11ac972218a4517fb2db5902b87dfef215",
-    "evaluation/test.jsonl": "3730d312f6e3440559ace48831e51066acaca737f6eabec99bccb9e4b3c39d14",
-    "evaluation/train.jsonl": "17f347dc51477c50d4efb83959dbb7c56297aba886e5544ee2aaed3024813465",
     "source/scripts/acceptance.py": "0db2121f5b0e297d8ec56904ba3d14f861946e51583646b6946806cf7dd6329e",
     "source/scripts/analyze_pd_nsys.py": "53a4f009a056ecd50ef5dea214d96128b7554c0b1daa0ff75f4e62a22cd0be2e",
     "source/scripts/audit_pd_replicas.py": "154ca5d8ab679fa33550f7eb87acc7bbe937074e9b7d2cfa6db2d7666a6bac0a",
